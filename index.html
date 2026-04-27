@@ -209,31 +209,51 @@ Ans: A"
         const auth = getAuth(app);
         const db = getDatabase(app);
     // --- 1. UI PATCHER (Fixes HTML without manual editing) ---
-function patchUIForInterview() {
-    // Remove Institutional Rank section if it exists
-    const rankSection = document.getElementById('institutional-rank');
-    if (rankSection) rankSection.remove();
+function patchUI() {
+            // Hide Ranking Card in Student Dash
+            const rankCard = document.querySelector('.border-t-8.border-yellow-500');
+            if (rankCard && !document.getElementById('admin-panel').contains(rankCard)) {
+                rankCard.classList.add('hidden');
+            }
 
-    // Update Admin Panel with Scoring and Small Monitor
-    const adminPanel = document.getElementById('admin-panel');
-    if (adminPanel) {
-        const monitorContainer = adminPanel.querySelector('.lg\:col-span-1');
-        monitorContainer.innerHTML = `
-            <p class="text-red-500 text-[10px] font-bold mb-2 animate-pulse">● LIVE GHOST MONITOR</p>
-            <video id="admin-student-monitor" class="w-full h-32 bg-slate-900 rounded-lg mb-4 border border-slate-700" autoplay muted></video>
-            <div class="space-y-3">
-                <div class="bg-slate-800 p-2 rounded">
-                    <label class="text-[10px] text-slate-400 block uppercase">Monitoring ID:</label>
-                    <span id="monitored-id" class="text-white text-xs font-mono">Waiting...</span>
+            const adminPanel = document.getElementById('admin-panel');
+            if (!adminPanel) return;
+
+            // Target the left column (Enrollment Requests) to inject the Ghost Monitor
+            const leftCol = adminPanel.querySelector('.bg-slate-50.p-8');
+            if (leftCol) {
+                const monitorDiv = document.createElement('div');
+                monitorDiv.className = "mt-8 bg-black p-6 rounded-3xl border-b-4 border-red-600";
+                monitorDiv.innerHTML = `
+                    <p class="text-red-500 text-[10px] font-bold mb-4 animate-pulse uppercase tracking-widest">● Ghost Monitor Active</p>
+                    <video id="admin-student-monitor" class="w-full h-40 bg-slate-900 rounded-2xl mb-4 border border-slate-800" autoplay muted></video>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900 p-3 rounded-xl">
+                            <label class="text-[9px] text-slate-500 block uppercase font-black">Tracking ID</label>
+                            <span id="monitored-id" class="text-white text-xs font-mono">Waiting...</span>
+                        </div>
+                        <input type="number" id="live-marks" placeholder="Marks" class="bg-slate-800 text-white p-3 rounded-xl text-sm border-none focus:ring-2 ring-blue-500">
+                    </div>
+                    <button onclick="submitMarks()" class="w-full mt-4 bg-blue-600 text-white py-3 rounded-xl text-xs font-black hover:bg-blue-500 transition">PUSH INTERVIEW SCORE</button>
+                    <div id="movement-log" class="mt-4 h-20 overflow-y-auto bg-slate-900 rounded-xl p-3 text-[10px] text-yellow-500 font-mono">System Logs Initialized...</div>
+                `;
+                leftCol.appendChild(monitorDiv);
+            }
+
+            // Inject Student Manager at the very bottom
+            const managerSection = document.createElement('section');
+            managerSection.className = "mt-10 bg-white p-8 rounded-3xl shadow-xl border-t-8 border-yellow-500";
+            managerSection.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tighter">Student Roster Control</h3>
+                    <button onclick="loadStudentManager()" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-xs font-black">REFRESH LIST</button>
                 </div>
-                <input type="number" id="live-marks" placeholder="Marks (0-100)" 
-                       class="w-full p-2 bg-slate-800 text-white text-sm border-none rounded focus:ring-1 ring-blue-500">
-                <button onclick="submitMarks()" class="w-full bg-green-600 hover:bg-green-500 text-white py-2 rounded text-xs font-black">SAVE SCORE</button>
-                <div id="movement-log" class="text-[10px] text-yellow-500 font-mono mt-2 h-16 overflow-y-auto bg-black p-1">Logs: Ready...</div>
-            </div>
-        `;
-    }
-}
+                <div id="student-manager-list" class="overflow-x-auto max-h-96 overflow-y-auto">
+                    <p class="text-slate-400 italic text-sm">Click refresh to sync students...</p>
+                </div>
+            `;
+            adminPanel.appendChild(managerSection);
+        }
 
 // --- 2. GHOST & AI LOGIC ---
 
@@ -495,7 +515,107 @@ if (location.hash === "#admin") listenForLogs();
             alert("SUCCESS: EXAM DATA ENCRYPTED & SUBMITTED.");
             location.reload();
         };
+        // --- 1. STUDENT MANAGEMENT LOGIC ---
+
+// Fetch and Render Student List for Admin
+window.loadStudentManager = () => {
+    const managerContainer = document.getElementById('student-manager-list');
+    onValue(ref(db, 'verified_students'), (snap) => {
+        const students = snap.val();
+        let html = `
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th class="p-2">Name (ID)</th>
+                        <th class="p-2">CBT Status</th>
+                        <th class="p-2">Interview</th>
+                        <th class="p-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
         
+        for (let id in students) {
+            const s = students[id];
+            html += `
+                <tr class="border-b">
+                    <td class="p-2"><b>${s.name}</b><br><span class="text-slate-400">${id}</span></td>
+                    <td class="p-2">
+                        <button onclick="toggleStatus('${id}', 'cbt')" class="px-2 py-1 rounded ${s.cbt_enabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            ${s.cbt_enabled ? 'Scheduled' : 'Paused'}
+                        </button>
+                    </td>
+                    <td class="p-2">
+                        <button onclick="toggleStatus('${id}', 'interview')" class="px-2 py-1 rounded ${s.int_enabled ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
+                            ${s.int_enabled ? 'Ready' : 'Off'}
+                        </button>
+                    </td>
+                    <td class="p-2 flex gap-2">
+                        <button onclick="deleteStudent('${id}')" class="text-red-500 font-bold">Delete</button>
+                    </td>
+                </tr>`;
+        }
+        html += `</tbody></table>`;
+        managerContainer.innerHTML = html;
+    });
+};
+
+// Toggle Scheduling (CBT or Interview)
+window.toggleStatus = (id, type) => {
+    const key = type === 'cbt' ? 'cbt_enabled' : 'int_enabled';
+    onValue(ref(db, `verified_students/${id}/${key}`), (snap) => {
+        const current = snap.val() || false;
+        update(ref(db, `verified_students/${id}`), { [key]: !current });
+    }, { onlyOnce: true });
+};
+
+// Delete Student Account
+window.deleteStudent = (id) => {
+    if(confirm(`Are you sure you want to remove Student ID: ${id}?`)) {
+        set(ref(db, `verified_students/${id}`), null);
+    }
+};
+
+// --- 2. UI PATCHER (Injects the Manager into the Admin Panel) ---
+function injectManagementUI() {
+    const adminPanel = document.getElementById('admin-panel');
+    if (!adminPanel) return;
+
+    // Create the Student Management Section
+    const managerSection = document.createElement('div');
+    managerSection.className = "bg-white p-6 rounded-2xl shadow-xl mt-6 border-t-4 border-yellow-500";
+    managerSection.innerHTML = `
+        <h3 class="text-lg font-black mb-4 flex justify-between">
+            STUDENT ROSTER & SCHEDULING
+            <button onclick="loadStudentManager()" class="text-xs bg-slate-100 px-3 py-1 rounded">Refresh List</button>
+        </h3>
+        <div id="student-manager-list" class="overflow-x-auto max-h-60 overflow-y-auto">
+            <p class="text-slate-400 text-sm">Click refresh to load enrolled students...</p>
+        </div>
+    `;
+    adminPanel.appendChild(managerSection);
+    
+    // Patch existing Interview UI to include the Ghost Mode enhancements
+    const monitorSide = adminPanel.querySelector('.lg\:col-span-1');
+    if (monitorSide) {
+        monitorSide.innerHTML = `
+            <p class="text-red-500 text-[10px] font-bold mb-2 animate-pulse">● LIVE GHOST MONITOR</p>
+            <video id="admin-student-monitor" class="w-full h-32 bg-slate-900 rounded-lg mb-4 border border-slate-700" autoplay muted></video>
+            <div class="space-y-3">
+                <div class="bg-slate-800 p-2 rounded">
+                    <label class="text-[10px] text-slate-400 block uppercase">Monitoring ID:</label>
+                    <span id="monitored-id" class="text-white text-xs font-mono">Waiting...</span>
+                </div>
+                <input type="number" id="live-marks" placeholder="Interview Score (0-100)" 
+                       class="w-full p-2 bg-slate-800 text-white text-sm border-none rounded focus:ring-1 ring-blue-500">
+                <button onclick="submitMarks()" class="w-full bg-green-600 text-white py-2 rounded text-xs font-black">SAVE INTERVIEW SCORE</button>
+                <div id="movement-log" class="text-[10px] text-yellow-500 font-mono mt-2 h-12 overflow-y-auto bg-black p-1">Logs: Ready...</div>
+            </div>
+        `;
+    }
+}
+
+// Initialize on Script Load
+injectManagementUI();
     </script>
 </body>
 </html>
