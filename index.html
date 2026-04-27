@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Portal | RRB, TCS, Wipro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .exam-palette { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .palette-btn { width: 30px; height: 30px; border-radius: 50%; font-size: 10px; color: white; display: flex; align-items: center; justify-content: center; }
+        #camera-feed { width: 150px; height: 110px; background: #000; border: 2px solid #ef4444; position: fixed; bottom: 10px; right: 10px; border-radius: 8px; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <nav class="bg-blue-800 text-white p-4 flex justify-between shadow-lg">
+        <h1 class="text-xl font-bold">ExamMaster Pro</h1>
+        <div id="user-info" class="text-sm">Not Logged In</div>
+    </nav>
+
+    <div class="bg-yellow-100 p-2 text-center text-red-600 font-bold border-b border-yellow-300">
+        📢 Update: <span id="notice-text">Welcome to the Mock Test Portal. Please Login to start.</span>
+    </div>
+
+    <main class="container mx-auto p-4">
+        
+        <section id="login-section" class="max-w-md mx-auto bg-white p-8 mt-10 rounded-lg shadow-md">
+            <h2 class="text-2xl mb-6 font-bold text-center">Dashboard Login</h2>
+            <input type="email" id="email" placeholder="Email (admin@admin.com)" class="w-full p-2 mb-4 border rounded">
+            <input type="password" id="pass" placeholder="Password (51234Caps)" class="w-full p-2 mb-4 border rounded">
+            <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">Login</button>
+        </section>
+
+        <section id="student-dash" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded shadow">
+                    <h3 class="font-bold border-b mb-3">Upcoming Exams</h3>
+                    <ul>
+                        <li class="p-2 border-b text-sm">RRB NTPC Mock - <span class="text-blue-600 cursor-pointer" onclick="startExam()">START</span></li>
+                        <li class="p-2 text-sm text-gray-400">Wipro NLTH (Locked)</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded shadow">
+                    <h3 class="font-bold border-b mb-3">Past Performance</h3>
+                    <div class="text-3xl font-bold text-green-600">82%</div>
+                    <p class="text-xs text-gray-500">Last Test: RRB Group D</p>
+                </div>
+                <div class="bg-white p-6 rounded shadow">
+                    <h3 class="font-bold border-b mb-3">AI Proctoring Log</h3>
+                    <p id="violation-count" class="text-red-500 font-medium">Warnings: 0</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="exam-ui" class="hidden flex flex-col md:flex-row gap-4 h-[80vh]">
+            <div class="flex-1 bg-white p-6 rounded shadow">
+                <div class="flex justify-between items-center border-b pb-2 mb-4">
+                    <span class="font-bold">Q. 1 / 100</span>
+                    <span id="timer" class="text-red-600 font-mono font-bold text-xl">90:00</span>
+                </div>
+                <p class="text-lg mb-6">What is the shortcut key to refresh a webpage?</p>
+                <div class="space-y-2">
+                    <label class="block p-2 border rounded cursor-pointer"><input type="radio" name="q1"> F5</label>
+                    <label class="block p-2 border rounded cursor-pointer"><input type="radio" name="q1"> F2</label>
+                </div>
+                <div class="mt-10 flex gap-2">
+                    <button class="bg-gray-200 px-4 py-2 rounded">Mark for Review</button>
+                    <button class="bg-green-600 text-white px-6 py-2 rounded ml-auto">Save & Next</button>
+                </div>
+            </div>
+            <div class="w-full md:w-64 bg-white p-4 rounded shadow">
+                <h4 class="font-bold mb-4">Question Palette</h4>
+                <div class="exam-palette">
+                    <div class="palette-btn bg-green-500">1</div>
+                    <div class="palette-btn bg-gray-300">2</div>
+                    <div class="palette-btn bg-red-500">3</div>
+                    </div>
+            </div>
+        </section>
+
+    </main>
+
+    <video id="camera-feed" autoplay muted playsinline class="hidden"></video>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKqBYNRY_80b_UOLg1ls9pIKdX-Y8b3CM",
+            authDomain: "placement-96094.firebaseapp.com",
+            databaseURL: "https://placement-96094-default-rtdb.firebaseio.com",
+            projectId: "placement-96094",
+            storageBucket: "placement-96094.firebasestorage.app",
+            messagingSenderId: "1061247846675",
+            appId: "1:1061247846675:web:c6885811fcf1884582b2e6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // LOGIN LOGIC
+        window.login = async () => {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
+            try {
+                const user = await signInWithEmailAndPassword(auth, e, p);
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('student-dash').classList.remove('hidden');
+                document.getElementById('user-info').innerText = `User: ${e}`;
+            } catch (err) { alert(err.message); }
+        };
+
+        // EXAM LOGIC
+        window.startExam = () => {
+            document.getElementById('student-dash').classList.add('hidden');
+            document.getElementById('exam-ui').classList.remove('hidden');
+            document.getElementById('camera-feed').classList.remove('hidden');
+            startTimer(90 * 60);
+            initProctor();
+        };
+
+        // TIMER
+        function startTimer(duration) {
+            let timer = duration, minutes, seconds;
+            setInterval(() => {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+                document.getElementById('timer').textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                if (--timer < 0) alert("Time Up!");
+            }, 1000);
+        }
+
+        // TAB SWITCH DETECTION (AI PROCTOR - Note 2)
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                alert("Warning: Tab switching detected! This incident has been logged.");
+                set(ref(db, 'violations/' + auth.currentUser.uid), {
+                    type: "Tab Switch",
+                    time: new Date().toISOString()
+                });
+            }
+        });
+
+        // LIVE CAMERA START
+        async function initProctor() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('camera-feed').srcObject = stream;
+        }
+    </script>
+</body>
+</html>
