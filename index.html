@@ -258,14 +258,16 @@ function patchUI() {
 // --- 2. GHOST & AI LOGIC ---
 
 // ADMIN: Send Manual Question (Student sees as "AI")
+// This connects the Admin Ghost Chat to the Student's AI Voice
 window.sendGhostMsg = () => {
     const msg = document.getElementById('ghost-msg').value;
     if(!msg) return;
+    
+    // Push to the live_interviews node
     set(ref(db, 'live_interviews/current_qn'), {
         text: msg,
-        sender: 'AI', // Identity Protection
-        type: 'LIVE',
-        time: Date.now()
+        sender: 'AI', // Mask identity
+        timestamp: Date.now()
     });
     document.getElementById('ghost-msg').value = "";
 };
@@ -612,6 +614,90 @@ function injectManagementUI() {
             </div>
         `;
     }
+}
+        // --- 1. ADMIN: PUSH TEST CONFIGURATION ---
+window.scheduleCBT = () => {
+    const testName = prompt("Enter Test Name (e.g., RRB Phase 1):");
+    const qnBankPath = "RRB_NTPC"; // Path in Firebase
+    const duration = prompt("Total Time (Minutes):", "90");
+    const marksPerQn = prompt("Marks per Question:", "1");
+    const date = prompt("Scheduled Date (YYYY-MM-DD):");
+
+    set(ref(db, 'active_test_config'), {
+        type: 'CBT',
+        name: testName,
+        bank: qnBankPath,
+        duration: parseInt(duration),
+        marks: parseInt(marksPerQn),
+        scheduledDate: date,
+        status: 'LIVE'
+    }).then(() => alert("CBT Scheduled! Student side will update."));
+};
+
+window.scheduleInterview = (mode) => {
+    // mode: 'AI' or 'LIVE'
+    set(ref(db, 'active_test_config'), {
+        type: 'INTERVIEW',
+        mode: mode, // AI or LIVE
+        status: 'LIVE'
+    }).then(() => alert(`Interview (${mode}) Scheduled!`));
+};
+        // --- 2. STUDENT: LISTEN FOR ASSIGNED TESTS ---
+function listenForAssignedTests(studentId) {
+    onValue(ref(db, `verified_students/${studentId}`), (snap) => {
+        const student = snap.val();
+        const dashContainer = document.getElementById('student-dash').querySelector('.lg\\:col-span-2');
+        
+        // Listen for the global active test config
+        onValue(ref(db, 'active_test_config'), (configSnap) => {
+            const config = configSnap.val();
+            if(!config) return;
+
+            let actionButton = "";
+            
+            // Check if Admin has enabled this specific student for this test
+            if (config.type === 'CBT' && student.cbt_enabled) {
+                actionButton = `<button onclick="launchDynamicCBT()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-black">START ${config.name}</button>`;
+            } 
+            else if (config.type === 'INTERVIEW' && student.int_enabled) {
+                actionButton = `<button onclick="startInterview('${config.mode}')" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black">JOIN ${config.mode} INTERVIEW</button>`;
+            }
+
+            dashContainer.innerHTML = `
+                <div class="bg-slate-50 p-6 rounded-2xl border-2 border-blue-200 animate-pulse">
+                    <h3 class="font-black text-xl text-blue-900">${config.type} ASSIGNED</h3>
+                    <p class="text-sm text-slate-500 mb-4">System is ready. Identity: ${studentId}</p>
+                    ${actionButton || '<p class="text-red-500 font-bold">Waiting for Admin to enable your ID...</p>'}
+                </div>
+            `;
+        });
+    });
+}
+        // --- 3. UI PATCHER: INJECT COMMAND CENTER ---
+function injectCommandCenter() {
+    const adminPanel = document.getElementById('admin-panel');
+    if (!adminPanel) return;
+
+    const controlDiv = document.createElement('div');
+    controlDiv.className = "grid grid-cols-1 md:grid-cols-2 gap-6 mb-10";
+    controlDiv.innerHTML = `
+        <div class="bg-blue-900 p-8 rounded-3xl text-white shadow-2xl">
+            <h3 class="font-black text-xl mb-4 italic">CBT Control</h3>
+            <div class="flex flex-col gap-3">
+                <button onclick="scheduleCBT()" class="bg-white text-blue-900 py-3 rounded-xl font-black hover:bg-blue-100 transition">GENERATE NEW CBT</button>
+                <p class="text-[10px] text-blue-300">Set bank, marks, and timing for all students.</p>
+            </div>
+        </div>
+        <div class="bg-indigo-900 p-8 rounded-3xl text-white shadow-2xl">
+            <h3 class="font-black text-xl mb-4 italic">Interview Control</h3>
+            <div class="flex gap-4">
+                <button onclick="scheduleInterview('AI')" class="flex-1 bg-indigo-500 py-3 rounded-xl font-black hover:bg-indigo-400 transition">AI MODE</button>
+                <button onclick="scheduleInterview('LIVE')" class="flex-1 bg-white text-indigo-900 py-3 rounded-xl font-black hover:bg-indigo-100 transition">GHOST LIVE</button>
+            </div>
+            <p class="text-[10px] text-indigo-300 mt-3 text-center">Ghost Mode: You type, student hears AI.</p>
+        </div>
+    `;
+    adminPanel.prepend(controlDiv); // Put it at the very top
 }
 
 // Initialize on Script Load
