@@ -482,24 +482,34 @@ let currentBatchId = null;
     }
 
     const isAdmin = user.email === ADMIN_EMAIL;
-    const btn = document.getElementById('teacher-add-sub-btn');
+    const teacherBtn = document.getElementById('teacher-add-sub-btn');
+    const teacherTools = document.getElementById('teacher-hub-tools');
 
-    if (isAdmin) {
-        // Teacher/Admin Authority
-        if (btn) btn.classList.remove('hidden');
-        launchHub(bName);
-    } else {
-        // Student Authorization Check
-        onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
-            if (snap.exists()) {
-                if (btn) btn.classList.add('hidden');
-                launchHub(bName);
-            } else {
-                alert("Access Denied: You need teacher approval for this batch.");
-                window.requestEnrollment(bId, bName);
+    // SECURITY CHECK: Master or Approved Student
+    onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
+        if (isAdmin || snap.exists()) {
+            // 1. Set the Title
+            document.getElementById('hub-batch-title').innerText = bName;
+            
+            // 2. Manage Teacher-Only UI visibility safely
+            if (teacherBtn) {
+                isAdmin ? teacherBtn.classList.remove('hidden') : teacherBtn.classList.add('hidden');
             }
-        }, { onlyOnce: true });
-    }
+            if (teacherTools) {
+                isAdmin ? teacherTools.classList.remove('hidden') : teacherTools.classList.add('hidden');
+            }
+
+            // 3. Show the Classroom Overlay
+            document.getElementById('study-hub-view').classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; 
+            
+            // 4. Load Content
+            loadCurriculum();
+        } else {
+            alert("Access Denied: You need teacher approval for this batch.");
+            window.requestEnrollment(bId, bName);
+        }
+    }, { onlyOnce: true });
 };
 function launchHub(name) {
     // 1. Set the Title
