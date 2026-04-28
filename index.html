@@ -369,20 +369,35 @@ window.toggleStatus = (id, type) => {
         };
 
         window.listenForTests = (sId) => {
-            onValue(ref(db, 'active_test_config'), (snap) => {
-                const config = snap.val();
-                if(!config) return;
-                onValue(ref(db, `verified_students/${sId}`), (sSnap) => {
-                    const s = sSnap.val();
-                    const area = document.getElementById('test-list-area');
-                    let btn = "";
-                    if (config.type === 'VIVA' && s.int_enabled) {
-                        btn = `<button onclick="window.startInterview()" class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl">JOIN LIVE INTERVIEW</button>`;
-                    }
-                    area.innerHTML = `<h3 class="text-3xl font-black mb-6 uppercase italic">${config.name}</h3>${btn || '<p class="text-red-500 font-black">Wait for Admin Auth...</p>'}`;
-                });
-            });
-        };
+    // Listen for both the main test config AND the specific interview session
+    onValue(ref(db, 'active_test_config'), (snap) => {
+        const config = snap.val();
+        onValue(ref(db, `verified_students/${sId}`), (sSnap) => {
+            const s = sSnap.val();
+            const area = document.getElementById('test-list-area');
+            if(!area) return;
+
+            let btn = "";
+            
+            // Check for CBT or Standard VIVA
+            if (config && config.type === 'CBT' && s.cbt_enabled) {
+                btn = `<button onclick="window.startExam('${config.bank}')" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl">START ${config.name}</button>`;
+            } 
+            else if (config && (config.type === 'VIVA' || config.type === 'INTERVIEW') && s.int_enabled) {
+                btn = `<button onclick="window.startInterviewSession()" class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl animate-bounce">JOIN LIVE VIVA ROOM</button>`;
+            }
+
+            area.innerHTML = `
+                <div class="p-8 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                    <h3 class="text-2xl font-black mb-4 uppercase italic text-slate-700">
+                        ${config ? config.name : 'Waiting for Assignment...'}
+                    </h3>
+                    ${btn || '<p class="text-red-500 font-bold">Your ID is being verified. Please wait for Admin to enable your session.</p>'}
+                </div>
+            `;
+        });
+    });
+};
 
         window.initProctor = async () => {
             try { const s = await navigator.mediaDevices.getUserMedia({ video: true }); document.getElementById('camera-feed').srcObject = s; } catch (e) {}
@@ -713,18 +728,28 @@ window.broadcastInterviewConfig = () => {
     const id = document.getElementById('sched-id').value;
     const mode = document.getElementById('sched-mode').value;
     const bank = document.getElementById('ai-logic-text').value;
+    const timer = document.getElementById('sched-time').value;
 
-    if(!id) return alert("Enter Student ID!");
+    if(!id) return alert("Please select a Student ID first!");
 
-    set(ref(db, 'active_interview_session'), {
-        target: id,
+    // 1. Activate the global test config so the button appears for the student
+    set(ref(db, 'active_test_config'), {
+        type: 'VIVA',
+        name: "LIVE VIVA: SESSION #" + id,
         mode: mode,
-        bank: mode === 'AI' ? bank : "LIVE_STREAM",
-        status: "READY",
+        bank: mode === 'AI' ? bank : "LIVE_MODE",
+        timer: timer,
+        targetID: id,
         timestamp: Date.now()
-    }).then(() => alert("Interview Config Pushed. Student can now join."));
-};
+    });
 
+    // 2. Enable the student's specific Viva permission
+    update(ref(db, `verified_students/${id}`), {
+        int_enabled: true
+    }).then(() => {
+        alert(`SUCCESS: Interview is now LIVE for Student ${id}`);
+    });
+};
 // --- 4. NEW REGISTRATION (Manually added as requested) ---
 window.approveCandidate = (key, name, email) => {
     const newID = Math.floor(1000 + Math.random() * 9000);
