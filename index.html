@@ -377,6 +377,18 @@ function listenForRequests() {
         }
     });
 };
+        window.requestEnrollment = async (batchId, batchName) => {
+    const user = auth.currentUser;
+    if (!user) return toggleModal();
+    
+    await set(ref(db, `enrollment_requests/${batchId}/${user.uid}`), {
+        uid: user.uid,
+        email: user.email,
+        batchName: batchName,
+        timestamp: Date.now()
+    });
+    alert("Request Sent! Wait for teacher approval.");
+};
         
         lucide.createIcons();
     </script>
