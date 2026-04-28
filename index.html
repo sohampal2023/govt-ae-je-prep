@@ -467,6 +467,87 @@
                 });
             });
         };
+        // --- 1. FIXED: CBT & VIVA SETUP DESIGNER ---
+window.openSetupScreen = (type) => {
+    const adminPanel = document.getElementById('admin-panel');
+    // We clear the panel to show the "Designer" view for the specific task
+    adminPanel.innerHTML = `
+        <div class="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-blue-50 animate-in zoom-in-95">
+            <div class="flex justify-between items-center mb-10 border-b pb-6">
+                <h2 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">⚙️ ${type} DESIGNER</h2>
+                <button onclick="window.renderAdminDashboard(); window.loadStudentRoster();" class="bg-slate-100 text-slate-400 px-6 py-2 rounded-2xl font-bold">CANCEL</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div class="space-y-6">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Exam Title</label>
+                        <input type="text" id="setup-test-name" placeholder="e.g. RRB NTPC Mock 1" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold outline-none focus:ring-2 ring-blue-500">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="number" id="setup-duration" placeholder="Duration (Mins)" value="90" class="p-4 bg-slate-50 border rounded-2xl font-bold">
+                        <input type="number" id="setup-marks" placeholder="Marks per Q" value="1" class="p-4 bg-slate-50 border rounded-2xl font-bold">
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Bulk Question Paste</label>
+                        <textarea id="bulk-question-input" placeholder="1. Question... A) Opt B) Opt Ans: A" class="w-full h-64 p-4 bg-slate-900 text-blue-400 font-mono text-xs rounded-2xl border-none outline-none"></textarea>
+                    </div>
+
+                    <button onclick="window.finalizeCBTSetup('${type}')" class="w-full bg-blue-700 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl hover:bg-blue-800 transition-all uppercase">Activate & Broadcast</button>
+                </div>
+
+                <div class="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200">
+                    <h5 class="font-black text-slate-800 mb-4 italic">Bulk Upload Format:</h5>
+                    <p class="text-xs text-slate-500 leading-loose">
+                        1. Start each question with a number.<br>
+                        2. Include options A) B) C) D).<br>
+                        3. End with "Ans: [Option Letter]".<br><br>
+                        <span class="text-red-500 font-bold uppercase">Note: AI will automatically shuffle these for every student.</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+// --- 2. FIXED: FINALIZE CBT LOGIC ---
+window.finalizeCBTSetup = async (type) => {
+    const name = document.getElementById('setup-test-name').value;
+    const rawText = document.getElementById('bulk-question-input').value;
+    const duration = document.getElementById('setup-duration').value;
+    const marks = document.getElementById('setup-marks').value;
+
+    if(!name || !rawText) return alert("Please fill all fields!");
+
+    // Parse questions: splits by number + dot (1. or 2.)
+    const qBlocks = rawText.split(/\d+\./).filter(b => b.length > 5);
+    const bankId = `BANK_${Date.now()}`;
+
+    // Upload questions to bank
+    for (let block of qBlocks) {
+        await push(ref(db, `question_bank/${bankId}`), { 
+            content: block.trim(),
+            timestamp: Date.now() 
+        });
+    }
+
+    // Activate the test globally
+    set(ref(db, 'active_test_config'), {
+        type: type,
+        name: name,
+        bank: bankId,
+        duration: duration,
+        marksPerQ: marks,
+        status: "LIVE",
+        timestamp: Date.now()
+    }).then(() => {
+        alert(`${type} activated with ${qBlocks.length} questions!`);
+        window.renderAdminDashboard();
+        window.loadStudentRoster();
+    });
+};
     </script>
 </body>
 </html>
