@@ -359,10 +359,10 @@ function loadBatches() {
                         <div id="display-price-${b.id}">
                             <span class="text-3xl font-black text-slate-900">₹${pMo}</span><small class="text-xs text-slate-400 font-bold ml-1">/mo</small>
                         </div>
-                        <button onclick="openStudyHub('${b.id}', '${b.name}')" 
-                                class="${hasAccess ? 'bg-blue-600' : 'bg-slate-900'} text-white px-10 py-4 rounded-3xl font-black text-xs shadow-xl transition-all uppercase tracking-widest">
-                            ${hasAccess ? (isMaster ? 'Teach' : 'Study') : 'Join Now'}
-                        </button>
+                        <button onclick="openStudyHub('${b.id}', '${b.name}', '${pFull}', '${pMo}')" 
+        class="...">
+    ${hasAccess ? (isMaster ? 'Teach' : 'Study') : 'Join Now'}
+</button>
                     </div>
                 </div>`;
             }).join('');
@@ -502,7 +502,7 @@ window.editTopic = async (subId, topicId, oldTitle) => {
 let currentBatchId = null;
 
     // --- 1. NAVIGATION LOGIC (The "Single-Page" Switch) ---
-   window.openStudyHub = (bId, bName) => {
+   window.openStudyHub = (bId, bName, pFull, pMo) => {
     currentBatchId = bId;
     const user = auth.currentUser;
     if (!user) return window.toggleModal();
@@ -512,19 +512,12 @@ let currentBatchId = null;
     const executeOpen = () => {
         const hubView = document.getElementById('study-hub-view');
         const hubTitle = document.getElementById('hub-batch-title');
-        
-        // --- THE FIX ---
-        // Move the classroom to the very bottom of the <body> so it's on top of everything
         document.body.appendChild(hubView); 
 
         hubView.classList.remove('hidden');
-        hubView.style.display = 'block'; 
-        hubView.style.position = 'fixed';
-        hubView.style.zIndex = '999999'; 
-        
+        hubView.style.display = 'block';
         hubTitle.innerText = bName;
         document.body.style.overflow = 'hidden'; 
-        
         loadCurriculum();
     };
 
@@ -532,10 +525,12 @@ let currentBatchId = null;
         executeOpen();
     } else {
         onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
-            if (snap.exists()) executeOpen();
-            else {
-                alert("Approval Required: Please wait for the teacher to approve your enrollment.");
-                window.requestEnrollment(bId, bName);
+            if (snap.exists()) {
+                executeOpen();
+            } else {
+                // Determine which price to use (defaulting to Monthly for the request)
+                const priceToPay = pMo || pFull || 0;
+                window.requestEnrollment(bId, bName, priceToPay);
             }
         }, { onlyOnce: true });
     }
@@ -759,45 +754,48 @@ window.closeStudyHub = () => {
 };
     window.requestEnrollment = async (batchId, batchName, price) => {
     const user = auth.currentUser;
-    if (!user) return window.toggleModal();
-
-    // YOUR PERSONAL UPI DETAILS
-    const myUpiId = "sohampal781@okhdfcbank"; // Replace with your actual UPI ID
+    const myUpiId = "sohampal781@okhdfcbank"; 
     const merchantName = "GovtPrep Pro";
-
-    // Create a standard UPI Deep Link
-    // pa = VPA, pn = Name, am = Amount, cu = Currency, tn = Note
+    
+    // Create UPI Link
     const upiLink = `upi://pay?pa=${myUpiId}&pn=${encodeURIComponent(merchantName)}&am=${price}&cu=INR&tn=${encodeURIComponent('Batch: ' + batchName)}`;
 
-    const payConfirm = confirm(
-        `PAYMENT SECURE GATEWAY\n\n` +
-        `Batch: ${batchName}\n` +
-        `Amount: ₹${price}\n\n` +
-        `Click OK to pay directly via PhonePe/GPay/Paytm. After payment, your request will be sent for approval.`
-    );
+    // Check if Device is Mobile
+    const isMobile = /iPhone|Android/i.test(navigator.userAgent);
 
-    if (payConfirm) {
-        // Attempt to open UPI apps on Mobile
-        window.location.href = upiLink;
-
-        // Give them a moment to pay, then log the request in your Firebase
-        setTimeout(async () => {
-            try {
-                await set(ref(db, `enrollment_requests/${batchId}/${user.uid}`), {
-                    uid: user.uid,
-                    email: user.email,
-                    batchName: batchName,
-                    amountPaid: price,
-                    status: "Awaiting Verification",
-                    timestamp: Date.now()
-                });
-                alert("Enrollment Request Logged! Once I receive the ₹" + price + " in my bank, I will approve your access.");
-            } catch (e) {
-                alert("Error sending request.");
-            }
-        }, 2000);
+    if (isMobile) {
+        const confirmPay = confirm(`Click OK to pay ₹${price} via any UPI App (GPay/PhonePe).`);
+        if (confirmPay) {
+            window.location.href = upiLink;
+            // Log the request after a delay
+            sendEnrollmentToFirebase(batchId, user, batchName, price);
+        }
+    } else {
+        // DESKTOP: Show the QR Modal instead of crashing
+        alert(`DESKTOP DETECTED:\n\nPlease scan the QR code on the next screen to pay ₹${price} for ${batchName}.`);
+        const qrModal = document.getElementById('paymentModal');
+        if (qrModal) {
+            qrModal.classList.remove('hidden');
+            // You can dynamically update a text field in your modal here if needed
+            sendEnrollmentToFirebase(batchId, user, batchName, price);
+        } else {
+            alert("Payment Modal missing! Please pay to: " + myUpiId);
+        }
     }
 };
+
+async function sendEnrollmentToFirebase(batchId, user, batchName, price) {
+    try {
+        await set(ref(db, `enrollment_requests/${batchId}/${user.uid}`), {
+            uid: user.uid,
+            email: user.email,
+            batchName: batchName,
+            amountPaid: price,
+            status: "Awaiting Verification",
+            timestamp: Date.now()
+        });
+    } catch (e) { console.error("Firebase Log Failed", e); }
+}
     loadBatches();
     lucide.createIcons();
 </script>
