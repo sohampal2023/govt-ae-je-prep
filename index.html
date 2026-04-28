@@ -174,32 +174,6 @@
             window.loadStudentRoster();
         };
 
-        // GHOST VIVA LOGIC
-        window.sendGhostMsg = () => {
-            const msg = document.getElementById('ghost-msg').value;
-            if (msg) {
-                set(ref(db, 'live_interviews/current_qn'), { text: msg, timestamp: Date.now() });
-                document.getElementById('ghost-msg').value = "";
-            }
-        };
-
-        // STUDENT: VIVA ROOM & TRANSCRIPT
-        window.startInterview = () => {
-            window.showPanel('exam-ui');
-            window.initProctor();
-            window.startTabTracking(); // Fixed Proctoring
-
-            // Listen for Admin Questions
-            onValue(ref(db, 'live_interviews/current_qn'), (snap) => {
-                const q = snap.val();
-                if (q) {
-                    document.getElementById('display-q-text').innerText = q.text;
-                    const speech = new SpeechSynthesisUtterance(q.text);
-                    window.speechSynthesis.speak(speech);
-                }
-            });
-        };
-
         window.submitAnswer = () => {
             const ans = document.getElementById('answer-transcript').value;
             if (ans && window.currentStudent) {
@@ -935,7 +909,58 @@ window.sendGhostQuestion = () => {
         document.getElementById('ghost-msg').value = ""; // Clear box
     });
 };
-        
+        // --- SESSION PERSISTENCE ---
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        if (user.email === "admin@admin.com") {
+            window.showPanel('admin-panel');
+            window.renderAdminDashboard();
+        } else {
+            // Logic to recover student ID from session or a temporary cookie
+            // For now, it will return to Dashboard if logged in
+            window.showPanel('student-dash');
+        }
+    } else {
+        window.showPanel('auth-container');
+    }
+});
+        window.syncAdminMonitor = (studentId) => {
+    // 1. Hook the Screen/Cam Video
+    // Note: This requires a WebRTC signaling path or a direct stream URL
+    onValue(ref(db, `live_sessions/${studentId}/streamUrl`), (snap) => {
+        const url = snap.val();
+        if (url) {
+            const video = document.getElementById('admin-screen-monitor');
+            video.src = url; 
+            document.getElementById('video-placeholder').classList.add('hidden');
+        }
+    });
+
+    // 2. Hook the Transcript (Live Speech)
+    onValue(ref(db, `live_interviews/transcripts/${studentId}`), (snap) => {
+        const log = document.getElementById('viva-transcript');
+        const data = snap.val();
+        if (data && log) {
+            log.innerText = data.text;
+            log.scrollTop = log.scrollHeight; // Auto-scroll
+        }
+    });
+};
+     window.sendGhostMsg = () => {
+    const msg = document.getElementById('ghost-msg').value;
+    const targetId = document.getElementById('sched-id')?.value; // ID from your scheduler
+
+    if (!msg) return alert("Type something!");
+
+    // Push to the global path that the student is listening to
+    set(ref(db, 'live_interviews/current_qn'), {
+        text: msg,
+        target: targetId || "ALL",
+        timestamp: Date.now()
+    }).then(() => {
+        document.getElementById('ghost-msg').value = "";
+    });
+};   
     </script>
 </body>
 </html>
