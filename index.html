@@ -51,6 +51,7 @@
                     <p class="text-xs opacity-60">AI Auto vs Live Ghost Control</p>
                 </div>
             </div>
+            <button onclick="window.openInterviewManager()">INTERVIEW CENTER</button>
             <div id="admin-main-view"></div>
         </section>
 
@@ -58,6 +59,7 @@
             <div class="max-w-4xl mx-auto bg-white p-12 rounded-[3rem] border-4 border-blue-50 text-center shadow-inner">
                 <div id="test-list-area"></div>
             </div>
+            <button onclick="window.startInterviewSession()">JOIN INTERVIEW</button>
         </section>
 
         <section id="exam-ui" class="hidden fixed inset-0 z-[200] bg-slate-50 overflow-y-auto">
@@ -291,7 +293,94 @@
         };
 
         window.portalLogout = () => { signOut(auth).then(() => location.reload()); };
+        window.openInterviewManager = () => {
+    const adminView = document.getElementById('admin-panel');
+    adminView.innerHTML = `
+        <div class="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-indigo-50">
+            <h2 class="text-3xl font-black mb-8 italic">📅 SCHEDULER: VIVA & SCREEN-SYNC</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-4">
+                    <input type="text" id="target-student-id" placeholder="Student ID (e.g. 6181)" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                    <select id="viva-mode" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold" onchange="document.getElementById('ai-bank-box').classList.toggle('hidden', this.value !== 'AI')">
+                        <option value="LIVE">GHOST LIVE (Manual)</option>
+                        <option value="AI">AI AUTOMATED (Keyword Logic)</option>
+                    </select>
+                    <input type="number" id="viva-timer" placeholder="Seconds per Answer" value="60" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                    <div id="ai-bank-box" class="hidden">
+                        <textarea id="ai-bank-text" placeholder="1. Qn... Answer Keywords: logic, math... Marks: 20" class="w-full h-40 p-4 bg-slate-900 text-green-400 font-mono rounded-2xl"></textarea>
+                    </div>
+                    <button onclick="window.broadcastInterview()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black">START SESSION</button>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-[2rem] text-white">
+                    <p class="text-indigo-400 text-[10px] font-black uppercase mb-4">Live Transcript & Screen</p>
+                    <div id="viva-transcript" class="h-48 overflow-y-auto font-mono text-[10px] text-slate-300 italic mb-4 border-b border-slate-800">Waiting for candidate voice...</div>
+                    <input type="number" id="live-deduction" placeholder="Score to Give" class="w-full p-2 bg-slate-800 rounded mb-2">
+                    <input type="text" id="deduction-reason" placeholder="Why marks deducted?" class="w-full p-2 bg-slate-800 rounded mb-4">
+                    <button onclick="window.syncLiveMarks()" class="w-full bg-red-600 py-3 rounded-xl font-black text-xs">SUBMIT MARKS & REASON</button>
+                </div>
+            </div>
+        </div>`;
+};
+        window.startInterviewSession = async () => {
+    try {
+        // 1. Force Full Screen Share
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        window.showPanel('exam-ui');
+        
+        // 2. Start Voice Transcript
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
 
+        recognition.onresult = (event) => {
+            const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
+            document.getElementById('answer-transcript').value = transcript;
+            
+            // Sync transcript to Admin in real-time
+            update(ref(db, `live_interviews/transcripts/${window.currentStudent.id}`), {
+                text: transcript,
+                timestamp: Date.now()
+            });
+        };
+        recognition.start();
+
+    } catch (err) {
+        alert("You must share your entire screen to enter the interview!");
+        location.reload();
+    }
+};
+        window.syncLiveMarks = () => {
+    const sId = document.getElementById('target-student-id').value;
+    const score = document.getElementById('live-deduction').value;
+    const reason = document.getElementById('deduction-reason').value;
+
+    if(!sId || !score) return alert("Select student and score!");
+
+    update(ref(db, `live_interviews/live_marks/${sId}`), {
+        marks: score,
+        reason: reason,
+        time: new Date().toLocaleTimeString()
+    }).then(() => {
+        document.getElementById('live-deduction').value = "";
+        document.getElementById('deduction-reason').value = "";
+    });
+};
+        window.approveNewUser = (requestKey, name, email) => {
+    const newID = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit ID
+    const newPass = "PASS" + Math.floor(100 + Math.random() * 899);
+
+    set(ref(db, `verified_students/${newID}`), {
+        name: name,
+        email: email,
+        password: newPass,
+        cbt_enabled: false,
+        int_enabled: false
+    }).then(() => {
+        remove(ref(db, `enrollment_requests/${requestKey}`));
+        alert(`STUDENT CREATED!\nID: ${newID}\nPASS: ${newPass}`);
+    });
+};
     </script>
 </body>
 </html>
