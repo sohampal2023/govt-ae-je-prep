@@ -473,35 +473,54 @@ let currentBatchId = null;
 
     // --- 1. NAVIGATION LOGIC (The "Single-Page" Switch) ---
    window.openStudyHub = (bId, bName) => {
+    console.log("Attempting to open Classroom for:", bName); // Debug Check 1
+    
     currentBatchId = bId;
     const user = auth.currentUser;
     
     if (!user) {
-        alert("Please login first.");
+        console.warn("No user found, opening login.");
         return window.toggleModal();
     }
 
     const isAdmin = user.email === ADMIN_EMAIL;
-    const tools = document.getElementById('teacher-hub-tools');
+    console.log("User Email:", user.email, "isTeacher:", isAdmin); // Debug Check 2
 
-    // Authority Check
-    onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
-        if (isAdmin || snap.exists()) {
-            // Update Title
-            document.getElementById('hub-batch-title').innerText = bName;
-            
-            // Show Admin Tools if Teacher
-            if (tools) {
-                isAdmin ? tools.classList.remove('hidden') : tools.classList.add('hidden');
-            }
+    // Helper to actually flip the UI
+    const executeOpen = () => {
+        const hubView = document.getElementById('study-hub-view');
+        const hubTitle = document.getElementById('hub-batch-title');
+        
+        if (!hubView || !hubTitle) {
+            console.error("Critical Error: Elements 'study-hub-view' or 'hub-batch-title' are missing from HTML!");
+            return;
+        }
 
-            // Show UI
-            document.getElementById('study-hub-view').classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; 
-            
-            loadCurriculum();
+        hubTitle.innerText = bName;
+        hubView.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; 
+        
+        console.log("UI Switched. Loading curriculum...");
+        loadCurriculum();
+    };
+
+    // TEACHER: Always let them in
+    if (isAdmin) {
+        executeOpen();
+        return;
+    }
+
+    // STUDENT: Check authorization
+    console.log("Checking student authorization for batch:", bId);
+    const authRef = ref(db, `authorized_students/${bId}/${user.uid}`);
+    
+    onValue(authRef, (snap) => {
+        if (snap.exists()) {
+            console.log("Student Authorized. Opening...");
+            executeOpen();
         } else {
-            alert("Approval Required: Access will be granted once the teacher approves your enrollment.");
+            console.warn("Student NOT Authorized. Requesting enrollment...");
+            alert("Enrollment Required: You will get access once the teacher approves your request.");
             window.requestEnrollment(bId, bName);
         }
     }, { onlyOnce: true });
