@@ -477,36 +477,31 @@ let currentBatchId = null;
     const user = auth.currentUser;
     
     if (!user) {
-        alert("Please login to access the classroom.");
+        alert("Please login first.");
         return window.toggleModal();
     }
 
     const isAdmin = user.email === ADMIN_EMAIL;
-    const teacherBtn = document.getElementById('teacher-add-sub-btn');
-    const teacherTools = document.getElementById('teacher-hub-tools');
+    const tools = document.getElementById('teacher-hub-tools');
 
-    // SECURITY CHECK: Master or Approved Student
+    // Authority Check
     onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
         if (isAdmin || snap.exists()) {
-            // 1. Set the Title
+            // Update Title
             document.getElementById('hub-batch-title').innerText = bName;
             
-            // 2. Manage Teacher-Only UI visibility safely
-            if (teacherBtn) {
-                isAdmin ? teacherBtn.classList.remove('hidden') : teacherBtn.classList.add('hidden');
-            }
-            if (teacherTools) {
-                isAdmin ? teacherTools.classList.remove('hidden') : teacherTools.classList.add('hidden');
+            // Show Admin Tools if Teacher
+            if (tools) {
+                isAdmin ? tools.classList.remove('hidden') : tools.classList.add('hidden');
             }
 
-            // 3. Show the Classroom Overlay
+            // Show UI
             document.getElementById('study-hub-view').classList.remove('hidden');
             document.body.style.overflow = 'hidden'; 
             
-            // 4. Load Content
             loadCurriculum();
         } else {
-            alert("Access Denied: You need teacher approval for this batch.");
+            alert("Approval Required: Access will be granted once the teacher approves your enrollment.");
             window.requestEnrollment(bId, bName);
         }
     }, { onlyOnce: true });
@@ -618,8 +613,8 @@ window.addTopic = (subId) => {
         if (!topics) {
             container.innerHTML = `
                 <div class="text-center py-20 text-slate-400">
-                    <p class="font-bold uppercase tracking-widest opacity-40">No Notes Available</p>
-                    ${isMaster ? `<button onclick="addTopic('${subId}')" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-xl">+ Add First Note</button>` : ''}
+                    <p class="font-bold uppercase tracking-widest opacity-40 mb-4">No content found</p>
+                    ${isMaster ? `<button onclick="addTopic('${subId}')" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs">+ Upload First Note</button>` : ''}
                 </div>`;
             return;
         }
@@ -627,30 +622,30 @@ window.addTopic = (subId) => {
         container.innerHTML = `
             <div class="grid grid-cols-1 gap-4">
                 ${Object.values(topics).map((t) => `
-                    <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center group transition-all hover:border-blue-200">
+                    <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex justify-between items-center group hover:border-blue-300 hover:shadow-md transition-all">
                         <div class="flex items-center gap-5">
-                            <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                            <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">
                                 <i data-lucide="file-text"></i>
                             </div>
                             <div>
                                 <h4 class="text-lg font-black text-slate-800">${t.title}</h4>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Study Material • PDF</p>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Digital Notes • Click to Open</p>
                             </div>
                         </div>
                         
-                        <div class="flex items-center gap-3 mt-4 md:mt-0">
+                        <div class="flex items-center gap-3">
                             ${isMaster ? `
-                                <button onclick="editTopic('${subId}', '${t.id}', '${t.title}')" class="p-3 text-slate-400 hover:text-blue-600 transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                                <button onclick="deleteTopic('${subId}', '${t.id}')" class="p-3 text-slate-400 hover:text-red-600 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                <button onclick="editTopic('${subId}', '${t.id}', '${t.title}')" class="p-2 text-slate-300 hover:text-blue-600 transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                <button onclick="deleteTopic('${subId}', '${t.id}')" class="p-2 text-slate-300 hover:text-red-600 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                             ` : ''}
                             <button onclick="viewNote('${t.pdf}')" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-xs shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
-                                View Note
+                                VIEW NOTE
                             </button>
                         </div>
                     </div>
                 `).join('')}
             </div>
-            ${isMaster ? `<button onclick="addTopic('${subId}')" class="mt-8 w-full py-4 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold hover:text-blue-600 hover:border-blue-200 transition-all uppercase text-xs tracking-widest">+ Upload Another Note</button>` : ''}
+            ${isMaster ? `<button onclick="addTopic('${subId}')" class="mt-8 w-full py-5 border-2 border-dashed border-blue-100 rounded-[2rem] text-blue-400 font-black hover:bg-blue-50 transition-all uppercase text-xs tracking-widest">+ Upload More Notes</button>` : ''}
         `;
         lucide.createIcons();
     });
@@ -658,36 +653,40 @@ window.addTopic = (subId) => {
    window.viewNote = (driveLink) => {
     if (!driveLink) return alert("Note link is missing.");
 
-    // 1. Transform the link
-    const fileIdMatch = driveLink.match(/\/d\/([^/]+)/);
-    if (!fileIdMatch) return alert("Invalid Link Format.");
+    // UNIVERSAL LINK EXTRACTOR:
+    // This regex looks for the ID between '/d/' and the next '/' or '?'
+    // It works for: .../file/d/ID/view, .../open?id=ID, and many more.
+    const fileIdMatch = driveLink.match(/(?:d\/|id=)([\w-]+)/);
+    
+    if (!fileIdMatch) {
+        alert("This doesn't look like a valid Google Drive link. Please check it!");
+        return;
+    }
+    
     const fileId = fileIdMatch[1];
     
-    // THE SECRET URL: Adding rm=minimal and using the preview endpoint
-    const secureLink = `https://drive.google.com/file/d/${fileId}/preview?rm=minimal`;
+    // Create the Standard Preview Link
+    const standardLink = `https://drive.google.com/file/d/${fileId}/preview`;
 
     const viewerHtml = `
-        <div id="pdf-overlay" class="fixed inset-0 bg-slate-900/98 z-[200] flex flex-col p-2 md:p-8">
-            <nav class="max-w-6xl mx-auto w-full bg-white p-4 rounded-2xl flex justify-between items-center mb-4 shadow-2xl">
+        <div id="pdf-overlay" class="fixed inset-0 bg-slate-900/90 z-[200] flex flex-col p-4 md:p-8 animate-in fade-in duration-200">
+            <nav class="max-w-6xl mx-auto w-full bg-white p-4 rounded-2xl flex justify-between items-center mb-4 shadow-xl">
                 <div class="flex items-center gap-3">
-                    <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
-                    <span class="font-black text-slate-800 uppercase tracking-widest text-[10px]">Secure Study Portal • Anti-Copy Enabled</span>
+                    <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-100">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                    </div>
+                    <span class="font-black text-slate-800 uppercase text-xs tracking-tighter">Classroom Notes</span>
                 </div>
                 <button onclick="document.getElementById('pdf-overlay').remove()" 
-                        class="bg-red-600 text-white px-8 py-2.5 rounded-xl font-black text-xs hover:bg-red-700 transition-all shadow-xl">
-                    CLOSE CLASSROOM
+                        class="bg-red-600 text-white px-8 py-2.5 rounded-xl font-black text-xs hover:bg-red-700 transition-all shadow-xl shadow-red-200">
+                    CLOSE NOTES
                 </button>
             </nav>
             
-            <div class="max-w-5xl mx-auto w-full flex-grow relative bg-white rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <iframe src="${secureLink}" 
+            <div class="max-w-6xl mx-auto w-full flex-grow bg-white rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+                <iframe src="${standardLink}" 
                         class="w-full h-full border-none" 
-                        sandbox="allow-scripts allow-same-origin"
                         allow="autoplay"></iframe>
-                
-                <div class="absolute inset-0 z-10 pointer-events-none" 
-                     style="background: transparent;" 
-                     oncontextmenu="return false;"></div>
             </div>
         </div>
     `;
