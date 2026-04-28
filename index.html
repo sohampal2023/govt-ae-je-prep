@@ -488,21 +488,31 @@ let currentBatchId = null;
     const hubTitle = document.getElementById('hub-batch-title');
     
     if (!hubView || !hubTitle) {
-        console.error("Critical Error: Elements 'study-hub-view' or 'hub-batch-title' are missing!");
+        console.error("Critical Error: Elements missing!");
         return;
     }
 
-    // Force Visibility
-    hubView.classList.remove('hidden');
-    hubView.style.display = 'block'; // Force display if classList fails
-    hubView.style.zIndex = '9999';   // Force it to the top layer
-    
+    // 1. Set Title
     hubTitle.innerText = bName;
+
+    // 2. FORCE UI to the Front
+    hubView.classList.remove('hidden');
+    
+    // Inline styles to override ANY CSS conflicts
+    hubView.style.display = 'block'; 
+    hubView.style.position = 'fixed';
+    hubView.style.top = '0';
+    hubView.style.left = '0';
+    hubView.style.width = '100vw';
+    hubView.style.height = '100vh';
+    hubView.style.backgroundColor = '#f8fafc'; // slate-50
+    hubView.style.zIndex = '999999'; // Higher than everything else
+    
     document.body.style.overflow = 'hidden'; 
     
-    console.log("Classroom UI is now VISIBLE on screen.");
+    console.log("FORCE VISIBLE: The Classroom is now at z-index 999999");
     loadCurriculum();
-    lucide.createIcons(); // Refresh icons
+    if(window.lucide) lucide.createIcons();
 };
 
     // TEACHER: Always let them in
