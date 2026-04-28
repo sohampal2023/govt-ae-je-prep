@@ -247,23 +247,111 @@
             document.getElementById(pid).classList.remove('hidden');
         };
 
-        window.loadStudentRoster = () => {
-            onValue(ref(db, 'verified_students'), (snap) => {
-                const roster = document.getElementById('student-roster');
-                if(!roster || !snap.val()) return;
-                const students = snap.val();
-                let html = `<table class="w-full text-left text-xs"><thead><tr class="text-slate-400 border-b"><th class="p-4">Name/ID</th><th class="p-4">Viva</th><th class="p-4">CBT</th></tr></thead><tbody>`;
-                for (let id in students) {
-                    const s = students[id];
-                    html += `<tr class="border-b">
-                        <td class="p-4 font-bold">${s.name}<br><span class="text-blue-500 font-mono">${id}</span></td>
-                        <td class="p-4"><button onclick="window.toggleStatus('${id}', 'int')" class="px-3 py-1 rounded font-bold ${s.int_enabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100'}">${s.int_enabled ? 'ON' : 'OFF'}</button></td>
-                        <td class="p-4"><button onclick="window.toggleStatus('${id}', 'cbt')" class="px-3 py-1 rounded font-bold ${s.cbt_enabled ? 'bg-green-100 text-green-700' : 'bg-slate-100'}">${s.cbt_enabled ? 'ON' : 'OFF'}</button></td>
-                    </tr>`;
-                }
-                roster.innerHTML = html + "</tbody></table>";
-            });
-        };
+        // --- 1. MASTER UI RE-WIRING ---
+// This ensures that clicking the big blue/purple cards actually loads the functions
+window.renderAdminDashboard = () => {
+    // We don't overwrite the whole panel anymore (to keep your cards visible)
+    // We only target the "admin-main-view" div below the cards
+    const mainView = document.getElementById('admin-main-view');
+    if(!mainView) return;
+
+    mainView.innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8 animate-in fade-in">
+            <div class="bg-black p-8 rounded-[2rem] border-b-8 border-red-600 shadow-2xl">
+                <p class="text-red-500 text-[10px] font-black mb-4 uppercase animate-pulse">● LIVE GHOST VIVA</p>
+                <textarea id="ghost-msg" placeholder="Speak through AI..." class="w-full h-32 bg-slate-900 text-blue-400 p-4 rounded-2xl mb-4 border-none outline-none focus:ring-2 ring-blue-500"></textarea>
+                <button onclick="window.sendGhostMsg()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs hover:bg-blue-500 transition">SPEAK NOW</button>
+                
+                <div class="mt-8 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <h4 class="text-[8px] text-slate-500 uppercase font-black mb-4">Candidate Answer Log</h4>
+                    <div id="admin-transcript-view" class="h-40 overflow-y-auto text-white text-[10px] font-mono italic">
+                        Waiting for student response...
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 bg-white p-10 rounded-[2rem] shadow-xl border-t-8 border-blue-600">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-black italic uppercase">LIVE CANDIDATE ROSTER</h3>
+                    <button onclick="window.loadStudentRoster()" class="text-[10px] bg-slate-50 px-4 py-2 rounded-xl font-black">REFRESH</button>
+                </div>
+                <div id="student-roster" class="min-h-[400px]">
+                    </div>
+            </div>
+        </div>
+    `;
+    window.loadStudentRoster();
+};
+
+// --- 2. THE GHOST VOICE LOGIC ---
+window.sendGhostMsg = () => {
+    const msg = document.getElementById('ghost-msg').value;
+    if (msg) {
+        // Pushes the message to Firebase so the student's browser speaks it
+        set(ref(db, 'live_interviews/current_qn'), { 
+            text: msg, 
+            timestamp: Date.now() 
+        }).then(() => {
+            document.getElementById('ghost-msg').value = "";
+        });
+    }
+};
+
+// --- 3. THE ROSTER SYNC LOGIC ---
+window.loadStudentRoster = () => {
+    onValue(ref(db, 'verified_students'), (snap) => {
+        const rosterContainer = document.getElementById('student-roster');
+        if(!rosterContainer) return;
+        
+        const students = snap.val();
+        if(!students) {
+            rosterContainer.innerHTML = "<p class='text-center text-slate-400 py-10 italic'>No candidates found.</p>";
+            return;
+        }
+
+        let html = `
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="text-slate-400 border-b uppercase font-black">
+                        <th class="p-4">Name/ID</th>
+                        <th class="p-4 text-center">Viva</th>
+                        <th class="p-4 text-center">CBT</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
+        for (let id in students) {
+            const s = students[id];
+            html += `
+                <tr class="border-b hover:bg-slate-50 transition">
+                    <td class="p-4">
+                        <div class="font-bold text-slate-800">${s.name}</div>
+                        <div class="text-blue-500 font-mono text-[10px]">${id}</div>
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick="window.toggleStatus('${id}', 'int')" class="px-3 py-1 rounded font-black text-[10px] ${s.int_enabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400'}">
+                            ${s.int_enabled ? 'ON' : 'OFF'}
+                        </button>
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick="window.toggleStatus('${id}', 'cbt')" class="px-3 py-1 rounded font-black text-[10px] ${s.cbt_enabled ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}">
+                            ${s.cbt_enabled ? 'ON' : 'OFF'}
+                        </button>
+                    </td>
+                </tr>`;
+        }
+        rosterContainer.innerHTML = html + "</tbody></table>";
+    });
+};
+
+// --- 4. TOGGLE ACCESS (ON/OFF BUTTONS) ---
+window.toggleStatus = (id, type) => {
+    const key = type === 'int' ? 'int_enabled' : 'cbt_enabled';
+    // Single lookup to flip the boolean value in Firebase
+    onValue(ref(db, `verified_students/${id}/${key}`), (snap) => {
+        update(ref(db, `verified_students/${id}`), { [key]: !snap.val() });
+    }, { onlyOnce: true });
+};
 
         window.toggleStatus = (id, type) => {
             const key = type === 'int' ? 'int_enabled' : 'cbt_enabled';
