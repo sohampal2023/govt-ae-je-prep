@@ -740,6 +740,47 @@ window.closeStudyHub = () => {
         lucide.createIcons();
     });
 };
+    window.requestEnrollment = async (batchId, batchName, price) => {
+    const user = auth.currentUser;
+    if (!user) return window.toggleModal();
+
+    // YOUR PERSONAL UPI DETAILS
+    const myUpiId = "sohampal781@okhdfcbank"; // Replace with your actual UPI ID
+    const merchantName = "GovtPrep Pro";
+
+    // Create a standard UPI Deep Link
+    // pa = VPA, pn = Name, am = Amount, cu = Currency, tn = Note
+    const upiLink = `upi://pay?pa=${myUpiId}&pn=${encodeURIComponent(merchantName)}&am=${price}&cu=INR&tn=${encodeURIComponent('Batch: ' + batchName)}`;
+
+    const payConfirm = confirm(
+        `PAYMENT SECURE GATEWAY\n\n` +
+        `Batch: ${batchName}\n` +
+        `Amount: ₹${price}\n\n` +
+        `Click OK to pay directly via PhonePe/GPay/Paytm. After payment, your request will be sent for approval.`
+    );
+
+    if (payConfirm) {
+        // Attempt to open UPI apps on Mobile
+        window.location.href = upiLink;
+
+        // Give them a moment to pay, then log the request in your Firebase
+        setTimeout(async () => {
+            try {
+                await set(ref(db, `enrollment_requests/${batchId}/${user.uid}`), {
+                    uid: user.uid,
+                    email: user.email,
+                    batchName: batchName,
+                    amountPaid: price,
+                    status: "Awaiting Verification",
+                    timestamp: Date.now()
+                });
+                alert("Enrollment Request Logged! Once I receive the ₹" + price + " in my bank, I will approve your access.");
+            } catch (e) {
+                alert("Error sending request.");
+            }
+        }, 2000);
+    }
+};
     loadBatches();
     lucide.createIcons();
 </script>
