@@ -307,44 +307,41 @@ function loadBatches() {
 
     const isMaster = user.email === ADMIN_EMAIL;
 
-    // 1. Get Teacher Approval Data
+    // We check authorization and batches in one go
     onValue(ref(db, 'authorized_students'), (authSnap) => {
         const authData = authSnap.val() || {};
         
-        // 2. Get All Live Batches
         onValue(ref(db, 'premium_batches'), (batchSnap) => {
             const data = batchSnap.val();
             if (!data) {
-                container.innerHTML = `<p class="col-span-full text-center py-20 text-slate-400 font-bold uppercase tracking-widest opacity-30">No active batches available</p>`;
+                container.innerHTML = `<p class="col-span-full text-center py-20 opacity-30">No active batches.</p>`;
                 return;
             }
 
             container.innerHTML = Object.keys(data).map(key => {
                 const b = data[key];
-                // Check if this specific student is approved for this specific batch
                 const isApproved = authData[b.id] && authData[b.id][user.uid];
-
-                // Logic: Access is granted if you are the Teacher OR an Approved Student
                 const hasAccess = isMaster || isApproved;
+                
                 const btnText = hasAccess ? (isMaster ? 'Start Teaching' : 'Open Classroom') : 'Join Batch';
                 const btnClass = hasAccess ? 'bg-blue-600' : 'bg-slate-900';
 
                 return `
-                <div class="glass-card p-10 rounded-[3rem] flex flex-col h-full bg-white relative transition-all hover:shadow-2xl border border-transparent hover:border-blue-100">
-                    ${isApproved ? `<div class="absolute top-6 right-6 bg-green-500 text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-green-100">Purchased</div>` : ''}
+                <div class="glass-card p-10 rounded-[3rem] flex flex-col h-full bg-white relative transition-all border border-transparent hover:border-blue-100">
+                    ${isApproved ? `<div class="absolute top-6 right-6 bg-green-500 text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">Purchased</div>` : ''}
+                    ${isMaster ? `<button onclick="deleteBatch('${b.id}')" class="absolute top-6 right-6 text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}
                     
-                    <div class="bg-blue-50 text-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-inner"><i data-lucide="layers"></i></div>
+                    <div class="bg-blue-50 text-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-8"><i data-lucide="layers"></i></div>
                     
                     <h3 class="text-2xl font-black text-slate-900 mb-3 uppercase tracking-tighter">${b.name}</h3>
                     <p class="text-slate-500 font-medium mb-10 flex-grow leading-relaxed">${b.description}</p>
                     
                     <div class="flex justify-between items-center pt-6 border-t border-slate-50">
                         <div>
-                            <span class="text-[10px] font-black text-slate-400 block tracking-widest uppercase">Course Fee</span>
+                            <span class="text-[10px] font-black text-slate-400 block tracking-widest uppercase">Fee</span>
                             <span class="text-3xl font-black text-blue-600">₹${b.price}</span>
                         </div>
-                        <button onclick="openStudyHub('${b.id}', '${b.name}')" 
-                                class="${btnClass} text-white px-10 py-4 rounded-3xl font-black shadow-xl hover:scale-105 active:scale-95 transition-all">
+                        <button onclick="openStudyHub('${b.id}', '${b.name}')" class="${btnClass} text-white px-10 py-4 rounded-3xl font-black shadow-xl hover:scale-105 transition-all">
                             ${btnText}
                         </button>
                     </div>
@@ -469,72 +466,40 @@ let currentBatchId = null;
 
     // --- 1. NAVIGATION LOGIC (The "Single-Page" Switch) ---
    window.openStudyHub = (bId, bName) => {
-    console.log("Attempting to open Classroom for:", bName); // Debug Check 1
-    
+    console.log("Attempting to open Classroom for:", bName);
     currentBatchId = bId;
     const user = auth.currentUser;
     
-    if (!user) {
-        console.warn("No user found, opening login.");
-        return window.toggleModal();
-    }
+    if (!user) return window.toggleModal();
 
     const isAdmin = user.email === ADMIN_EMAIL;
-    console.log("User Email:", user.email, "isTeacher:", isAdmin); // Debug Check 2
 
-    // Helper to actually flip the UI
     const executeOpen = () => {
-    const hubView = document.getElementById('study-hub-view');
-    const hubTitle = document.getElementById('hub-batch-title');
-    
-    if (!hubView || !hubTitle) {
-        console.error("Critical Error: Elements missing!");
-        return;
-    }
+        const hubView = document.getElementById('study-hub-view');
+        const hubTitle = document.getElementById('hub-batch-title');
+        
+        hubTitle.innerText = bName;
+        hubView.classList.remove('hidden');
+        hubView.style.display = 'block'; 
+        hubView.style.position = 'fixed';
+        hubView.style.zIndex = '999999';
+        
+        document.body.style.overflow = 'hidden'; 
+        loadCurriculum();
+    };
 
-    // 1. Set Title
-    hubTitle.innerText = bName;
-
-    // 2. FORCE UI to the Front
-    hubView.classList.remove('hidden');
-    
-    // Inline styles to override ANY CSS conflicts
-    hubView.style.display = 'block'; 
-    hubView.style.position = 'fixed';
-    hubView.style.top = '0';
-    hubView.style.left = '0';
-    hubView.style.width = '100vw';
-    hubView.style.height = '100vh';
-    hubView.style.backgroundColor = '#f8fafc'; // slate-50
-    hubView.style.zIndex = '999999'; // Higher than everything else
-    
-    document.body.style.overflow = 'hidden'; 
-    
-    console.log("FORCE VISIBLE: The Classroom is now at z-index 999999");
-    loadCurriculum();
-    if(window.lucide) lucide.createIcons();
-};
-
-    // TEACHER: Always let them in
     if (isAdmin) {
         executeOpen();
-        return;
+    } else {
+        onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
+            if (snap.exists()) {
+                executeOpen();
+            } else {
+                alert("Enrollment Required: Teacher must approve your request first.");
+                window.requestEnrollment(bId, bName);
+            }
+        }, { onlyOnce: true });
     }
-
-    // STUDENT: Check authorization
-    console.log("Checking student authorization for batch:", bId);
-    const authRef = ref(db, `authorized_students/${bId}/${user.uid}`);
-    
-    onValue(authRef, (snap) => {
-        if (snap.exists()) {
-            console.log("Student Authorized. Opening...");
-            executeOpen();
-        } else {
-            console.warn("Student NOT Authorized. Requesting enrollment...");
-            alert("Enrollment Required: You will get access once the teacher approves your request.");
-            window.requestEnrollment(bId, bName);
-        }
-    }, { onlyOnce: true });
 };
 function launchHub(name) {
     // 1. Set the Title
@@ -547,12 +512,7 @@ function launchHub(name) {
     loadCurriculum();
 }
 
-window.closeStudyHub = () => {
-    // 1. Hide the Study Hub Div
-    document.getElementById('study-hub-view').classList.add('hidden');
-    // 2. Restore scrolling
-    document.body.style.overflow = 'auto';
-};
+
     function showHubUI() {
         document.getElementById('study-hub-view').classList.remove('hidden');
         document.body.style.overflow = 'hidden'; // Stop background scrolling
@@ -560,9 +520,11 @@ window.closeStudyHub = () => {
     }
 
     window.closeStudyHub = () => {
-        document.getElementById('study-hub-view').classList.add('hidden');
-        document.body.style.overflow = 'auto';
-    };
+    const hubView = document.getElementById('study-hub-view');
+    hubView.classList.add('hidden');
+    hubView.style.display = 'none'; // Essential to hide the fixed overlay
+    document.body.style.overflow = 'auto';
+};
 
     // --- 2. TEACHER HUB ACTIONS ---
     // --- TEACHER: Build Curriculum ---
@@ -724,55 +686,6 @@ window.addTopic = (subId) => {
     document.body.insertAdjacentHTML('beforeend', viewerHtml);
     lucide.createIcons();
 };
-    function loadMyBatches() {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // We look inside 'authorized_students' to see where this student belongs
-    onValue(ref(db, 'authorized_students'), (snapshot) => {
-        const authData = snapshot.val();
-        const container = document.getElementById('batches-container'); // Or a new 'my-batches' div
-        
-        if (!authData) return;
-
-        let myBatchIds = [];
-        Object.keys(authData).forEach(batchId => {
-            if (authData[batchId][user.uid]) {
-                myBatchIds.push(batchId);
-            }
-        });
-
-        // Only show the batches the student has access to
-        onValue(ref(db, 'premium_batches'), (batchSnap) => {
-            const allBatches = batchSnap.val();
-            if (!allBatches) return;
-
-            const myBatchesHtml = Object.values(allBatches)
-                .filter(b => myBatchIds.includes(b.id))
-                .map(b => `
-                    <div class="glass-card p-8 rounded-[3rem] bg-white border-2 border-blue-100">
-                        <span class="bg-green-100 text-green-700 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest">Enrolled</span>
-                        <h3 class="text-2xl font-black text-slate-900 mt-4 mb-3">${b.name}</h3>
-                        <p class="text-slate-500 text-sm mb-8 line-clamp-2">${b.description}</p>
-                        <button onclick="openStudyHub('${b.id}', '${b.name}')" 
-                                class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all">
-                            Open Classroom
-                        </button>
-                    </div>
-                `).join('');
-
-            // You can choose to replace the main container or append this somewhere else
-            if (myBatchesHtml) {
-                container.innerHTML = `
-                    <div class="col-span-full mb-6">
-                        <h2 class="text-2xl font-black text-slate-800">My Purchased Batches</h2>
-                    </div>
-                    ${myBatchesHtml}
-                `;
-            }
-        });
-    });
-}
     window.loadNoteList = (subId, chapterId) => {
     const container = document.getElementById('hub-curriculum-container');
     
