@@ -398,7 +398,45 @@ window.toggleStatus = (id, type) => {
         });
     });
 };
+        window.startSecureCBT = async (bankId) => {
+    try {
+        // Force Screen Share Requirement for CBT
+        await navigator.mediaDevices.getDisplayMedia({ video: true });
+        
+        window.showPanel('exam-ui');
+        window.initProctor(); // Start Cam
+        window.startTabTracking(); // Start Security tracking
+        
+        // Fetch and Shuffle Questions (25 Questions limit)
+        onValue(ref(db, `question_bank/${bankId}`), (snap) => {
+            const allQ = Object.values(snap.val());
+            window.paper = allQ.sort(() => 0.5 - Math.random()).slice(0, 25);
+            window.index = 0;
+            window.drawQuestion();
+            window.drawPalette();
+            window.startTimer(parseInt(window.activeConfig.duration) * 60);
+        }, { onlyOnce: true });
 
+    } catch (e) {
+        alert("SECURITY ERROR: You must share your entire screen to attempt the CBT Exam.");
+        location.reload();
+    }
+};
+window.sendProctorWarning = () => {
+    const id = document.getElementById('target-student-cbt').value;
+    const msg = document.getElementById('proctor-msg').value;
+
+    if(!id || !msg) return alert("Enter Student ID and Message");
+
+    update(ref(db, `live_interviews/live_marks/${id}`), {
+        marks: "WARNING",
+        reason: msg,
+        time: new Date().toLocaleTimeString()
+    }).then(() => {
+        alert("Warning sent to student " + id);
+        document.getElementById('proctor-msg').value = "";
+    });
+};
         window.initProctor = async () => {
             try { const s = await navigator.mediaDevices.getUserMedia({ video: true }); document.getElementById('camera-feed').srcObject = s; } catch (e) {}
         };
@@ -580,49 +618,82 @@ window.toggleStatus = (id, type) => {
         };
         // --- 1. FIXED: CBT & VIVA SETUP DESIGNER ---
 window.openSetupScreen = (type) => {
-    const adminPanel = document.getElementById('admin-panel');
-    // We clear the panel to show the "Designer" view for the specific task
-    adminPanel.innerHTML = `
+    const mainView = document.getElementById('admin-main-view');
+    mainView.innerHTML = `
         <div class="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-blue-50 animate-in zoom-in-95">
-            <div class="flex justify-between items-center mb-10 border-b pb-6">
-                <h2 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">⚙️ ${type} DESIGNER</h2>
-                <button onclick="window.renderAdminDashboard(); window.loadStudentRoster();" class="bg-slate-100 text-slate-400 px-6 py-2 rounded-2xl font-bold">CANCEL</button>
+            <div class="flex justify-between items-center mb-8 border-b pb-6">
+                <h2 class="text-3xl font-black italic uppercase tracking-tighter">📝 CBT Exam Scheduler</h2>
+                <button onclick="window.exitToDashboard()" class="bg-slate-100 text-slate-500 px-6 py-2 rounded-2xl font-black hover:bg-slate-200">EXIT WINDOW</button>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
                 <div class="space-y-6">
                     <div>
                         <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Exam Title</label>
-                        <input type="text" id="setup-test-name" placeholder="e.g. RRB NTPC Mock 1" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold outline-none focus:ring-2 ring-blue-500">
+                        <input type="text" id="cbt-name" placeholder="e.g. RRB Technician Grade 1" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold outline-none focus:ring-2 ring-blue-500">
                     </div>
                     
                     <div class="grid grid-cols-2 gap-4">
-                        <input type="number" id="setup-duration" placeholder="Duration (Mins)" value="90" class="p-4 bg-slate-50 border rounded-2xl font-bold">
-                        <input type="number" id="setup-marks" placeholder="Marks per Q" value="1" class="p-4 bg-slate-50 border rounded-2xl font-bold">
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Duration (Mins)</label>
+                            <input type="number" id="cbt-time" value="90" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Marks per Q</label>
+                            <input type="number" id="cbt-marks" value="1" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                        </div>
                     </div>
 
                     <div>
-                        <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Bulk Question Paste</label>
-                        <textarea id="bulk-question-input" placeholder="1. Question... A) Opt B) Opt Ans: A" class="w-full h-64 p-4 bg-slate-900 text-blue-400 font-mono text-xs rounded-2xl border-none outline-none"></textarea>
+                        <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Bulk Question Injector</label>
+                        <textarea id="cbt-bank-text" placeholder="1. Question... A) Opt B) Opt Ans: A" class="w-full h-64 p-4 bg-slate-900 text-blue-400 font-mono text-xs rounded-2xl outline-none"></textarea>
                     </div>
 
-                    <button onclick="window.finalizeCBTSetup('${type}')" class="w-full bg-blue-700 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl hover:bg-blue-800 transition-all uppercase">Activate & Broadcast</button>
+                    <button onclick="window.broadcastCBTConfig()" class="w-full bg-blue-700 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl hover:bg-blue-800 transition-all uppercase">ACTIVATE & SYNC TO STUDENTS</button>
                 </div>
 
-                <div class="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200">
-                    <h5 class="font-black text-slate-800 mb-4 italic">Bulk Upload Format:</h5>
-                    <p class="text-xs text-slate-500 leading-loose">
-                        1. Start each question with a number.<br>
-                        2. Include options A) B) C) D).<br>
-                        3. End with "Ans: [Option Letter]".<br><br>
-                        <span class="text-red-500 font-bold uppercase">Note: AI will automatically shuffle these for every student.</span>
-                    </p>
+                <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white">
+                    <h4 class="text-blue-400 font-black text-xs uppercase mb-4 tracking-widest">Live Exam Proctoring</h4>
+                    <div class="aspect-video bg-black rounded-3xl border border-slate-800 flex items-center justify-center mb-6 overflow-hidden">
+                        <p class="text-[10px] text-slate-600 italic">Global Screen Monitoring Active...</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <h5 class="text-xs font-black uppercase text-slate-500">Security Command</h5>
+                        <input type="text" id="target-student-cbt" placeholder="Student ID to Alert" class="w-full bg-slate-800 p-3 rounded-xl border border-slate-700 text-white font-mono text-xs">
+                        <textarea id="proctor-msg" placeholder="Warning message for student..." class="w-full h-24 bg-slate-800 p-3 rounded-xl border border-slate-700 text-white text-xs"></textarea>
+                        <button onclick="window.sendProctorWarning()" class="w-full bg-red-600 text-white py-3 rounded-xl font-black text-xs">SEND SECURITY WARNING</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        </div>`;
 };
+        window.broadcastCBTConfig = async () => {
+    const name = document.getElementById('cbt-name').value;
+    const rawText = document.getElementById('cbt-bank-text').value;
+    const duration = document.getElementById('cbt-time').value;
+    const marks = document.getElementById('cbt-marks').value;
 
+    if(!name || !rawText) return alert("Fill all details!");
+
+    // Parse logic: splits by "1.", "2.", etc.
+    const qBlocks = rawText.split(/\d+\./).filter(b => b.length > 5);
+    const bankId = `BANK_CBT_${Date.now()}`;
+
+    for (let block of qBlocks) {
+        await push(ref(db, `question_bank/${bankId}`), { content: block.trim() });
+    }
+
+    set(ref(db, 'active_test_config'), {
+        type: 'CBT',
+        name: name,
+        bank: bankId,
+        duration: duration,
+        marksPerQ: marks,
+        status: "LIVE",
+        timestamp: Date.now()
+    }).then(() => alert("CBT Exam is now BROADCASTING to all enabled students!"));
+};
 // --- 2. FIXED: FINALIZE CBT LOGIC ---
 window.finalizeCBTSetup = async (type) => {
     const name = document.getElementById('setup-test-name').value;
