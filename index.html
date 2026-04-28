@@ -381,6 +381,92 @@
         alert(`STUDENT CREATED!\nID: ${newID}\nPASS: ${newPass}`);
     });
 };
+        // --- 1. FIXED BROADCAST FUNCTION (Missing in your code) ---
+        window.broadcastInterview = () => {
+            const id = document.getElementById('target-student-id').value;
+            const mode = document.getElementById('viva-mode').value;
+            const timer = document.getElementById('viva-timer').value;
+            const bank = document.getElementById('ai-bank-text').value;
+
+            if(!id) return alert("Please enter Student ID");
+
+            set(ref(db, 'active_test_config'), {
+                type: 'VIVA',
+                name: "Scheduled Interview Session",
+                mode: mode,
+                bank: mode === 'AI' ? bank : "",
+                timer: timer,
+                timestamp: Date.now()
+            }).then(() => alert("Interview Broadcasted to Student " + id));
+        };
+
+        // --- 2. UPDATED STUDENT SESSION (With Tab Tracking) ---
+        window.startInterviewSession = async () => {
+            try {
+                // Force Screen Share Requirement
+                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                window.showPanel('exam-ui');
+                window.startTabTracking(); // Start monitoring tab switches
+                window.initProctor(); // Start camera
+                
+                // Start Voice Transcript
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                recognition.onresult = (event) => {
+                    const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
+                    document.getElementById('answer-transcript').value = transcript;
+                    
+                    // Sync transcript to Admin
+                    update(ref(db, `live_interviews/transcripts/${window.currentStudent.id}`), {
+                        text: transcript,
+                        timestamp: Date.now()
+                    });
+                };
+                recognition.start();
+                window.listenForDeductions(window.currentStudent.id); // Fixed: Listen for marks
+
+            } catch (err) {
+                alert("Interview Blocked: Screen Share Required.");
+                location.reload();
+            }
+        };
+
+        // --- 3. STUDENT LISTENER FOR LIVE DEDUCTIONS (Missing in your code) ---
+        window.listenForDeductions = (sId) => {
+            onValue(ref(db, `live_interviews/live_marks/${sId}`), (snap) => {
+                const data = snap.val();
+                if(data) {
+                    const display = document.getElementById('display-q-text');
+                    display.innerHTML += `
+                        <div class="mt-4 p-4 bg-red-600 text-white rounded-2xl animate-bounce shadow-xl">
+                            <h4 class="font-black">MARK UPDATE: ${data.marks}</h4>
+                            <p class="text-[10px] font-bold uppercase italic">${data.reason}</p>
+                        </div>`;
+                }
+            });
+        };
+
+        // --- 4. FIXED REGISTRATION APPROVAL ---
+        window.listenForEnrollments = () => {
+            onValue(ref(db, 'enrollment_requests'), (snap) => {
+                const container = document.getElementById('registration-requests-list'); // Ensure this ID exists in HTML
+                if(!container) return;
+                container.innerHTML = "";
+                const data = snap.val();
+                if(!data) return;
+                Object.keys(data).forEach(key => {
+                    const r = data[key];
+                    container.innerHTML += `
+                        <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold">${r.name}</span>
+                            <button onclick="window.approveNewUser('${key}', '${r.name}', '${r.email}')" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px]">APPROVE</button>
+                        </div>`;
+                });
+            });
+        };
     </script>
 </body>
 </html>
