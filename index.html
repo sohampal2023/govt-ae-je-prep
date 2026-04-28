@@ -162,6 +162,33 @@
     </nav>
     <div class="max-w-7xl mx-auto p-10" id="hub-curriculum-container"></div>
 </div>
+    <div id="paymentModal" class="hidden fixed inset-0 bg-slate-900/90 z-[1000000] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center relative shadow-2xl animate-in zoom-in duration-300">
+        <button onclick="document.getElementById('paymentModal').classList.add('hidden')" class="absolute top-6 right-6 text-slate-300 hover:text-slate-900">
+            <i data-lucide="x"></i>
+        </button>
+        
+        <h3 class="text-xl font-black mb-1 uppercase tracking-tighter text-slate-900">Scan to Enroll</h3>
+        <p class="text-slate-500 text-[10px] mb-8 font-bold uppercase tracking-widest">Pay using any UPI App</p>
+        
+        <div class="bg-slate-50 aspect-square rounded-[2.5rem] mb-8 flex items-center justify-center overflow-hidden border-2 border-slate-100 p-4">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=sohampal781@okhdfcbank%26pn=GovtPrep%20Pro" 
+                 alt="UPI QR" class="w-full h-full object-contain mix-blend-multiply">
+        </div>
+
+        <div class="space-y-4">
+            <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                <span class="block text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Verify UPI ID</span>
+                <span class="text-sm font-black text-blue-700 tracking-tight">sohampal781@okhdfcbank</span>
+            </div>
+            
+            <button onclick="document.getElementById('paymentModal').classList.add('hidden'); alert('Request Sent! I will approve your access once I verify the payment in my bank statement.')" 
+                    class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all">
+                I have paid, Notify Teacher
+            </button>
+        </div>
+    </div>
+</div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
     import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
