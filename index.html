@@ -784,29 +784,27 @@ window.closeStudyHub = () => {
     const myUpiId = "sohampal781@okhdfcbank"; 
     const merchantName = "GovtPrep Pro";
     
-    // Create UPI Link
-    const upiLink = `upi://pay?pa=${myUpiId}&pn=${encodeURIComponent(merchantName)}&am=${price}&cu=INR&tn=${encodeURIComponent('Batch: ' + batchName)}`;
+    // Fallback if price is somehow missing
+    const finalPrice = price || "0";
+    
+    // Standard UPI Link
+    const upiLink = `upi://pay?pa=${myUpiId}&pn=${encodeURIComponent(merchantName)}&am=${finalPrice}&cu=INR&tn=${encodeURIComponent('Join ' + batchName)}`;
 
-    // Check if Device is Mobile
     const isMobile = /iPhone|Android/i.test(navigator.userAgent);
 
     if (isMobile) {
-        const confirmPay = confirm(`Click OK to pay ₹${price} via any UPI App (GPay/PhonePe).`);
-        if (confirmPay) {
+        if (confirm(`Open UPI App to pay ₹${finalPrice}?`)) {
             window.location.href = upiLink;
-            // Log the request after a delay
-            sendEnrollmentToFirebase(batchId, user, batchName, price);
+            sendEnrollmentToFirebase(batchId, user, batchName, finalPrice);
         }
     } else {
-        // DESKTOP: Show the QR Modal instead of crashing
-        alert(`DESKTOP DETECTED:\n\nPlease scan the QR code on the next screen to pay ₹${price} for ${batchName}.`);
+        // DESKTOP: Show Modal
         const qrModal = document.getElementById('paymentModal');
         if (qrModal) {
             qrModal.classList.remove('hidden');
-            // You can dynamically update a text field in your modal here if needed
-            sendEnrollmentToFirebase(batchId, user, batchName, price);
+            sendEnrollmentToFirebase(batchId, user, batchName, finalPrice);
         } else {
-            alert("Payment Modal missing! Please pay to: " + myUpiId);
+            alert("Critical Error: Payment UI missing. Please pay ₹" + finalPrice + " to " + myUpiId);
         }
     }
 };
