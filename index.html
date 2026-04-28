@@ -3,964 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExamMaster Pro 2.0 | Security & Viva Portal</title>
+    <title>GovtPrep Premium | AE, JE & Govt Exam Excellence</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        .hidden { display: none !important; }
+        body { font-family: 'Inter', sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .live-indicator { animation: pulse-red 2s infinite; }
+        .bg-gradient-premium { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+        .card-hover:hover { transform: translateY(-5px); transition: all 0.3s ease; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-900 leading-relaxed">
+<body class="bg-gray-50 text-gray-900">
 
-    <nav class="bg-blue-950 text-white p-5 flex justify-between items-center shadow-2xl sticky top-0 z-[100]">
-        <div class="flex items-center gap-3">
-            <div class="bg-yellow-400 text-blue-950 px-2 py-1 rounded font-black italic shadow-inner">2.0</div>
-            <h1 class="text-2xl font-black tracking-tighter uppercase">ExamMaster <span class="text-blue-400">Pro</span></h1>
-        </div>
-        <div class="flex items-center gap-4">
-            <div id="user-info" class="text-[10px] font-mono bg-blue-900 px-4 py-2 rounded-full border border-blue-800">
-                <span id="student-name-display">System Offline</span>
+    <nav class="sticky top-0 z-50 glass border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <div class="bg-blue-600 p-2 rounded-lg text-white">
+                        <i data-lucide="graduation-cap"></i>
+                    </div>
+                    <span class="text-2xl font-bold tracking-tight text-blue-900">Govt<span class="text-blue-600">Prep</span></span>
+                </div>
+                <div class="hidden md:flex space-x-8 font-medium text-gray-600">
+                    <a href="#" class="hover:text-blue-600">AE/JE Batches</a>
+                    <a href="#" class="hover:text-blue-600">Test Series</a>
+                    <a href="#" class="hover:text-blue-600">Free Resources</a>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleModal()" class="text-blue-600 font-semibold px-4 py-2">Login</button>
+                    <button onclick="toggleModal()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold shadow-lg hover:bg-blue-700 transition">Get Started</button>
+                </div>
             </div>
-            <button onclick="window.portalLogout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-black transition">LOGOUT</button>
         </div>
     </nav>
 
-    <main class="container mx-auto p-6">
-
-        <section id="auth-container" class="max-w-md mx-auto mt-16 space-y-8">
-            <div class="glass p-10 rounded-[2.5rem] shadow-2xl border-4 border-white">
-                <h2 class="text-3xl font-black text-center mb-8 italic uppercase text-slate-800">Portal Login</h2>
-                <div class="space-y-5">
-                    <input type="text" id="login-id" placeholder="Admin Email or 4-Digit ID" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold focus:border-blue-500 transition">
-                    <input type="password" id="login-pass" placeholder="Passkey" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none font-bold focus:border-blue-500 transition">
-                    <button onclick="window.portalLogin()" class="w-full bg-blue-700 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-800 shadow-xl transition">AUTHENTICATE</button>
-                </div>
-            </div>
-        </section>
-
-        <section id="admin-panel" class="hidden space-y-8 animate-in slide-in-from-bottom-10">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div onclick="window.openSetupScreen('CBT')" class="cursor-pointer bg-blue-900 p-10 rounded-[2.5rem] text-white shadow-2xl border-b-8 border-blue-400">
-                    <h3 class="font-black text-2xl italic uppercase">Exam Designer (CBT)</h3>
-                    <p class="text-xs opacity-60">Bulk Question Ingestion</p>
-                </div>
-                <div onclick="window.openInterviewTab()" class="cursor-pointer bg-indigo-950 p-10 rounded-[2.5rem] text-white shadow-2xl border-b-8 border-indigo-600">
-                    <h3 class="font-black text-2xl italic uppercase">Interview / Viva Tab</h3>
-                    <p class="text-xs opacity-60">AI Auto vs Live Ghost Control</p>
-                </div>
-            </div>
-            <button onclick="window.openInterviewManager()">INTERVIEW CENTER</button>
-            <div id="admin-main-view"></div>
-        </section>
-
-        <section id="student-dash" class="hidden">
-            <div class="max-w-4xl mx-auto bg-white p-12 rounded-[3rem] border-4 border-blue-50 text-center shadow-inner">
-                <div id="test-list-area"></div>
-            </div>
-            <button onclick="window.startInterviewSession()">JOIN INTERVIEW</button>
-        </section>
-
-        <section id="exam-ui" class="hidden fixed inset-0 z-[200] bg-slate-50 overflow-y-auto">
-            <div class="max-w-6xl mx-auto p-8">
-                <div class="flex justify-between items-center mb-8">
-                    <div class="bg-blue-950 text-white px-6 py-3 rounded-2xl font-black italic shadow-lg">PROCTORING ACTIVE</div>
-                    <div id="timer" class="text-4xl font-black text-red-600 font-mono bg-white px-8 py-3 rounded-2xl shadow-xl border-b-4 border-red-100">90:00</div>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                    <div class="lg:col-span-2">
-                        <div class="bg-white p-12 rounded-[3rem] shadow-2xl border-b-8 border-blue-100 mb-8">
-                            <p id="display-q-text" class="text-2xl font-bold text-slate-800 leading-snug tracking-tighter italic">Waiting for question...</p>
-                        </div>
-                        
-                        <div class="space-y-4">
-                            <h5 class="text-xs font-black uppercase text-slate-400 tracking-widest ml-4">Candidate Answer / Transcript</h5>
-                            <textarea id="answer-transcript" placeholder="Start speaking or type your answer here..." class="w-full h-48 p-6 bg-white rounded-[2rem] border-2 border-slate-100 shadow-inner outline-none focus:border-blue-500 font-medium"></textarea>
-                            <button onclick="window.submitAnswer()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">SUBMIT RESPONSE</button>
-                        </div>
-                    </div>
-                    <div class="space-y-8">
-                        <div class="relative">
-                            <video id="camera-feed" autoplay muted class="w-full h-48 bg-black rounded-[2rem] border-4 border-red-500 shadow-2xl object-cover"></video>
-                            <div class="absolute top-4 left-4 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded-full animate-pulse tracking-widest uppercase">Live Proctor</div>
-                        </div>
-                        <div class="bg-red-50 p-6 rounded-2xl border-2 border-red-100">
-                            <h5 class="text-red-600 font-black text-[10px] uppercase mb-2">Security Violations</h5>
-                            <p id="violation-count" class="text-2xl font-black text-red-600">0</p>
-                            <p class="text-[8px] text-red-400 font-bold">TAB SWITCHING DETECTED BY AI</p>
-                        </div>
+    <header class="bg-gradient-premium py-20 text-white relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <span class="bg-blue-500/30 text-blue-100 px-4 py-1 rounded-full text-sm font-semibold uppercase tracking-wider">India's Most Trusted Tech Portal</span>
+                    <h1 class="text-5xl md:text-6xl font-extrabold mt-6 leading-tight">
+                        Crack AE & JE Exams <br><span class="text-blue-300">With Rankers' Logic.</span>
+                    </h1>
+                    <p class="mt-6 text-lg text-blue-100 max-w-lg">
+                        Structured video lectures, PDF notes, and industrial-grade mock tests designed by top educators for Electrical, Civil, and Mechanical aspirants.
+                    </p>
+                    <div class="mt-10 flex gap-4">
+                        <button class="bg-white text-blue-900 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-gray-100 transition">Explore Batches</button>
+                        <button class="border-2 border-white/30 backdrop-blur-sm px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition">Free Demo Test</button>
                     </div>
                 </div>
-            </div>
-        </section>
-    </main>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, set, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBKqBYNRY_80b_UOLg1ls9pIKdX-Y8b3CM",
-            authDomain: "placement-96094.firebaseapp.com",
-            databaseURL: "https://placement-96094-default-rtdb.firebaseio.com",
-            projectId: "placement-96094",
-            storageBucket: "placement-96094.firebasestorage.app",
-            messagingSenderId: "1061247846675",
-            appId: "1:1061247846675:web:c6885811fcf1884582b2e6"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
-
-        window.currentStudent = null;
-        window.violationCount = 0;
-
-        // AUTH & DASHBOARD
-        window.portalLogin = async () => {
-            const id = document.getElementById('login-id').value;
-            const pass = document.getElementById('login-pass').value;
-            if (id === "admin@admin.com") {
-                try {
-                    await signInWithEmailAndPassword(auth, id, pass);
-                    window.showPanel('admin-panel');
-                    // This triggers the view that contains your new button
-                    window.openInterviewTab(); 
-                } catch (e) { alert("Admin Error: " + e.message); }
-            } else {
-                onValue(ref(db, `verified_students/${id}`), (snap) => {
-                    const s = snap.val();
-                    if (s && s.password === pass) {
-                        window.currentStudent = { id, ...s };
-                        window.showPanel('student-dash');
-                        document.getElementById('student-name-display').innerText = s.name;
-                        window.listenForTests(id);
-                    }
-                }, { onlyOnce: true });
-            }
-        };
-
-        // ADMIN: INTERVIEW TAB (COMBINED)
-       // ADMIN: INTERVIEW TAB (MATCHING YOUR REQUEST)
-        window.openInterviewTab = () => {
-            const container = document.getElementById('admin-main-view');
-            container.innerHTML = `
-                <div class="space-y-6 animate-in fade-in">
-                    <button onclick="window.openInterviewManager()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-[2rem] font-black text-xl shadow-2xl transition-all transform hover:scale-[1.01] flex items-center justify-center gap-4">
-                        <span>📅</span> OPEN ADVANCED INTERVIEW SCHEDULER & AI LOGIC
-                    </button>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div class="bg-black p-8 rounded-[2rem] border-b-8 border-red-600 shadow-2xl">
-                            <p class="text-red-500 text-[10px] font-black mb-4 uppercase animate-pulse">● LIVE GHOST VIVA</p>
-                            <textarea id="ghost-msg" placeholder="Speak through AI..." class="w-full h-32 bg-slate-900 text-blue-400 p-4 rounded-2xl mb-4 border-none outline-none focus:ring-2 ring-blue-500"></textarea>
-                            <button onclick="window.sendGhostMsg()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs">SPEAK NOW</button>
-                            
-                            <div class="mt-8 bg-slate-900 p-4 rounded-2xl border border-slate-800">
-                                <h4 class="text-[8px] text-slate-500 uppercase font-black mb-4">Candidate Answer Log</h4>
-                                <div id="admin-transcript-view" class="h-40 overflow-y-auto text-white text-[10px] font-mono italic">Waiting...</div>
-                            </div>
-                        </div>
-
-                        <div class="lg:col-span-2 bg-white p-10 rounded-[2rem] shadow-xl border-t-8 border-blue-600">
-                            <h3 class="text-xl font-black mb-6 italic uppercase">Live Candidate Roster</h3>
-                            <div id="student-roster" class="min-h-[400px]"></div>
-                        </div>
-                    </div>
+                <div class="hidden md:block">
+                    <img src="https://illustrations.popsy.co/white/studying.svg" alt="Education" class="w-full max-w-md mx-auto">
                 </div>
-            `;
-            window.loadStudentRoster();
-        };
-
-        window.submitAnswer = () => {
-            const ans = document.getElementById('answer-transcript').value;
-            if (ans && window.currentStudent) {
-                set(ref(db, `live_interviews/responses/${window.currentStudent.id}`), {
-                    name: window.currentStudent.name,
-                    text: ans,
-                    time: new Date().toLocaleTimeString()
-                });
-                document.getElementById('answer-transcript').value = "";
-            }
-        };
-
-        // ADMIN: LISTEN TO TRANSCRIPTS
-        onValue(ref(db, 'live_interviews/responses'), (snap) => {
-            const log = document.getElementById('admin-transcript-view');
-            if (log && snap.val()) {
-                const data = snap.val();
-                log.innerHTML = Object.values(data).map(r => `
-                    <div class="mb-2 p-2 bg-slate-800 rounded">
-                        <span class="text-blue-400 font-bold">[${r.name}]</span>: ${r.text}
-                    </div>
-                `).join('');
-                log.scrollTop = log.scrollHeight;
-            }
-        });
-
-        // FIXED PROCTORING: TAB SWITCHING
-        window.startTabTracking = () => {
-            window.violationCount = 0;
-            document.addEventListener("visibilitychange", () => {
-                if (document.hidden) {
-                    window.violationCount++;
-                    document.getElementById('violation-count').innerText = window.violationCount;
-                    // Sync Violation to Firebase
-                    if (window.currentStudent) {
-                        push(ref(db, `proctor_logs/${window.currentStudent.id}`), {
-                            action: "TAB_SWITCH",
-                            count: window.violationCount,
-                            time: new Date().toLocaleTimeString()
-                        });
-                    }
-                    alert("SECURITY WARNING: Tab switching is strictly prohibited!");
-                }
-            });
-        };
-
-        // ROSTER & PANEL HELPERS
-        window.showPanel = (pid) => {
-            ['auth-container', 'student-dash', 'admin-panel', 'exam-ui'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.add('hidden');
-            });
-            document.getElementById(pid).classList.remove('hidden');
-        };
-
-        // --- 1. MASTER UI RE-WIRING ---
-// This ensures that clicking the big blue/purple cards actually loads the functions
-window.renderAdminDashboard = () => {
-    // We don't overwrite the whole panel anymore (to keep your cards visible)
-    // We only target the "admin-main-view" div below the cards
-    const mainView = document.getElementById('admin-main-view');
-    if(!mainView) return;
-
-    mainView.innerHTML = `
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8 animate-in fade-in">
-            <div class="bg-black p-8 rounded-[2rem] border-b-8 border-red-600 shadow-2xl">
-                <p class="text-red-500 text-[10px] font-black mb-4 uppercase animate-pulse">● LIVE GHOST VIVA</p>
-                <textarea id="ghost-msg" placeholder="Speak through AI..." class="w-full h-32 bg-slate-900 text-blue-400 p-4 rounded-2xl mb-4 border-none outline-none focus:ring-2 ring-blue-500"></textarea>
-                <button onclick="window.sendGhostMsg()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-xs hover:bg-blue-500 transition">SPEAK NOW</button>
-                
-                <div class="mt-8 bg-slate-900 p-4 rounded-2xl border border-slate-800">
-                    <h4 class="text-[8px] text-slate-500 uppercase font-black mb-4">Candidate Answer Log</h4>
-                    <div id="admin-transcript-view" class="h-40 overflow-y-auto text-white text-[10px] font-mono italic">
-                        Waiting for student response...
-                    </div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-2 bg-white p-10 rounded-[2rem] shadow-xl border-t-8 border-blue-600">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-black italic uppercase">LIVE CANDIDATE ROSTER</h3>
-                    <button onclick="window.loadStudentRoster()" class="text-[10px] bg-slate-50 px-4 py-2 rounded-xl font-black">REFRESH</button>
-                </div>
-                <div id="student-roster" class="min-h-[400px]">
-                    </div>
             </div>
         </div>
-    `;
-    window.loadStudentRoster();
-};
+    </header>
 
-// --- 2. THE GHOST VOICE LOGIC ---
-window.sendGhostMsg = () => {
-    const msg = document.getElementById('ghost-msg').value;
-    if (msg) {
-        // Pushes the message to Firebase so the student's browser speaks it
-        set(ref(db, 'live_interviews/current_qn'), { 
-            text: msg, 
-            timestamp: Date.now() 
-        }).then(() => {
-            document.getElementById('ghost-msg').value = "";
-        });
-    }
-};
-
-// --- 3. THE ROSTER SYNC LOGIC ---
-window.loadStudentRoster = () => {
-    onValue(ref(db, 'verified_students'), (snap) => {
-        const rosterContainer = document.getElementById('student-roster');
-        if(!rosterContainer) return;
-        
-        const students = snap.val();
-        if(!students) {
-            rosterContainer.innerHTML = "<p class='text-center text-slate-400 py-10 italic'>No candidates found.</p>";
-            return;
-        }
-
-        let html = `
-            <table class="w-full text-left text-xs">
-                <thead>
-                    <tr class="text-slate-400 border-b uppercase font-black">
-                        <th class="p-4">Name/ID</th>
-                        <th class="p-4 text-center">Viva</th>
-                        <th class="p-4 text-center">CBT</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-        
-        for (let id in students) {
-            const s = students[id];
-            html += `
-                <tr class="border-b hover:bg-slate-50 transition">
-                    <td class="p-4">
-                        <div class="font-bold text-slate-800">${s.name}</div>
-                        <div class="text-blue-500 font-mono text-[10px]">${id}</div>
-                    </td>
-                    <td class="p-4 text-center">
-                        <button onclick="window.toggleStatus('${id}', 'int')" class="px-3 py-1 rounded font-black text-[10px] ${s.int_enabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400'}">
-                            ${s.int_enabled ? 'ON' : 'OFF'}
-                        </button>
-                    </td>
-                    <td class="p-4 text-center">
-                        <button onclick="window.toggleStatus('${id}', 'cbt')" class="px-3 py-1 rounded font-black text-[10px] ${s.cbt_enabled ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}">
-                            ${s.cbt_enabled ? 'ON' : 'OFF'}
-                        </button>
-                    </td>
-                </tr>`;
-        }
-        rosterContainer.innerHTML = html + "</tbody></table>";
-    });
-};
-
-// --- 4. TOGGLE ACCESS (ON/OFF BUTTONS) ---
-window.toggleStatus = (id, type) => {
-    const key = type === 'int' ? 'int_enabled' : 'cbt_enabled';
-    // Single lookup to flip the boolean value in Firebase
-    onValue(ref(db, `verified_students/${id}/${key}`), (snap) => {
-        update(ref(db, `verified_students/${id}`), { [key]: !snap.val() });
-    }, { onlyOnce: true });
-};
-
-        window.toggleStatus = (id, type) => {
-            const key = type === 'int' ? 'int_enabled' : 'cbt_enabled';
-            onValue(ref(db, `verified_students/${id}/${key}`), (snap) => {
-                update(ref(db, `verified_students/${id}`), { [key]: !snap.val() });
-            }, { onlyOnce: true });
-        };
-
-        window.listenForTests = (sId) => {
-    // Listen for both the main test config AND the specific interview session
-    onValue(ref(db, 'active_test_config'), (snap) => {
-        const config = snap.val();
-        onValue(ref(db, `verified_students/${sId}`), (sSnap) => {
-            const s = sSnap.val();
-            const area = document.getElementById('test-list-area');
-            if(!area) return;
-
-            let btn = "";
-            
-            // Check for CBT or Standard VIVA
-            if (config && config.type === 'CBT' && s.cbt_enabled) {
-                btn = `<button onclick="window.startExam('${config.bank}')" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl">START ${config.name}</button>`;
-            } 
-            else if (config && (config.type === 'VIVA' || config.type === 'INTERVIEW') && s.int_enabled) {
-                btn = `<button onclick="window.startInterviewSession()" class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl animate-bounce">JOIN LIVE VIVA ROOM</button>`;
-            }
-
-            area.innerHTML = `
-                <div class="p-8 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                    <h3 class="text-2xl font-black mb-4 uppercase italic text-slate-700">
-                        ${config ? config.name : 'Waiting for Assignment...'}
-                    </h3>
-                    ${btn || '<p class="text-red-500 font-bold">Your ID is being verified. Please wait for Admin to enable your session.</p>'}
+    <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-center mb-12">Choose Your Goal</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm card-hover text-center">
+                <div class="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="briefcase"></i>
                 </div>
-            `;
-        });
-    });
-};
-        window.startSecureCBT = async (bankId) => {
-    try {
-        // Force Screen Share Requirement for CBT
-        await navigator.mediaDevices.getDisplayMedia({ video: true });
-        
-        window.showPanel('exam-ui');
-        window.initProctor(); // Start Cam
-        window.startTabTracking(); // Start Security tracking
-        
-        // Fetch and Shuffle Questions (25 Questions limit)
-        onValue(ref(db, `question_bank/${bankId}`), (snap) => {
-            const allQ = Object.values(snap.val());
-            window.paper = allQ.sort(() => 0.5 - Math.random()).slice(0, 25);
-            window.index = 0;
-            window.drawQuestion();
-            window.drawPalette();
-            window.startTimer(parseInt(window.activeConfig.duration) * 60);
-        }, { onlyOnce: true });
-
-    } catch (e) {
-        alert("SECURITY ERROR: You must share your entire screen to attempt the CBT Exam.");
-        location.reload();
-    }
-};
-window.sendProctorWarning = () => {
-    const id = document.getElementById('target-student-cbt').value;
-    const msg = document.getElementById('proctor-msg').value;
-
-    if(!id || !msg) return alert("Enter Student ID and Message");
-
-    update(ref(db, `live_interviews/live_marks/${id}`), {
-        marks: "WARNING",
-        reason: msg,
-        time: new Date().toLocaleTimeString()
-    }).then(() => {
-        alert("Warning sent to student " + id);
-        document.getElementById('proctor-msg').value = "";
-    });
-};
-        window.initProctor = async () => {
-            try { const s = await navigator.mediaDevices.getUserMedia({ video: true }); document.getElementById('camera-feed').srcObject = s; } catch (e) {}
-        };
-
-        window.portalLogout = () => { signOut(auth).then(() => location.reload()); };
-        window.openInterviewManager = () => {
-    const mainView = document.getElementById('admin-main-view');
-    mainView.innerHTML = `
-        <div class="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-indigo-50 animate-in zoom-in-95">
-            <div class="flex justify-between items-center mb-8 border-b pb-6">
-                <div class="flex items-center gap-4">
-                    <span class="text-4xl">📅</span>
-                    <h2 class="text-3xl font-black italic uppercase tracking-tighter text-slate-800">Advanced Interview Hub</h2>
-                </div>
-                <button onclick="window.exitToDashboard()" class="bg-slate-100 text-slate-500 px-8 py-3 rounded-2xl font-black hover:bg-slate-200 transition-all border-b-4 border-slate-300 active:border-b-0">EXIT WINDOW</button>
+                <h3 class="text-xl font-bold mb-2">Assistant Engineer (AE)</h3>
+                <p class="text-gray-500 mb-6">In-depth conceptual batches for State PSC & Central AE roles.</p>
+                <button class="w-full py-3 rounded-xl border-2 border-orange-100 text-orange-600 font-bold hover:bg-orange-50 transition">View Batches</button>
             </div>
+            <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm card-hover text-center">
+                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="settings"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Junior Engineer (JE)</h3>
+                <p class="text-gray-500 mb-6">SSC JE, RRB JE, and State Electricity Board specialized courses.</p>
+                <button class="w-full py-3 rounded-xl border-2 border-blue-100 text-blue-600 font-bold hover:bg-blue-50 transition">View Batches</button>
+            </div>
+            <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm card-hover text-center">
+                <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="landmark"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">General Govt Exams</h3>
+                <p class="text-gray-500 mb-6">Non-technical subjects, Aptitude, Reasoning, and Current Affairs.</p>
+                <button class="w-full py-3 rounded-xl border-2 border-purple-100 text-purple-600 font-bold hover:bg-purple-50 transition">View Batches</button>
+            </div>
+        </div>
+    </section>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                <div class="space-y-6">
-                    <div class="bg-indigo-50 p-6 rounded-[2rem] border-2 border-indigo-100">
-                        <label class="text-[10px] font-black uppercase text-indigo-600 ml-2 tracking-widest">1. Target Candidate ID</label>
-                        <input type="text" id="sched-id" placeholder="Enter ID (e.g. 8881)" class="w-full p-5 bg-white border-2 border-indigo-200 rounded-2xl font-bold outline-none focus:ring-2 ring-indigo-500 mb-6">
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-[10px] font-black uppercase text-indigo-600 ml-2">2. Mode Selection</label>
-                                <select id="sched-mode" class="w-full p-5 bg-white border-2 border-indigo-200 rounded-2xl font-bold outline-none cursor-pointer" onchange="document.getElementById('ai-logic-box').classList.toggle('hidden', this.value !== 'AI')">
-                                    <option value="LIVE">GHOST LIVE</option>
-                                    <option value="AI">AI AUTO-MARK</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-black uppercase text-indigo-600 ml-2">3. Time Limit (Secs)</label>
-                                <input type="number" id="sched-time" value="60" class="w-full p-5 bg-white border-2 border-indigo-200 rounded-2xl font-bold">
-                            </div>
-                        </div>
-                    </div>
+    <section class="bg-gray-100 py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl font-bold mb-4 italic">Why GovtPrep Premium?</h2>
+            <p class="text-gray-600 mb-16">The most comprehensive ecosystem for technical aspirants.</p>
+            <div class="grid md:grid-cols-4 gap-6">
+                <div class="p-6">
+                    <i data-lucide="video" class="mx-auto mb-4 text-blue-600"></i>
+                    <h4 class="font-bold">Live Classes</h4>
+                    <p class="text-sm text-gray-500">Interactive sessions with real-time doubt clearing.</p>
+                </div>
+                <div class="p-6">
+                    <i data-lucide="file-text" class="mx-auto mb-4 text-blue-600"></i>
+                    <h4 class="font-bold">Smart Notes</h4>
+                    <p class="text-sm text-gray-500">Concise PDF notes for quick revision before exams.</p>
+                </div>
+                <div class="p-6">
+                    <i data-lucide="gauge" class="mx-auto mb-4 text-blue-600"></i>
+                    <h4 class="font-bold">Rank Predictor</h4>
+                    <p class="text-sm text-gray-500">AI-driven analysis of where you stand in India.</p>
+                </div>
+                <div class="p-6">
+                    <i data-lucide="shield-check" class="mx-auto mb-4 text-blue-600"></i>
+                    <h4 class="font-bold">Secure CBT</h4>
+                    <p class="text-sm text-gray-500">Industry-standard test engine with anti-cheat lock.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-                    <div id="ai-logic-box" class="hidden animate-in slide-in-from-top-4">
-                        <label class="text-[10px] font-black text-red-600 uppercase ml-2 tracking-widest">4. AI Question & Keyword Logic</label>
-                        <textarea id="ai-logic-text" placeholder="1. Explain MOSFET. [Keywords: metal, oxide, semiconductor, field, effect] Marks: 20" class="w-full h-48 p-5 bg-slate-900 text-green-400 font-mono text-xs rounded-[2rem] outline-none border-4 border-slate-800 focus:border-indigo-500"></textarea>
-                    </div>
+    <footer class="bg-white border-t border-gray-200 py-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-gray-500">© 2026 GovtPrep Premium. A Pro-Grade Learning Ecosystem for AE & JE.</p>
+        </div>
+    </footer>
 
-                    <button onclick="window.broadcastInterviewConfig()" class="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-xl shadow-xl hover:bg-indigo-700 transition-all transform hover:scale-[1.01] active:scale-95 uppercase tracking-tighter">
-                        Activate Live Session
+    <div id="authModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[60] p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Welcome Back</h2>
+                    <button onclick="toggleModal()" class="text-gray-400 hover:text-black">
+                        <i data-lucide="x"></i>
                     </button>
                 </div>
-
-                <div class="bg-slate-950 p-8 rounded-[3rem] text-white shadow-inner relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-6">
-                        <span class="flex h-3 w-3">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                        </span>
-                    </div>
-
-                    <h4 class="text-indigo-400 font-black text-xs uppercase mb-6 tracking-widest flex items-center gap-2">
-                        <span>●</span> Active Viva Monitor
-                    </h4>
-
-                    <div class="aspect-video bg-black rounded-[2rem] border-2 border-slate-800 flex items-center justify-center mb-6 overflow-hidden shadow-2xl relative">
-                        <video id="admin-screen-monitor" autoplay class="w-full h-full object-contain bg-slate-900"></video>
-                        <div id="video-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-700">
-                             <span class="text-4xl mb-2">🖥️</span>
-                             <p class="text-[10px] font-black uppercase">Awaiting Student Stream...</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2 mb-6">
-                        <label class="text-[8px] text-slate-500 font-black uppercase tracking-widest ml-2">Live Transcript (Student Speech)</label>
-                        <div id="viva-transcript" class="h-32 overflow-y-auto bg-black p-5 rounded-2xl text-[10px] font-mono text-indigo-300 italic border border-slate-800 leading-relaxed">
-                            Awaiting candidate audio connection...
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900 p-6 rounded-[2rem] border border-slate-800">
-                        <h5 class="text-[10px] font-black text-indigo-400 uppercase mb-4 tracking-widest">Manual Scoring & Penalty</h5>
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <input type="number" id="manual-score" placeholder="Mark" class="bg-black text-white p-4 rounded-xl border border-slate-700 font-black text-center focus:ring-1 ring-green-500 outline-none">
-                            <input type="text" id="manual-reason" placeholder="Deduction reason..." class="bg-black text-white p-4 rounded-xl border border-slate-700 text-[10px] outline-none focus:ring-1 ring-red-500">
-                        </div>
-                        <button onclick="window.syncLiveMarks()" class="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:translate-y-1">
-                            Deduct & Alert Student
-                        </button>
-                    </div>
+                <div class="space-y-4">
+                    <input type="email" placeholder="Email Address" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="password" placeholder="Password" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700">Sign In</button>
+                    <div class="text-center text-sm text-gray-500 py-2">OR</div>
+                    <button class="w-full border border-gray-200 py-3 rounded-xl flex items-center justify-center gap-2 font-semibold hover:bg-gray-50">
+                        <img src="https://www.svgrepo.com/show/355037/google.svg" class="w-5" alt="Google">
+                        Continue with Google
+                    </button>
                 </div>
             </div>
-        </div>`;
+        </div>
+    </div>
 
-    // Automatically initialize listeners if an ID is already typed
-    const existingId = document.getElementById('sched-id').value;
-    if(existingId) {
-        window.syncAdminMonitor(existingId);
-    }
-};
-        window.startInterviewSession = async () => {
-    try {
-        // 1. Force Full Screen Share
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        window.showPanel('exam-ui');
-        
-        // 2. Start Voice Transcript
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
 
-        recognition.onresult = (event) => {
-            const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
-            document.getElementById('answer-transcript').value = transcript;
-            
-            // Sync transcript to Admin in real-time
-            update(ref(db, `live_interviews/transcripts/${window.currentStudent.id}`), {
-                text: transcript,
-                timestamp: Date.now()
-            });
-        };
-        recognition.start();
-
-    } catch (err) {
-        alert("You must share your entire screen to enter the interview!");
-        location.reload();
-    }
-};
-        window.syncLiveMarks = () => {
-    const sId = document.getElementById('target-student-id').value;
-    const score = document.getElementById('live-deduction').value;
-    const reason = document.getElementById('deduction-reason').value;
-
-    if(!sId || !score) return alert("Select student and score!");
-
-    update(ref(db, `live_interviews/live_marks/${sId}`), {
-        marks: score,
-        reason: reason,
-        time: new Date().toLocaleTimeString()
-    }).then(() => {
-        document.getElementById('live-deduction').value = "";
-        document.getElementById('deduction-reason').value = "";
-    });
-};
-        window.approveNewUser = (requestKey, name, email) => {
-    const newID = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit ID
-    const newPass = "PASS" + Math.floor(100 + Math.random() * 899);
-
-    set(ref(db, `verified_students/${newID}`), {
-        name: name,
-        email: email,
-        password: newPass,
-        cbt_enabled: false,
-        int_enabled: false
-    }).then(() => {
-        remove(ref(db, `enrollment_requests/${requestKey}`));
-        alert(`STUDENT CREATED!\nID: ${newID}\nPASS: ${newPass}`);
-    });
-};
-        // --- 1. FIXED BROADCAST FUNCTION (Missing in your code) ---
-        window.broadcastInterview = () => {
-            const id = document.getElementById('target-student-id').value;
-            const mode = document.getElementById('viva-mode').value;
-            const timer = document.getElementById('viva-timer').value;
-            const bank = document.getElementById('ai-bank-text').value;
-
-            if(!id) return alert("Please enter Student ID");
-
-            set(ref(db, 'active_test_config'), {
-                type: 'VIVA',
-                name: "Scheduled Interview Session",
-                mode: mode,
-                bank: mode === 'AI' ? bank : "",
-                timer: timer,
-                timestamp: Date.now()
-            }).then(() => alert("Interview Broadcasted to Student " + id));
-        };
-
-        // --- 2. UPDATED STUDENT SESSION (With Tab Tracking) ---
-        window.startInterviewSession = async () => {
-            try {
-                // Force Screen Share Requirement
-                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                window.showPanel('exam-ui');
-                window.startTabTracking(); // Start monitoring tab switches
-                window.initProctor(); // Start camera
-                
-                // Start Voice Transcript
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                const recognition = new SpeechRecognition();
-                recognition.continuous = true;
-                recognition.interimResults = true;
-
-                recognition.onresult = (event) => {
-                    const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
-                    document.getElementById('answer-transcript').value = transcript;
-                    
-                    // Sync transcript to Admin
-                    update(ref(db, `live_interviews/transcripts/${window.currentStudent.id}`), {
-                        text: transcript,
-                        timestamp: Date.now()
-                    });
-                };
-                recognition.start();
-                window.listenForDeductions(window.currentStudent.id); // Fixed: Listen for marks
-
-            } catch (err) {
-                alert("Interview Blocked: Screen Share Required.");
-                location.reload();
-            }
-        };
-
-        // --- 3. STUDENT LISTENER FOR LIVE DEDUCTIONS (Missing in your code) ---
-        window.listenForDeductions = (sId) => {
-            onValue(ref(db, `live_interviews/live_marks/${sId}`), (snap) => {
-                const data = snap.val();
-                if(data) {
-                    const display = document.getElementById('display-q-text');
-                    display.innerHTML += `
-                        <div class="mt-4 p-4 bg-red-600 text-white rounded-2xl animate-bounce shadow-xl">
-                            <h4 class="font-black">MARK UPDATE: ${data.marks}</h4>
-                            <p class="text-[10px] font-bold uppercase italic">${data.reason}</p>
-                        </div>`;
-                }
-            });
-        };
-
-        // --- 4. FIXED REGISTRATION APPROVAL ---
-        window.listenForEnrollments = () => {
-            onValue(ref(db, 'enrollment_requests'), (snap) => {
-                const container = document.getElementById('registration-requests-list'); // Ensure this ID exists in HTML
-                if(!container) return;
-                container.innerHTML = "";
-                const data = snap.val();
-                if(!data) return;
-                Object.keys(data).forEach(key => {
-                    const r = data[key];
-                    container.innerHTML += `
-                        <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center mb-2">
-                            <span class="text-xs font-bold">${r.name}</span>
-                            <button onclick="window.approveNewUser('${key}', '${r.name}', '${r.email}')" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px]">APPROVE</button>
-                        </div>`;
-                });
-            });
-        };
-        // --- 1. FIXED: CBT & VIVA SETUP DESIGNER ---
-window.openSetupScreen = (type) => {
-    const mainView = document.getElementById('admin-main-view');
-    mainView.innerHTML = `
-        <div class="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-blue-50 animate-in zoom-in-95">
-            <div class="flex justify-between items-center mb-8 border-b pb-6">
-                <h2 class="text-3xl font-black italic uppercase tracking-tighter">📝 CBT Exam Scheduler</h2>
-                <button onclick="window.exitToDashboard()" class="bg-slate-100 text-slate-500 px-6 py-2 rounded-2xl font-black hover:bg-slate-200">EXIT WINDOW</button>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                <div class="space-y-6">
-                    <div>
-                        <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Exam Title</label>
-                        <input type="text" id="cbt-name" placeholder="e.g. RRB Technician Grade 1" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold outline-none focus:ring-2 ring-blue-500">
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Duration (Mins)</label>
-                            <input type="number" id="cbt-time" value="90" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Marks per Q</label>
-                            <input type="number" id="cbt-marks" value="1" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="text-[10px] font-black uppercase text-blue-600 ml-2">Bulk Question Injector</label>
-                        <textarea id="cbt-bank-text" placeholder="1. Question... A) Opt B) Opt Ans: A" class="w-full h-64 p-4 bg-slate-900 text-blue-400 font-mono text-xs rounded-2xl outline-none"></textarea>
-                    </div>
-
-                    <button onclick="window.broadcastCBTConfig()" class="w-full bg-blue-700 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl hover:bg-blue-800 transition-all uppercase">ACTIVATE & SYNC TO STUDENTS</button>
-                </div>
-
-                <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white">
-                    <h4 class="text-blue-400 font-black text-xs uppercase mb-4 tracking-widest">Live Exam Proctoring</h4>
-                    <div class="aspect-video bg-black rounded-3xl border border-slate-800 flex items-center justify-center mb-6 overflow-hidden">
-                        <p class="text-[10px] text-slate-600 italic">Global Screen Monitoring Active...</p>
-                    </div>
-                    
-                    <div class="space-y-4">
-                        <h5 class="text-xs font-black uppercase text-slate-500">Security Command</h5>
-                        <input type="text" id="target-student-cbt" placeholder="Student ID to Alert" class="w-full bg-slate-800 p-3 rounded-xl border border-slate-700 text-white font-mono text-xs">
-                        <textarea id="proctor-msg" placeholder="Warning message for student..." class="w-full h-24 bg-slate-800 p-3 rounded-xl border border-slate-700 text-white text-xs"></textarea>
-                        <button onclick="window.sendProctorWarning()" class="w-full bg-red-600 text-white py-3 rounded-xl font-black text-xs">SEND SECURITY WARNING</button>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-};
-        window.broadcastCBTConfig = async () => {
-    const name = document.getElementById('cbt-name').value;
-    const rawText = document.getElementById('cbt-bank-text').value;
-    const duration = document.getElementById('cbt-time').value;
-    const marks = document.getElementById('cbt-marks').value;
-
-    if(!name || !rawText) return alert("Fill all details!");
-
-    // Parse logic: splits by "1.", "2.", etc.
-    const qBlocks = rawText.split(/\d+\./).filter(b => b.length > 5);
-    const bankId = `BANK_CBT_${Date.now()}`;
-
-    for (let block of qBlocks) {
-        await push(ref(db, `question_bank/${bankId}`), { content: block.trim() });
-    }
-
-    set(ref(db, 'active_test_config'), {
-        type: 'CBT',
-        name: name,
-        bank: bankId,
-        duration: duration,
-        marksPerQ: marks,
-        status: "LIVE",
-        timestamp: Date.now()
-    }).then(() => alert("CBT Exam is now BROADCASTING to all enabled students!"));
-};
-// --- 2. FIXED: FINALIZE CBT LOGIC ---
-window.finalizeCBTSetup = async (type) => {
-    const name = document.getElementById('setup-test-name').value;
-    const rawText = document.getElementById('bulk-question-input').value;
-    const duration = document.getElementById('setup-duration').value;
-    const marks = document.getElementById('setup-marks').value;
-
-    if(!name || !rawText) return alert("Please fill all fields!");
-
-    // Parse questions: splits by number + dot (1. or 2.)
-    const qBlocks = rawText.split(/\d+\./).filter(b => b.length > 5);
-    const bankId = `BANK_${Date.now()}`;
-
-    // Upload questions to bank
-    for (let block of qBlocks) {
-        await push(ref(db, `question_bank/${bankId}`), { 
-            content: block.trim(),
-            timestamp: Date.now() 
-        });
-    }
-
-    // Activate the test globally
-    set(ref(db, 'active_test_config'), {
-        type: type,
-        name: name,
-        bank: bankId,
-        duration: duration,
-        marksPerQ: marks,
-        status: "LIVE",
-        timestamp: Date.now()
-    }).then(() => {
-        alert(`${type} activated with ${qBlocks.length} questions!`);
-        window.renderAdminDashboard();
-        window.loadStudentRoster();
-    });
-};
-        // --- 1. NAVIGATION HELPERS (Exit != Logout) ---
-window.exitToDashboard = () => {
-    // Only switches the view, does not call signOut()
-    window.showPanel('admin-panel');
-    window.renderAdminDashboard();
-};
-
-window.portalLogout = () => {
-    // This is the only function that actually logs you out
-    if(confirm("Are you sure you want to logout?")) {
-        signOut(auth).then(() => {
-            location.reload(); // Hard reset only on actual logout
-        });
-    }
-};
-
-// --- 2. INTERVIEW MANAGER (Scheduler & AI Logic) ---
-window.openInterviewManager = () => {
-    const mainView = document.getElementById('admin-main-view');
-    mainView.innerHTML = `
-        <div class="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-indigo-50 animate-in zoom-in-95">
-            <div class="flex justify-between items-center mb-8 border-b pb-6">
-                <h2 class="text-3xl font-black italic uppercase tracking-tighter">📅 Interview Scheduler & AI Logic</h2>
-                <button onclick="window.exitToDashboard()" class="bg-slate-100 text-slate-500 px-6 py-2 rounded-2xl font-black hover:bg-slate-200">EXIT WINDOW</button>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                <div class="space-y-6">
-                    <input type="text" id="sched-id" placeholder="Candidate ID (e.g. 7811)" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold outline-none focus:ring-2 ring-indigo-500">
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <select id="sched-mode" class="p-4 bg-slate-50 border rounded-2xl font-bold" onchange="document.getElementById('ai-marking-area').classList.toggle('hidden', this.value !== 'AI')">
-                            <option value="LIVE">GHOST LIVE</option>
-                            <option value="AI">AI AUTO-MARK</option>
-                        </select>
-                        <input type="number" id="sched-time" placeholder="Secs/Qn" value="60" class="p-4 bg-slate-50 border rounded-2xl font-bold">
-                    </div>
-
-                    <div id="ai-marking-area" class="hidden space-y-2">
-                        <label class="text-[10px] font-black text-red-600 uppercase ml-2">AI Format: 1. Qn [Keywords: x, y] Marks: 20</label>
-                        <textarea id="ai-logic-text" placeholder="1. Define FMCW Radar. [Keywords: frequency, modulation, continuous, wave] Marks: 20" class="w-full h-48 p-4 bg-slate-900 text-green-400 font-mono text-xs rounded-2xl outline-none"></textarea>
-                    </div>
-
-                    <button onclick="window.broadcastInterviewConfig()" class="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl hover:bg-indigo-700 transition-all">ACTIVATE SESSION</button>
-                </div>
-
-                <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white">
-                    <h4 class="text-indigo-400 font-black text-xs uppercase mb-4 tracking-widest">Live Viva Monitor</h4>
-                    <div class="aspect-video bg-black rounded-3xl border border-slate-800 flex items-center justify-center mb-4 overflow-hidden">
-                        <p class="text-[10px] text-slate-600 italic">Screen Share Feed Ready...</p>
-                    </div>
-                    <div id="viva-transcript" class="h-32 overflow-y-auto bg-black p-4 rounded-2xl text-[10px] font-mono text-indigo-300 italic border border-slate-800 mb-4">
-                        Transcript: Waiting for voice...
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="number" id="manual-score" placeholder="Mark" class="bg-slate-800 p-3 rounded-xl border border-slate-700 text-white">
-                        <input type="text" id="manual-reason" placeholder="Deduction reason" class="bg-slate-800 p-3 rounded-xl border border-slate-700 text-white text-[10px]">
-                    </div>
-                    <button onclick="window.syncLiveMarks()" class="w-full bg-red-600 text-white py-3 rounded-xl font-black text-xs mt-2">DEDUCT & ALERT STUDENT</button>
-                </div>
-            </div>
-        </div>`;
-};
-
-// --- 3. LOGIC FOR BROADCASTING ---
-window.broadcastInterviewConfig = () => {
-    const id = document.getElementById('sched-id').value;
-    const mode = document.getElementById('sched-mode').value;
-    const bank = document.getElementById('ai-logic-text').value;
-    const timer = document.getElementById('sched-time').value;
-
-    if(!id) return alert("Please select a Student ID first!");
-
-    // 1. Activate the global test config so the button appears for the student
-    set(ref(db, 'active_test_config'), {
-        type: 'VIVA',
-        name: "LIVE VIVA: SESSION #" + id,
-        mode: mode,
-        bank: mode === 'AI' ? bank : "LIVE_MODE",
-        timer: timer,
-        targetID: id,
-        timestamp: Date.now()
-    });
-
-    // 2. Enable the student's specific Viva permission
-    update(ref(db, `verified_students/${id}`), {
-        int_enabled: true
-    }).then(() => {
-        alert(`SUCCESS: Interview is now LIVE for Student ${id}`);
-    });
-};
-// --- 4. NEW REGISTRATION (Manually added as requested) ---
-window.approveCandidate = (key, name, email) => {
-    const newID = Math.floor(1000 + Math.random() * 9000);
-    const pass = "PASS" + Math.floor(100 + Math.random() * 899);
-
-    set(ref(db, `verified_students/${newID}`), {
-        name: name,
-        email: email,
-        password: pass,
-        cbt_enabled: false,
-        int_enabled: false,
-        rank: 7 // Based on your profile
-    }).then(() => {
-        remove(ref(db, `enrollment_requests/${key}`));
-        alert(`APPROVED!\nID: ${newID}\nPASS: ${newPass}`);
-    });
-};
-        // 1. ADMIN: LISTEN FOR STUDENT SCREEN & CAM
-window.syncAdminMonitor = (studentId) => {
-    // Listen for the student's Screen Stream URL in Firebase
-    onValue(ref(db, `live_sessions/${studentId}/stream`), (snap) => {
-        const streamData = snap.val();
-        if (streamData) {
-            const video = document.getElementById('admin-screen-monitor');
-            // Logic to attach WebRTC or Video URL goes here
-            video.src = streamData.url; 
+        // Modal Logic
+        function toggleModal() {
+            const modal = document.getElementById('authModal');
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
         }
-    });
-
-    // Listen for the student's Voice Transcript
-    onValue(ref(db, `live_interviews/transcripts/${studentId}`), (snap) => {
-        const log = document.getElementById('viva-transcript-log');
-        if (snap.val()) {
-            log.innerText = snap.val().text;
-            log.scrollTop = log.scrollHeight;
-        }
-    });
-};
-
-// 2. ADMIN: SEND QUESTION (GHOST COMMAND)
-window.sendGhostQuestion = () => {
-    const msg = document.getElementById('ghost-msg').value;
-    if (!msg) return alert("Type a question first!");
-
-    // This sends the text to the student's screen and triggers the AI Voice
-    set(ref(db, 'live_interviews/current_qn'), {
-        text: msg,
-        timestamp: Date.now()
-    }).then(() => {
-        document.getElementById('ghost-msg').value = ""; // Clear box
-    });
-};
-        // --- SESSION PERSISTENCE ---
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        if (user.email === "admin@admin.com") {
-            window.showPanel('admin-panel');
-            window.renderAdminDashboard();
-        } else {
-            // Logic to recover student ID from session or a temporary cookie
-            // For now, it will return to Dashboard if logged in
-            window.showPanel('student-dash');
-        }
-    } else {
-        window.showPanel('auth-container');
-    }
-});
-        window.syncAdminMonitor = (studentId) => {
-    // 1. Hook the Screen/Cam Video
-    // Note: This requires a WebRTC signaling path or a direct stream URL
-    onValue(ref(db, `live_sessions/${studentId}/streamUrl`), (snap) => {
-        const url = snap.val();
-        if (url) {
-            const video = document.getElementById('admin-screen-monitor');
-            video.src = url; 
-            document.getElementById('video-placeholder').classList.add('hidden');
-        }
-    });
-
-    // 2. Hook the Transcript (Live Speech)
-    onValue(ref(db, `live_interviews/transcripts/${studentId}`), (snap) => {
-        const log = document.getElementById('viva-transcript');
-        const data = snap.val();
-        if (data && log) {
-            log.innerText = data.text;
-            log.scrollTop = log.scrollHeight; // Auto-scroll
-        }
-    });
-};
-     window.sendGhostMsg = () => {
-    const msg = document.getElementById('ghost-msg').value;
-    const targetId = document.getElementById('sched-id')?.value; // ID from your scheduler
-
-    if (!msg) return alert("Type something!");
-
-    // Push to the global path that the student is listening to
-    set(ref(db, 'live_interviews/current_qn'), {
-        text: msg,
-        target: targetId || "ALL",
-        timestamp: Date.now()
-    }).then(() => {
-        document.getElementById('ghost-msg').value = "";
-    });
-};   
     </script>
 </body>
 </html>
