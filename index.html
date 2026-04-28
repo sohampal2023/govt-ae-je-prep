@@ -223,13 +223,27 @@
         } catch (e) { alert("Permission Denied! Check Rules."); }
     };
 
-    window.approveStudent = async (batchId, studentUid) => {
-        try {
-            await set(ref(db, `authorized_students/${batchId}/${studentUid}`), true);
-            await set(ref(db, `enrollment_requests/${batchId}/${studentUid}`), null);
-            alert("Access Granted!");
-        } catch (e) { alert("Only Teacher can approve!"); }
-    };
+    // --- Block 2: Teacher Approval Action ---
+window.approveStudent = async (batchId, studentUid) => {
+    try {
+        // 1. Double check current user is the Teacher
+        if (auth.currentUser.email !== ADMIN_EMAIL) {
+            alert("Unauthorized! Only the Teacher can approve students.");
+            return;
+        }
+
+        // 2. Write to authorized_students node
+        await set(ref(db, `authorized_students/${batchId}/${studentUid}`), true);
+        
+        // 3. Clear the pending request
+        await set(ref(db, `enrollment_requests/${batchId}/${studentUid}`), null);
+        
+        alert("Student Approved Successfully!");
+    } catch (e) {
+        console.error("Approval Error:", e);
+        alert("Failed to approve. Check Firebase Rules!");
+    }
+};
 
     // --- 3. STUDENT ACTIONS ---
     window.requestEnrollment = async (batchId, batchName) => {
@@ -257,6 +271,7 @@
                 return;
             }
             let html = '';
+            
             Object.keys(data).forEach(batchId => {
                 const students = data[batchId];
                 Object.keys(students).forEach(uid => {
@@ -293,9 +308,12 @@
             const b = data[key];
             // Fix: We only use a string for the button, no Modals here!
             const actionButton = isTeacher ? 
-                `<button onclick="window.location.href='study-hub.html?batch=${b.id}'" class="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black shadow-lg hover:bg-blue-700 transition-all">Start Teaching</button>` 
-                : 
-                `<button onclick="requestEnrollment('${b.id}', '${b.name}')" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all">Join Batch</button>`;
+                // Replace the buttons inside your container.innerHTML mapping:
+${isAdmin ? 
+    `<button onclick="openStudyHub('${b.id}', '${b.name}')" class="bg-blue-600 text-white px-10 py-5 rounded-3xl font-black shadow-xl hover:bg-blue-700 transition-all">Start Teaching</button>` 
+    : 
+    `<button onclick="openStudyHub('${b.id}', '${b.name}')" class="bg-slate-900 text-white px-10 py-5 rounded-3xl font-black shadow-xl hover:bg-blue-700 transition-all">Join Batch</button>`
+}
 
             return `
             <div class="glass-card p-8 rounded-[3rem] flex flex-col h-full bg-white">
@@ -318,30 +336,45 @@
 }
 
     // --- 5. INITIALIZE ---
-    onAuthStateChanged(auth, (user) => {
-        const adminPanel = document.getElementById('admin-panel');
-        const authDiv = document.getElementById('auth-state');
-        if (user) {
-            if (user.email === ADMIN_EMAIL) {
-                adminPanel.classList.remove('hidden');
-                loadEnrollmentRequests();
-            } else {
-                adminPanel.classList.add('hidden');
-            }
-            authDiv.innerHTML = `
-                <div class="flex items-center gap-3 bg-white border p-2 pr-5 rounded-full shadow-sm">
-                    <img src="${user.photoURL || 'https://ui-avatars.com/api/?name='+user.email}" class="w-9 h-9 rounded-full">
-                    <span class="text-sm font-bold text-slate-900">${user.email === ADMIN_EMAIL ? 'Teacher' : 'Dashboard'}</span>
-                    <button onclick="handleLogout()" class="text-slate-300 ml-2"><i data-lucide="log-out" class="w-4 h-4"></i></button>
-                </div>`;
-        } else {
-            adminPanel.classList.add('hidden');
-            authDiv.innerHTML = `<button onclick="toggleModal()" class="text-slate-600 font-bold px-4">Login</button>
-                                 <button onclick="toggleModal()" class="bg-blue-700 text-white px-8 py-3 rounded-full font-black">Enroll Now</button>`;
+    // --- Block 1: Unified Auth Logic ---
+onAuthStateChanged(auth, (user) => {
+    const adminPanel = document.getElementById('admin-panel');
+    const authDiv = document.getElementById('auth-state');
+    
+    if (user) {
+        // Master Check: Is this the Teacher-Admin?
+        const isMaster = user.email === ADMIN_EMAIL;
+        
+        // Show/Hide Dashboard
+        adminPanel.classList.toggle('hidden', !isMaster);
+        
+        if (isMaster) {
+            console.log("Teacher-Admin Access Granted");
+            loadEnrollmentRequests(); // Load student applications
         }
-        loadBatches(); // Refresh buttons based on user state
-        lucide.createIcons();
-    });
+
+        authDiv.innerHTML = `
+            <div class="flex items-center gap-3 bg-white border p-1.5 pr-5 rounded-full shadow-sm">
+                <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=Admin'}" class="w-9 h-9 rounded-full border-2 border-blue-100">
+                <div class="flex flex-col text-left">
+                    <span class="text-[10px] font-black ${isMaster ? 'text-blue-600' : 'text-slate-400'} leading-none uppercase">
+                        ${isMaster ? 'Teacher & Admin' : 'Aspirant'}
+                    </span>
+                    <span class="text-sm font-bold text-slate-900 leading-tight">My Dashboard</span>
+                </div>
+                <button onclick="handleLogout()" class="ml-2 text-slate-300 hover:text-red-500 transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>`;
+    } else {
+        adminPanel.classList.add('hidden');
+        authDiv.innerHTML = `
+            <button onclick="toggleModal()" class="text-slate-600 font-bold px-4">Login</button>
+            <button onclick="toggleModal()" class="bg-blue-700 text-white px-8 py-2.5 rounded-full font-bold shadow-lg">Enroll Now</button>`;
+    }
+    loadBatches(); // Refresh buttons
+    lucide.createIcons();
+});
 let activeSubjectId = null; // Tracks which subject we are adding topics to
 
 // --- 1. TOGGLE MODALS ---
@@ -379,25 +412,52 @@ window.saveNewTopic = async () => {
 let currentBatchId = null;
 
     // --- 1. NAVIGATION LOGIC (The "Single-Page" Switch) ---
-    window.openStudyHub = (batchId, batchName) => {
-        currentBatchId = batchId;
-        document.getElementById('hub-batch-title').innerText = batchName;
-        
-        // Check permissions (Teacher or Approved Student)
-        const user = auth.currentUser;
-        if (user.email !== ADMIN_EMAIL) {
-            onValue(ref(db, `authorized_students/${batchId}/${user.uid}`), (snap) => {
-                if (!snap.exists()) {
-                    alert("Access Denied! Wait for Teacher Approval.");
-                    return;
-                }
-                showHubUI();
-            });
-        } else {
-            showHubUI();
-        }
-    };
+    window.openStudyHub = (bId, bName) => {
+    currentBatchId = bId;
+    const user = auth.currentUser;
+    
+    if (!user) {
+        alert("Please login to access the classroom.");
+        return window.toggleModal();
+    }
 
+    const isAdmin = user.email === ADMIN_EMAIL;
+
+    if (isAdmin) {
+        // Teacher/Admin can always enter
+        document.getElementById('teacher-add-sub-btn').classList.remove('hidden');
+        launchHub(bName);
+    } else {
+        // Students must be authorized
+        onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
+            if (snap.exists()) {
+                document.getElementById('teacher-add-sub-btn').classList.add('hidden');
+                launchHub(bName);
+            } else {
+                alert("Access Denied: You need teacher approval for this batch.");
+                // Automatically send request if they haven't yet
+                window.requestEnrollment(bId, bName);
+            }
+        }, { onlyOnce: true });
+    }
+};
+function launchHub(name) {
+    // 1. Set the Title
+    document.getElementById('hub-batch-title').innerText = name;
+    // 2. Show the Hidden Study Hub Div
+    document.getElementById('study-hub-view').classList.remove('hidden');
+    // 3. Lock background scrolling
+    document.body.style.overflow = 'hidden';
+    // 4. Load the Subjects
+    loadCurriculum();
+}
+
+window.closeStudyHub = () => {
+    // 1. Hide the Study Hub Div
+    document.getElementById('study-hub-view').classList.add('hidden');
+    // 2. Restore scrolling
+    document.body.style.overflow = 'auto';
+};
     function showHubUI() {
         document.getElementById('study-hub-view').classList.remove('hidden');
         document.body.style.overflow = 'hidden'; // Stop background scrolling
@@ -410,23 +470,33 @@ let currentBatchId = null;
     };
 
     // --- 2. TEACHER HUB ACTIONS ---
-    window.saveSubject = async () => {
-        const name = prompt("Enter Subject Name (e.g. Network Theory):");
-        if (!name || !currentBatchId) return;
-        
+    // --- TEACHER: Build Curriculum ---
+window.saveSubject = async () => {
+    const title = prompt("Enter Subject Name (e.g., Electrical Machines):");
+    if (!title) return;
+    
+    try {
         const subRef = push(ref(db, `curriculum/${currentBatchId}/subjects`));
-        await set(subRef, { id: subRef.key, title: name });
-    };
+        await set(subRef, { id: subRef.key, title: title });
+        alert("Subject added to " + document.getElementById('hub-batch-title').innerText);
+    } catch (e) {
+        alert("Error: Ensure you are logged in as admin@admin.com");
+    }
+};
 
-    window.addTopic = async (subId) => {
-        const title = prompt("Topic Title:");
-        const video = prompt("YouTube Video ID:");
-        if (!title) return;
+window.addTopic = async (subId) => {
+    const title = prompt("Topic/Lecture Title:");
+    const video = prompt("YouTube Video ID (Example: dQw4w9WgXcQ):");
+    if (!title) return;
 
-        const topicRef = push(ref(db, `curriculum/${currentBatchId}/subjects/${subId}/topics`));
-        await set(topicRef, { id: topicRef.key, title, video });
-    };
-
+    try {
+        const tRef = push(ref(db, `curriculum/${currentBatchId}/subjects/${subId}/topics`));
+        await set(tRef, { id: tRef.key, title, video, timestamp: Date.now() });
+    } catch (e) {
+        alert("Action failed. Check admin permissions.");
+    }
+};
+    
     // --- 3. UPDATED DATA LOADER ---
     function loadCurriculum() {
         const container = document.getElementById('hub-curriculum-container');
