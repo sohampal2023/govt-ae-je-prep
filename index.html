@@ -1591,6 +1591,218 @@ document.addEventListener('mouseup', () => {
         }
     });
 }
+    /**
+ * AE/JE PORTAL: INTEGRATED REPORTING & BIOMETRIC SUPERVISION
+ * Features: Auto-Report, Face Verification, Admin Audit, & Free Alerts
+ */
+
+// --- 1. GLOBAL STATE & DRAG ENGINE ---
+let isDragging = false;
+let currentTarget = null;
+let offset = [0, 0];
+
+document.addEventListener('mousedown', (e) => {
+    const el = e.target.closest('.cursor-move');
+    if (el && !e.target.closest('button')) {
+        isDragging = true;
+        currentTarget = el;
+        offset = [el.offsetLeft - e.clientX, el.offsetTop - e.clientY];
+        el.style.zIndex = "5000000";
+    }
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isDragging || !currentTarget) return;
+    currentTarget.style.left = (e.clientX + offset[0]) + 'px';
+    currentTarget.style.top = (e.clientY + offset[1]) + 'px';
+    currentTarget.style.right = 'auto';
+});
+
+document.addEventListener('mouseup', () => { isDragging = false; currentTarget = null; });
+
+// --- 2. ADMIN: PUBLISH DATE-RANGE REPORT ---
+window.publishBatchReport = async () => {
+    const start = document.getElementById('report-start').value;
+    const end = document.getElementById('report-end').value;
+
+    if (!start || !end || !currentBatchId) return alert("Select dates and batch!");
+
+    const reportPayload = {
+        range: `${start} to ${end}`,
+        status: "Awaiting_Guardian",
+        publishedAt: Date.now(),
+        adminApproved: false
+    };
+
+    await set(ref(db, `reports/${currentBatchId}/active`), reportPayload);
+    alert("Report Published to Students/Parents.");
+};
+
+// --- 3. UI INJECTION: PARENTAL PORTAL ---
+window.injectParentalPortal = () => {
+    if (document.getElementById('parent-section')) return;
+
+    const html = `
+        <div id="parent-section" class="mt-10 p-8 bg-slate-900 rounded-[3rem] border border-slate-800 shadow-2xl text-white">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-black uppercase italic text-blue-400 tracking-tighter">Guardian Supervision</h3>
+                <span id="p-status" class="px-4 py-1 rounded-full text-[9px] font-black bg-red-500/20 text-red-400">PENDING</span>
+            </div>
+            <div id="p-range" class="text-[10px] font-bold text-slate-500 mb-6 uppercase tracking-widest">No Active Report</div>
+            
+            <button id="face-btn" onclick="runFaceVerification()" class="w-full py-4 bg-blue-600 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3">
+                Verify Face & Sign Report
+            </button>
+        </div>
+    `;
+    
+    document.querySelector('.batch-details-container')?.insertAdjacentHTML('beforeend', html);
+
+    // Sync Data
+    onValue(ref(db, `reports/${currentBatchId}/active`), (snap) => {
+        const data = snap.val();
+        if (!data) return;
+        document.getElementById('p-range').innerText = `Report Period: ${data.range}`;
+        if (data.status === "Awaiting_Admin") {
+            document.getElementById('face-btn').innerText = "SENT FOR APPROVAL";
+            document.getElementById('face-btn').disabled = true;
+            document.getElementById('p-status').innerText = "WAITING FOR ADMIN";
+        }
+    });
+};
+/**
+ * AE/JE PORTAL SECURITY ENGINE (No External APIs)
+ * Features: Phone Validation, Face-Conflict Check, Admin Security Logs
+ */
+
+// --- 1. PHONE & IDENTITY VALIDATION ---
+window.checkPhoneIntegrity = (sPhone, gPhone) => {
+    if (sPhone.trim() === gPhone.trim()) {
+        alert("❌ Security Error: Student and Guardian phone numbers must be different.");
+        return false;
+    }
+    return true;
+};
+
+// --- 2. STUDENT EDIT: FACE SCAN & CONFLICT CHECK ---
+window.handleStudentProfileEdit = async () => {
+    const newPhone = document.getElementById('edit-student-phone').value;
+    const gPhone = document.getElementById('stored-guardian-phone').value;
+
+    // Stop if numbers match
+    if (!window.checkPhoneIntegrity(newPhone, gPhone)) return;
+
+    try {
+        alert("Action Required: Please scan Student Face to authorize this change.");
+        
+        // Trigger Biometric Scan
+        const studentAuth = await navigator.credentials.get({
+            publicKey: { 
+                challenge: new Uint8Array([10, 20, 30, 40]), 
+                userVerification: "required" 
+            }
+        });
+
+        if (studentAuth) {
+            const currentFaceId = btoa(String.fromCharCode(...new Uint8Array(studentAuth.rawId)));
+            
+            // Get Guardian's stored Face ID from Firebase
+            const gSnap = await get(ref(db, `users/${auth.currentUser.uid}/guardianFaceId`));
+            const storedGuardianFace = gSnap.val();
+
+            // --- THE FACE CONFLICT CHECK ---
+            if (currentFaceId === storedGuardianFace) {
+                // LOG FRAUD ATTEMPT TO FIREBASE (FREE)
+                await push(ref(db, `admin_security_alerts`), {
+                    type: "FACE_CONFLICT",
+                    studentId: auth.currentUser.uid,
+                    time: Date.now(),
+                    message: "Student attempted to use Guardian's face for profile edit."
+                });
+
+                alert("🚨 Access Denied: Face Conflict. You cannot use the Guardian's face to verify a Student profile.");
+                return;
+            }
+
+            // SUCCESS: Update Student Data
+            await update(ref(db, `users/${auth.currentUser.uid}`), {
+                studentPhone: newPhone,
+                lastUpdated: Date.now()
+            });
+            alert("✅ Profile updated successfully.");
+        }
+    } catch (e) {
+        alert("Verification Canceled or Hardware Error.");
+    }
+};
+
+// --- 3. ADMIN: SECURITY MONITORING UI ---
+window.loadSecurityAlerts = () => {
+    const alertList = document.getElementById('admin-alerts-container');
+    if (!alertList) return;
+
+    // Listen for new fraud attempts in real-time
+    onValue(ref(db, `admin_security_alerts`), (snap) => {
+        alertList.innerHTML = ""; // Clear list
+        const alerts = snap.val();
+        if (alerts) {
+            Object.keys(alerts).reverse().forEach(key => {
+                const item = alerts[key];
+                const date = new Date(item.time).toLocaleString();
+                alertList.insertAdjacentHTML('beforeend', `
+                    <div class="p-3 mb-2 bg-red-900/20 border-l-4 border-red-600 rounded">
+                        <p class="text-[10px] font-black text-red-400 uppercase">${item.type}</p>
+                        <p class="text-xs text-white">ID: ${item.studentId}</p>
+                        <p class="text-[9px] text-slate-400">${date}</p>
+                    </div>
+                `);
+            });
+        }
+    });
+};
+
+// --- 4. DATA INTEGRITY ON REGISTRATION ---
+// Use this inside your registration button's onclick
+window.processRegistration = (sPhone, gPhone) => {
+    if (window.checkPhoneIntegrity(sPhone, gPhone)) {
+        // Proceed with registration...
+        console.log("Numbers validated. Ready for face enrollment.");
+    }
+};
+// --- 4. BIOMETRIC: FACE VERIFICATION ---
+window.runFaceVerification = async () => {
+    try {
+        const auth = await navigator.credentials.get({
+            publicKey: { challenge: new Uint8Array([1, 2, 3, 4]), userVerification: "required" }
+        });
+        if (auth) {
+            await update(ref(db, `reports/${currentBatchId}/active`), {
+                status: "Awaiting_Admin",
+                signTime: Date.now()
+            });
+            alert("Face Verified. Waiting for Admin Approval.");
+        }
+    } catch (e) { alert("Verification Failed."); }
+};
+
+// --- 5. ADMIN: APPROVAL & ZERO-COST ALERTS ---
+window.processReportAudit = async (isLegit) => {
+    if (isLegit) {
+        await update(ref(db, `reports/${currentBatchId}/active`), { status: "Approved", adminApproved: true });
+        alert("Report Approved.");
+    } else {
+        // --- THE FREE ALERT SYSTEM ---
+        const msg = "SECURITY ALERT: Guardian Face Mismatch detected for Student ID: " + currentBatchId;
+        
+        // Option A: Telegram Bot (Free)
+        // Replace with your Bot Token and ChatID
+        fetch(`https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage?chat_id=YOUR_CHAT_ID&text=${msg}`);
+
+        // Clean up
+        await set(ref(db, `reports/${currentBatchId}/active`), null);
+        alert("Fraud detected. Report deleted and Alert sent.");
+    }
+};
     // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
