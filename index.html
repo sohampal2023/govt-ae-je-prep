@@ -1326,32 +1326,45 @@ window.changePdfPage = (direction) => {
     showLiveRankings(currentPollId);
 };
    // SAFE DRAGGABLE SCRIPT
-const initDraggable = () => {
-    const consoleEl = document.getElementById('teacher-console');
-    // Also check for the Nav Bar if you renamed it
-    const navBarEl = document.getElementById('nav-bar'); 
-    
-    const makeDraggable = (el) => {
-        if (!el) return; // Skip if element is not found
-        let isDragging = false;
-        el.onmousedown = (e) => {
-            // Only drag if clicking the header or background, not buttons
-            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-            
-            isDragging = true;
-            let offset = [el.offsetLeft - e.clientX, el.offsetTop - e.clientY];
-            document.onmousemove = (ev) => {
-                if (!isDragging) return;
-                el.style.left = (ev.clientX + offset[0]) + 'px';
-                el.style.top = (ev.clientY + offset[1]) + 'px';
-                el.style.right = 'auto'; // Disable right-pinning while dragging
-            };
-        };
-        document.onmouseup = () => { isDragging = false; };
+const initSidebarDrag = () => {
+    const navBar = document.getElementById('nav-bar');
+    if (!navBar) return;
+
+    let isDragging = false;
+    let offset = [0, 0];
+
+    navBar.onmousedown = (e) => {
+        // PREVENT dragging if you are clicking a BUTTON or COLOR inside the bar
+        if (e.target.closest('button')) return;
+
+        isDragging = true;
+        offset = [
+            navBar.offsetLeft - e.clientX,
+            navBar.offsetTop - e.clientY
+        ];
+        
+        // Change cursor to show it's moving
+        navBar.style.cursor = 'grabbing';
     };
 
-    makeDraggable(consoleEl);
-    makeDraggable(navBarEl);
+    document.onmousemove = (e) => {
+        if (!isDragging) return;
+        
+        // Calculate new position
+        let newX = e.clientX + offset[0];
+        let newY = e.clientY + offset[1];
+
+        // Apply position
+        navBar.style.left = newX + 'px';
+        navBar.style.top = newY + 'px';
+        navBar.style.right = 'auto'; // Important to override right-6 class
+        navBar.style.bottom = 'auto';
+    };
+
+    document.onmouseup = () => {
+        isDragging = false;
+        if (navBar) navBar.style.cursor = 'move';
+    };
 };
 
 // Call this inside your openLiveClass function
