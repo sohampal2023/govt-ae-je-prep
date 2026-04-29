@@ -887,35 +887,30 @@ window.uploadDoubt = async (file) => {
     // 2. Save Link to: `live_classes/${currentBatchId}/doubts`
     alert("Doubt sent to Teacher's screen!");
 };
-    let pages = []; 
+    let fabricCanvas; // Rename it to avoid conflict with HTML ID 'whiteboard'
+let pages = [];  
 let currentPageIndex = 0;
 const canvas = new fabric.Canvas('whiteboard', { isDrawingMode: true });
 
 window.nextPage = () => {
-    // 1. Save current state to array
-    pages[currentPageIndex] = canvas.toJSON();
-    
-    // 2. Create new blank page
+    pages[currentPageIndex] = fabricCanvas.toJSON();
     currentPageIndex++;
-    canvas.clear();
+    fabricCanvas.clear();
     document.getElementById('page-indicator').innerText = `Page ${currentPageIndex + 1}`;
 };
 
 window.downloadNotes = () => {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'px', [canvas.width, canvas.height]);
-
+    const doc = new jsPDF('l', 'px', [fabricCanvas.width, fabricCanvas.height]);
     pages.forEach((pageData, index) => {
         if (index > 0) doc.addPage();
-        // Render canvas to image and add to PDF
-        const imgData = canvas.toDataURL('image/png');
+        const imgData = fabricCanvas.toDataURL('image/png');
         doc.addImage(imgData, 'PNG', 0, 0);
     });
-    
     doc.save("Class_Notes.pdf");
 };
     // SAFE CANVAS INITIALIZATION
-let canvas;
+
 window.onload = () => {
     if (typeof fabric !== 'undefined') {
         canvas = new fabric.Canvas('whiteboard', {
