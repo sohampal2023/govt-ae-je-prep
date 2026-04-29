@@ -421,34 +421,58 @@ window.handlePhoneAuth = async () => {
     const otpSection = document.getElementById('otp-section');
     const authBtn = document.getElementById('phone-auth-btn');
 
-    if (!window.confirmationResult) {
-        // STEP 1: Send OTP
-        const phoneNumber = phoneInput.value;
-        if (phoneNumber.length < 10) return alert("Enter valid number with country code (e.g. +91...)");
+    // 1. FORMATTING: Ensure E.164 format (+91...)
+    let phoneNumber = phoneInput.value.trim();
+    if (!phoneNumber.startsWith('+')) {
+        phoneNumber = '+91' + phoneNumber; 
+    }
 
-        window.setupRecaptcha();
-        const appVerifier = window.recaptchaVerifier;
+    // 2. RECAPTCHA: Must be initialized before the call
+    window.setupRecaptcha();
+    const appVerifier = window.recaptchaVerifier;
 
-        try {
-            window.confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+    // 3. THE FIREBASE CALL
+    signInWithPhoneNumber(auth, phoneNumber, appVerifier)
+        .then((confirmationResult) => {
+            // Success: SMS sent
+            window.confirmationResult = confirmationResult;
+            
+            // UI Updates
             otpSection.classList.remove('hidden');
             phoneInput.disabled = true;
             authBtn.innerText = "Verify OTP";
-            alert("OTP Sent!");
-        } catch (e) {
-            alert("Error sending SMS: " + e.message);
-            if (window.recaptchaVerifier) window.recaptchaVerifier.render().then(id => grecaptcha.reset(id));
-        }
-    } else {
-        // STEP 2: Verify OTP
-        const code = document.getElementById('otp-code').value;
-        try {
-            await window.confirmationResult.confirm(code);
-            window.toggleModal();
-            alert("Login Successful!");
-        } catch (e) {
-            alert("Invalid OTP code.");
-        }
+            alert("OTP sent to " + phoneNumber);
+        })
+        .catch((error) => {
+            // Error: SMS not sent
+            console.error("SMS Error:", error.code, error.message);
+            alert("Failed to send SMS. Error: " + error.message);
+            
+            // Reset ReCAPTCHA so user can try again
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.render().then(widgetId => {
+                    grecaptcha.reset(widgetId);
+                });
+            }
+        });
+};
+    window.verifyOtpCode = async () => {
+    const code = document.getElementById('otp-code').value;
+    
+    if (!window.confirmationResult) {
+        return alert("Please request an OTP first.");
+    }
+
+    try {
+        const result = await window.confirmationResult.confirm(code);
+        const user = result.user;
+        
+        console.log("Student Logged In:", user.phoneNumber);
+        window.toggleModal(); // Close the login box
+        alert("Verification Successful!");
+    } catch (error) {
+        console.error("Verification Error:", error);
+        alert("Invalid OTP. Please check the code sent to your phone.");
     }
 };
     const app = initializeApp(firebaseConfig);
