@@ -229,16 +229,24 @@
     </div>
 
     <div id="poll-window" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-white rounded-[2.5rem] p-8 shadow-[0_0_100px_rgba(0,0,0,0.5)] z-[4000000]">
-        <h3 class="text-xl font-black text-center mb-6 uppercase italic">Trigger Poll</h3>
-        <p class="text-[10px] font-bold text-slate-400 uppercase text-center mb-4">Set Time Duration</p>
-        
-        <div class="grid grid-cols-3 gap-2 mb-8">
-            ${[30, 40, 45, 60, 80, 100, 140, 180, 200, 240, 260, 300].map(sec => `
-                <button onclick="triggerFinalPoll('${sec}')" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">${sec}s</button>
-            `).join('')}
-        </div>
-        <button onclick="document.getElementById('poll-window').classList.add('hidden')" class="w-full text-slate-400 font-bold text-[10px] uppercase">Cancel</button>
+    <h3 class="text-xl font-black text-center mb-6 uppercase italic">Trigger Poll</h3>
+    <p class="text-[10px] font-bold text-slate-400 uppercase text-center mb-4">Set Time Duration</p>
+    
+    <div class="grid grid-cols-3 gap-2 mb-8">
+        <button onclick="triggerFinalPoll(30)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">30s</button>
+        <button onclick="triggerFinalPoll(40)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">40s</button>
+        <button onclick="triggerFinalPoll(45)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">45s</button>
+        <button onclick="triggerFinalPoll(60)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">60s</button>
+        <button onclick="triggerFinalPoll(80)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">80s</button>
+        <button onclick="triggerFinalPoll(100)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">100s</button>
+        <button onclick="triggerFinalPoll(140)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">140s</button>
+        <button onclick="triggerFinalPoll(180)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">180s</button>
+        <button onclick="triggerFinalPoll(240)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">240s</button>
+        <button onclick="triggerFinalPoll(300)" class="py-3 bg-slate-100 rounded-xl text-xs font-black hover:bg-blue-600 hover:text-white transition-all border border-slate-200">300s</button>
     </div>
+    
+    <button onclick="document.getElementById('poll-window').classList.add('hidden')" class="w-full text-slate-400 font-bold text-[10px] uppercase">Cancel</button>
+</div>
 </div>
     <!-- STUDENT SIDE: FLOATING POLL OVERLAY -->
 <div id="student-poll-overlay" class="hidden fixed bottom-6 right-6 w-72 bg-white/90 backdrop-blur-md rounded-[2.5rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] z-[4000000] border border-white animate-in slide-in-from-right duration-500">
