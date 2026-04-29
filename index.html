@@ -887,42 +887,75 @@ window.uploadDoubt = async (file) => {
     // 2. Save Link to: `live_classes/${currentBatchId}/doubts`
     alert("Doubt sent to Teacher's screen!");
 };
-    let fabricCanvas; // Rename it to avoid conflict with HTML ID 'whiteboard'
-let pages = [];  
-let currentPageIndex = 0;
-const canvas = new fabric.Canvas('whiteboard', { isDrawingMode: true });
+     // --- LIVE CLASSROOM LOGIC ---
+    let fabricCanvas; 
+    let pages = [];  
+    let currentPageIndex = 0;
 
-window.nextPage = () => {
-    pages[currentPageIndex] = fabricCanvas.toJSON();
-    currentPageIndex++;
-    fabricCanvas.clear();
-    document.getElementById('page-indicator').innerText = `Page ${currentPageIndex + 1}`;
-};
-
-window.downloadNotes = () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'px', [fabricCanvas.width, fabricCanvas.height]);
-    pages.forEach((pageData, index) => {
-        if (index > 0) doc.addPage();
-        const imgData = fabricCanvas.toDataURL('image/png');
-        doc.addImage(imgData, 'PNG', 0, 0);
-    });
-    doc.save("Class_Notes.pdf");
-};
-    // SAFE CANVAS INITIALIZATION
-
-window.onload = () => {
-    if (typeof fabric !== 'undefined') {
-        canvas = new fabric.Canvas('whiteboard', {
-            isDrawingMode: true,
-            width: window.innerWidth * 0.8,
-            height: window.innerHeight * 0.8
-        });
-        console.log("Whiteboard Engine Loaded Successfully");
-    } else {
-        console.error("Fabric.js not found. Please check your <head> scripts.");
+    // 1. Initialize Whiteboard
+    function initWhiteboard() {
+        if (typeof fabric !== 'undefined') {
+            fabricCanvas = new fabric.Canvas('whiteboard', {
+                isDrawingMode: true,
+                width: window.innerWidth,
+                height: window.innerHeight - 100 // Adjust for nav
+            });
+            fabricCanvas.freeDrawingBrush.width = 3;
+            fabricCanvas.freeDrawingBrush.color = "#000000";
+            console.log("Whiteboard Engine Ready");
+        }
     }
-};
+
+    // 2. Navigation & Pages
+    window.nextPage = () => {
+        pages[currentPageIndex] = fabricCanvas.toJSON();
+        currentPageIndex++;
+        fabricCanvas.clear();
+        document.getElementById('page-indicator').innerText = `Page ${currentPageIndex + 1}`;
+    };
+
+    window.prevPage = () => {
+        if (currentPageIndex > 0) {
+            pages[currentPageIndex] = fabricCanvas.toJSON();
+            currentPageIndex--;
+            fabricCanvas.loadFromJSON(pages[currentPageIndex]);
+            document.getElementById('page-indicator').innerText = `Page ${currentPageIndex + 1}`;
+        }
+    };
+
+    // 3. Download Notes as PDF
+    window.downloadNotes = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'px', [fabricCanvas.width, fabricCanvas.height]);
+        
+        // Save current page first
+        pages[currentPageIndex] = fabricCanvas.toJSON();
+
+        pages.forEach((pageData, index) => {
+            if (index > 0) doc.addPage();
+            const imgData = fabricCanvas.toDataURL('image/png');
+            doc.addImage(imgData, 'PNG', 0, 0);
+        });
+        doc.save("Class_Notes.pdf");
+    };
+
+    // 4. UI Toggles
+    window.closeLiveClass = () => {
+        document.getElementById('live-classroom-view').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    };
+
+    window.openLiveClass = () => {
+        document.getElementById('live-classroom-view').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        if (!fabricCanvas) initWhiteboard();
+    };
+
+    window.toggleComments = () => {
+        document.getElementById('interaction-sidebar').classList.toggle('hidden');
+    };
+
+    // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
 </script>
