@@ -1856,6 +1856,56 @@ window.setMode = (mode) => {
     }
     console.log("Mode changed to:", mode);
 };
+    window.cleanClassroomUI = () => {
+    const isTeacher = auth.currentUser?.email === ADMIN_EMAIL;
+    const teacherToolbar = document.querySelector('.absolute.left-6.top-1/2'); // The bar in your image
+    const adminNav = document.getElementById('nav-bar');
+
+    if (!isTeacher) {
+        if (teacherToolbar) teacherToolbar.style.display = 'none';
+        if (adminNav) adminNav.style.display = 'none';
+        console.log("Student Mode: Teacher tools hidden.");
+    }
+};
+    window.startFreeVoice = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const peer = new RTCPeerConnection();
+        stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
+        // Use Firebase to send the 'offer' to all students
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        
+        await set(ref(db, `live_sessions/${currentBatchId}/voice_offer`), {
+            sdp: offer.sdp,
+            type: offer.type,
+            sender: auth.currentUser.uid
+        });
+        alert("🎤 Mic is LIVE (Direct Browser Audio)");
+    } catch (e) {
+        alert("Please allow Microphone access in your browser.");
+    }
+};
+    window.listenToTeacher = () => {
+    onValue(ref(db, `live_sessions/${currentBatchId}/voice_offer`), async (snap) => {
+        const data = snap.val();
+        if (!data || data.sender === auth.currentUser.uid) return;
+
+        const peer = new RTCPeerConnection();
+        peer.ontrack = (event) => {
+            const audio = new Audio();
+            audio.srcObject = event.streams[0];
+            audio.play();
+            console.log("🔊 Playing teacher's sound...");
+        };
+
+        await peer.setRemoteDescription(new RTCSessionDescription(data));
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+        // Student sends 'answer' back via Firebase logic...
+    });
+};
     // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
