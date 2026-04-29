@@ -1071,6 +1071,23 @@ window.triggerFinalPoll = async (seconds) => {
     document.getElementById('poll-window').classList.add('hidden');
     alert(`Poll of ${seconds}s started!`);
 };
+    onValue(ref(db, `live_classes/${currentBatchId}/activePoll`), (snap) => {
+    const data = snap.val();
+    if (data && data.status === 'live') {
+        const studentModal = document.getElementById('student-poll-overlay');
+        studentModal.classList.remove('hidden');
+        
+        let remaining = data.duration;
+        const timerInt = setInterval(() => {
+            remaining--;
+            document.getElementById('poll-timer-display').innerText = remaining + "s";
+            if (remaining <= 0) {
+                clearInterval(timerInt);
+                studentModal.classList.add('hidden');
+            }
+        }, 1000);
+    }
+});
     // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
