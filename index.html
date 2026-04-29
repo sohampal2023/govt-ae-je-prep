@@ -409,9 +409,18 @@
 // Initialize ReCAPTCHA
 window.setupRecaptcha = () => {
     if (!window.recaptchaVerifier) {
+        // Explicitly passing 'auth' prevents the SDK from searching 
+        // for global configs that might be missing
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
             'size': 'invisible',
-            'callback': (response) => { console.log("Captcha Solved"); }
+            'callback': (response) => {
+                // reCAPTCHA solved, you can now call signInWithPhoneNumber
+                console.log("reCAPTCHA resolved successfully");
+            },
+            'expired-callback': () => {
+                // Reset reCAPTCHA if it expires
+                grecaptcha.reset();
+            }
         });
     }
 };
