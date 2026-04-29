@@ -1184,9 +1184,13 @@ window.openPollSetup = () => {
     document.getElementById('poll-window').classList.remove('hidden');
 };
 
+// 1. Declare the variable at the top of the script
+let currentPollId = null; 
+
+// 2. Then your function will work correctly
 window.triggerFinalPoll = async (seconds) => {
     const pollId = Date.now();
-    currentPollId = pollId; // Save for later reveal
+    currentPollId = pollId; // Now this works because it was declared above
 
     await set(ref(db, `live_classes/${currentBatchId}/activePoll`), {
         pollId: pollId,
@@ -1196,7 +1200,6 @@ window.triggerFinalPoll = async (seconds) => {
     });
 
     document.getElementById('poll-window').classList.add('hidden');
-    console.log(`Poll started for ${seconds}s`);
 };
     let pollCountdown;
 
@@ -1840,6 +1843,18 @@ window.loadStudentBatches = () => {
             Object.keys(batches).forEach(id => monitorLiveStatus(id));
         });
     });
+};
+    // Define it as a window property so HTML can see it
+window.setMode = (mode) => {
+    if (!fabricCanvas) return;
+    if (mode === 'scroll') {
+        fabricCanvas.isDrawingMode = false;
+        fabricCanvas.selection = true;
+    } else {
+        fabricCanvas.isDrawingMode = true;
+        fabricCanvas.selection = false;
+    }
+    console.log("Mode changed to:", mode);
 };
     // --- INITIALIZE PORTAL ---
     loadBatches();
