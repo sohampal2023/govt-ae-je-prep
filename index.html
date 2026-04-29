@@ -393,6 +393,7 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     const ADMIN_EMAIL = "admin@admin.com";
+    let currentPollId = null;
     let currentBatchId = null; // Ensure this is at the top of your script
     // --- 1. GLOBAL UI & AUTH ---
     window.toggleModal = () => {
