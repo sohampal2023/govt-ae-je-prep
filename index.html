@@ -1064,7 +1064,6 @@ window.uploadDoubt = async (file) => {
     let pages = [];  
     let currentPageIndex = 0;
 
-    // 1. Initialize Whiteboard
     function initWhiteboard() {
     if (typeof fabric !== 'undefined') {
         const isTeacher = auth.currentUser?.email === ADMIN_EMAIL;
@@ -1075,12 +1074,24 @@ window.uploadDoubt = async (file) => {
             height: window.innerHeight - 100 
         });
 
+        // DISABLE INTERACTION FOR STUDENTS
+        if (!isTeacher) {
+            fabricCanvas.selection = false;
+            fabricCanvas.forEachObject(obj => {
+                obj.selectable = false;
+                obj.evented = false;
+            });
+            console.log("Student Board: Initialized as View-Only.");
+        }
+
+        // TEACHER BROADCAST LOGIC
         if (isTeacher) {
-            // TEACHER: Broadcast pen strokes
             fabricCanvas.on('path:created', () => {
                 const syncRef = ref(db, `live_sync/${currentBatchId}/canvas`);
+                // BROADCAST: Send current state to Firebase
                 set(syncRef, JSON.stringify(fabricCanvas.toJSON()));
             });
+            console.log("Teacher Board: Broadcasting Enabled.");
         }
     }
 }
@@ -1249,12 +1260,13 @@ window.triggerFinalPoll = async (seconds) => {
         pollId: pollId,
         duration: seconds,
         status: 'live',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        batchId: currentBatchId
     });
 
     document.getElementById('poll-window').classList.add('hidden');
     
-    // PW-STYLE TRIGGER: Show the countdown monitor to the Teacher
+    // PW-STYLE: Teacher gets the floating countdown and live ranking window
     window.showLivePollMonitor(pollId, seconds);
 };
     let pollCountdown;
@@ -1596,31 +1608,38 @@ window.openLiveClass = () => {
         liveView.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
         
-        // 1. SELECT TOOLS TO HIDE
-        const teacherSidebar = document.getElementById('nav-bar'); 
-        const drawingToolbar = document.querySelector('.absolute.left-6.top-1/2'); 
-        const adminHeader = document.querySelector('.flex.items-center.gap-3'); 
+        // Always initialize whiteboard first
+        if (typeof initWhiteboard === "function") initWhiteboard();
 
         if (!isTeacher) {
-            // --- STUDENT VIEW (CLEAN) ---
-            if (teacherSidebar) teacherSidebar.style.display = 'none'; // Hides page nav/colors
-            if (drawingToolbar) drawingToolbar.style.display = 'none'; // Hides pen/eraser/poll
-            if (adminHeader) adminHeader.style.display = 'none'; // Hides Upload PDF
+            // --- STUDENT LOGIC ---
+            // 1. Hide Admin Sidebar & Buttons
+            const navBar = document.getElementById('nav-bar');
+            const toolbar = document.querySelector('.absolute.left-6.top-1/2');
+            const headerTools = document.querySelector('.flex.items-center.gap-3');
             
-            // Start student-only background sync
-            window.syncStudentView(); 
-            window.autoHearTeacher(); 
-            console.log("Access: Student Mode (Tools Hidden)");
-        } else {
-            // --- TEACHER VIEW (FULL TOOLS) ---
-            if (teacherSidebar) teacherSidebar.style.display = 'block';
-            if (drawingToolbar) drawingToolbar.style.display = 'flex';
-            if (adminHeader) adminHeader.style.display = 'flex';
-            
-            console.log("Access: Teacher Mode (Tools Enabled)");
-        }
+            if (navBar) navBar.style.display = 'none';
+            if (toolbar) toolbar.style.display = 'none';
+            if (headerTools) headerTools.style.display = 'none';
 
-        if (typeof initWhiteboard === "function") initWhiteboard();
+            // 2. Start Syncing Teacher's Screen
+            onValue(ref(db, `live_sync/${currentBatchId}/canvas`), (snap) => {
+                const data = snap.val();
+                if (data && fabricCanvas) {
+                    // RECEIVE: Load Teacher's ink onto Student's board
+                    fabricCanvas.loadFromJSON(data, fabricCanvas.renderAll.bind(fabricCanvas));
+                }
+            });
+
+            // 3. Auto-Hear Teacher
+            window.listenToTeacher();
+            console.log("Student Session Started: Syncing with Teacher...");
+        } else {
+            // --- TEACHER LOGIC ---
+            document.getElementById('nav-bar').style.display = 'block';
+            window.startFreeVoice(); // Start voice auto-broadcast
+            console.log("Teacher Session Started: Broadcasting...");
+        }
     }
 };
 window.revealAnswer = async () => {
@@ -2013,6 +2032,45 @@ window.showLivePollMonitor = (pollId, duration) => {
         }
     });
 };
+    // --- 1. GLOBAL STATE ---
+let currentPollId = null;
+const ADMIN_EMAIL = "admin@admin.com";
+
+// --- 2. BROADCAST ENGINE (Teacher Side) ---
+window.startBroadcasting = () => {
+    if (auth.currentUser?.email !== ADMIN_EMAIL) return;
+
+    // A. Sync Whiteboard (Broadcasting Strokes)
+    fabricCanvas.on('path:created', () => {
+        const syncRef = ref(db, `live_sync/${currentBatchId}/canvas`);
+        set(syncRef, JSON.stringify(fabricCanvas.toJSON()));
+    });
+
+    // B. Start Voice (No-API Browser Method)
+    window.startFreeVoice();
+    
+    console.log("Teacher Broadcast Active.");
+};
+
+// --- 3. RECEIVE ENGINE (Student Side) ---
+window.startListening = () => {
+    if (auth.currentUser?.email === ADMIN_EMAIL) return;
+
+    // A. Receive Annotations
+    onValue(ref(db, `live_sync/${currentBatchId}/canvas`), (snap) => {
+        const data = snap.val();
+        if (data && fabricCanvas) {
+            fabricCanvas.loadFromJSON(data, fabricCanvas.renderAll.bind(fabricCanvas));
+        }
+    });
+
+    // B. Receive Audio
+    window.listenToTeacher();
+
+    // C. Clean UI (Hides your tools from them)
+    window.cleanClassroomUI();
+};
+    
     // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
