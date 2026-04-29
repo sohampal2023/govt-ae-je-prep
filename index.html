@@ -1534,29 +1534,23 @@ document.addEventListener('mouseup', () => {
 // --- 3. FIXING THE openLiveClass ERROR ---
 window.openLiveClass = () => {
     const liveView = document.getElementById('live-classroom-view');
-    const teacherTools = document.getElementById('nav-bar'); // The sidebar in your image
-    const adminHeaderTools = document.querySelector('.flex.items-center.gap-3'); // PDF upload & End class
+    const isTeacher = auth.currentUser?.email === ADMIN_EMAIL;
 
     if (liveView) {
         liveView.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
 
-        // --- SECURITY CHECK ---
-        const isTeacher = auth.currentUser?.email === ADMIN_EMAIL;
-
+        // 1. Hide Toolbar for Students
+        const toolbar = document.querySelector('.absolute.left-6.top-1/2');
+        const teacherNav = document.getElementById('nav-bar');
+        
         if (!isTeacher) {
-            // HIDE TEACHER TOOLS FOR STUDENTS
-            if (teacherTools) teacherTools.style.display = 'none';
-            
-            // Hide specific Admin buttons in the top nav
-            const uploadBtn = document.querySelector('label[for="pdf-upload"]');
-            if (uploadBtn) uploadBtn.style.display = 'none';
-            
-            console.log("Student View Initialized: Tools Hidden.");
+            if(toolbar) toolbar.style.display = 'none';
+            if(teacherNav) teacherNav.style.display = 'none';
+            window.hearTeacher(); // Auto-start hearing teacher
         } else {
-            // SHOW TOOLS FOR ADMIN
-            if (teacherTools) teacherTools.style.display = 'block';
-            console.log("Teacher View Initialized: Tools Enabled.");
+            if(toolbar) toolbar.style.display = 'flex';
+            if(teacherNav) teacherNav.style.display = 'block';
         }
 
         if (typeof initWhiteboard === "function") initWhiteboard();
