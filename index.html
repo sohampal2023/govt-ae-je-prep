@@ -478,6 +478,11 @@ function loadEnrollmentRequests() {
         lucide.createIcons();
     });
 }
+/**
+ * RE-INJECTING BATCH OPTIONS
+ * Restores "Join Now", "Study", and "Teach" functionality.
+ */
+
 function loadBatches() {
     const container = document.getElementById('batches-container');
     const user = auth.currentUser;
@@ -496,7 +501,6 @@ function loadBatches() {
                 const isApproved = authData[b.id] && authData[b.id][user.uid];
                 const hasAccess = isMaster || isApproved;
 
-                // Fix for the "undefined" error: Use 0 if the price doesn't exist yet
                 const pMo = b.priceMonthly || 0;
                 const pFull = b.priceFull || 0;
 
@@ -521,6 +525,7 @@ function loadBatches() {
                     <h3 class="text-2xl font-black text-slate-900 mb-2 text-center uppercase tracking-tighter">${b.name}</h3>
                     <p class="text-slate-400 text-[10px] font-bold mb-6 text-center uppercase tracking-widest leading-relaxed px-4">${b.description || 'No Description'}</p>
                     
+                    <!-- PLAN SELECTOR -->
                     <div class="bg-slate-50 p-2 rounded-2xl mb-8 flex gap-2">
                         <button onclick="updateCardPrice('${b.id}', ${pMo}, '/mo')" class="flex-grow py-3 rounded-xl text-[10px] font-black uppercase bg-white shadow-sm text-blue-600 transition-all" id="btn-mo-${b.id}">Monthly Plan</button>
                         <button onclick="updateCardPrice('${b.id}', ${pFull}, ' (Full)')" class="flex-grow py-3 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 transition-all" id="btn-full-${b.id}">Full Access</button>
@@ -530,17 +535,18 @@ function loadBatches() {
                         <div id="display-price-${b.id}">
                             <span class="text-3xl font-black text-slate-900">₹${pMo}</span><small class="text-xs text-slate-400 font-bold ml-1">/mo</small>
                         </div>
+                        
+                        <!-- THE MISSING INTERACTION BUTTON -->
                         <button onclick="openStudyHub('${b.id}', '${b.name}', '${pFull}', '${pMo}')" 
-        class="...">
-    ${hasAccess ? (isMaster ? 'Teach' : 'Study') : 'Join Now'}
-</button>
+                                class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                            ${hasAccess ? (isMaster ? 'Teach' : 'Study') : 'Join Now'}
+                        </button>
                     </div>
                 </div>`;
             }).join('');
             lucide.createIcons();
         });
     });
-    window.injectStudentReportPortal();
 }
 
 // Simple UI Helper to switch price text on the card
@@ -671,43 +677,27 @@ window.editTopic = async (subId, topicId, oldTitle) => {
     });
 };
     // --- 1. NAVIGATION LOGIC (The "Single-Page" Switch) ---
-  window.openStudyHub = (bId, bName, pFull, pMo) => {
-    // 1. Set the ID immediately
+ window.openStudyHub = (bId, bName, pFull, pMo) => {
     currentBatchId = bId; 
-    
     const user = auth.currentUser;
     if (!user) return window.toggleModal();
 
-    const isAdmin = user.email === ADMIN_EMAIL;
+    const isMaster = user.email === ADMIN_EMAIL;
 
-    const executeOpen = () => {
-        const hubView = document.getElementById('study-hub-view');
-        const hubTitle = document.getElementById('hub-batch-title');
-        
-        // Ensure it's at the top of the body
-        document.body.appendChild(hubView); 
-
-        hubView.classList.remove('hidden');
-        hubView.style.display = 'block';
-        hubTitle.innerText = bName;
-        document.body.style.overflow = 'hidden'; 
-        
-        // 2. Clear previous subjects and load new ones
-        document.getElementById('hub-curriculum-container').innerHTML = '<div class="text-center py-20">Loading Subjects...</div>';
-        loadCurriculum(); 
-    };
-
-    if (isAdmin) {
-        executeOpen();
-    } else {
-        onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
-            if (snap.exists()) executeOpen();
-            else {
-                const priceToPay = pMo || pFull || 0;
-                window.requestEnrollment(bId, bName, priceToPay);
-            }
-        }, { onlyOnce: true });
-    }
+    // Check if user is already authorized or is the Teacher
+    onValue(ref(db, `authorized_students/${bId}/${user.uid}`), (snap) => {
+        if (snap.exists() || isMaster) {
+            // GO TO CLASSROOM
+            document.getElementById('study-hub-view').classList.remove('hidden');
+            document.getElementById('hub-batch-title').innerText = bName;
+            document.body.style.overflow = 'hidden';
+            loadCurriculum(); // This loads your subjects/notes
+        } else {
+            // GO TO PAYMENT
+            const priceToPay = pMo || pFull || 0;
+            window.requestEnrollment(bId, bName, priceToPay);
+        }
+    }, { onlyOnce: true });
 };
 function launchHub(name) {
     // 1. Set the Title
