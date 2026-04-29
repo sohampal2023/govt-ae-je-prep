@@ -1066,17 +1066,71 @@ window.uploadDoubt = async (file) => {
 
     // 1. Initialize Whiteboard
     function initWhiteboard() {
-        if (typeof fabric !== 'undefined') {
-            fabricCanvas = new fabric.Canvas('whiteboard', {
-                isDrawingMode: true,
-                width: window.innerWidth,
-                height: window.innerHeight - 100 // Adjust for nav
-            });
-            fabricCanvas.freeDrawingBrush.width = 3;
-            fabricCanvas.freeDrawingBrush.color = "#000000";
-            console.log("Whiteboard Engine Ready");
-        }
+    if (typeof fabric !== 'undefined') {
+        fabricCanvas = new fabric.Canvas('whiteboard', {
+            isDrawingMode: true,
+            width: window.innerWidth,
+            height: window.innerHeight - 100 
+        });
+        fabricCanvas.freeDrawingBrush.width = 3;
+        fabricCanvas.freeDrawingBrush.color = "#000000";
+
+        // BROADCAST LOGIC: Send drawing to students after every stroke
+        fabricCanvas.on('path:created', () => {
+            if (auth.currentUser?.email === ADMIN_EMAIL) {
+                const syncRef = ref(db, `live_sync/${currentBatchId}/canvas`);
+                set(syncRef, JSON.stringify(fabricCanvas.toJSON()));
+            }
+        });
+        console.log("Whiteboard Engine Ready");
     }
+}
+    // TEACHER: Broadcast Voice
+window.startTeacherSound = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        
+        mediaRecorder.ondataavailable = async (e) => {
+            if (e.data.size > 0) {
+                const reader = new FileReader();
+                reader.readAsDataURL(e.data);
+                reader.onloadend = () => {
+                    set(ref(db, `live_audio/${currentBatchId}`), {
+                        chunk: reader.result,
+                        ts: Date.now()
+                    });
+                };
+            }
+        };
+        mediaRecorder.start(1000); // Send 1-second chunks
+        alert("🎤 Audio is now LIVE");
+    } catch (e) { alert("Mic Error: " + e.message); }
+};
+
+// STUDENT: Hear Teacher
+window.autoHearTeacher = () => {
+    const audioNode = new Audio();
+    onValue(ref(db, `live_audio/${currentBatchId}`), (snap) => {
+        const data = snap.val();
+        if (data && auth.currentUser?.email !== ADMIN_EMAIL) {
+            audioNode.src = data.chunk;
+            audioNode.play().catch(e => console.log("Click page to enable audio"));
+        }
+    });
+};
+    window.syncStudentView = () => {
+    // Only students should listen for updates
+    if (auth.currentUser?.email !== ADMIN_EMAIL) {
+        onValue(ref(db, `live_sync/${currentBatchId}/canvas`), (snap) => {
+            const data = snap.val();
+            if (data && fabricCanvas) {
+                // This updates the student's board with your drawing
+                fabricCanvas.loadFromJSON(data, fabricCanvas.renderAll.bind(fabricCanvas));
+            }
+        });
+    }
+};
 
     // 2. Navigation & Pages
     window.nextPage = () => {
@@ -1190,7 +1244,7 @@ let currentPollId = null;
 // 2. Then your function will work correctly
 window.triggerFinalPoll = async (seconds) => {
     const pollId = Date.now();
-    currentPollId = pollId; // Now this works because it was declared above
+    currentPollId = pollId; 
 
     await set(ref(db, `live_classes/${currentBatchId}/activePoll`), {
         pollId: pollId,
@@ -1200,6 +1254,9 @@ window.triggerFinalPoll = async (seconds) => {
     });
 
     document.getElementById('poll-window').classList.add('hidden');
+    
+    // PW-STYLE TRIGGER: Show the countdown monitor to the Teacher
+    window.showLivePollMonitor(pollId, seconds);
 };
     let pollCountdown;
 
@@ -1539,21 +1596,19 @@ window.openLiveClass = () => {
     if (liveView) {
         liveView.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-
-        // 1. Hide Toolbar for Students
-        const toolbar = document.querySelector('.absolute.left-6.top-1/2');
-        const teacherNav = document.getElementById('nav-bar');
         
-        if (!isTeacher) {
-            if(toolbar) toolbar.style.display = 'none';
-            if(teacherNav) teacherNav.style.display = 'none';
-            window.hearTeacher(); // Auto-start hearing teacher
-        } else {
-            if(toolbar) toolbar.style.display = 'flex';
-            if(teacherNav) teacherNav.style.display = 'block';
-        }
-
         if (typeof initWhiteboard === "function") initWhiteboard();
+
+        if (!isTeacher) {
+            // Student Setup
+            window.syncStudentView(); // See the drawing
+            window.autoHearTeacher(); // Hear the sound
+            window.cleanClassroomUI(); // Hide teacher tools
+        } else {
+            // Teacher Setup
+            // You can manually start sound with a button or auto-start here:
+            // window.startTeacherSound(); 
+        }
     }
 };
 window.revealAnswer = async () => {
