@@ -289,6 +289,12 @@
     </div>
     
     <button onclick="finishClassAndDownload()" class="w-full mt-4 bg-red-600 py-3 rounded-xl text-[9px] font-black text-white uppercase tracking-widest">End Class</button>
+    <!-- Inside your nav-bar or teacher-console -->
+<div class="mt-4 border-t border-slate-700 pt-4">
+    <button onclick="revealAnswer()" class="w-full py-3 bg-green-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-green-900/20 hover:bg-green-500 transition-all">
+        ✅ Reveal Answer & Rank
+    </button>
+</div>
 </div>
 </div>
     <!-- STUDENT SIDE: FLOATING POLL OVERLAY -->
@@ -1147,20 +1153,18 @@ window.openPollSetup = () => {
 };
 
 window.triggerFinalPoll = async (seconds) => {
-    const correctAns = prompt("Set Correct Answer (A, B, C, or D):").toUpperCase();
-    if (!['A', 'B', 'C', 'D'].includes(correctAns)) return alert("Invalid Answer");
-
     const pollId = Date.now();
+    currentPollId = pollId; // Save for later reveal
+
     await set(ref(db, `live_classes/${currentBatchId}/activePoll`), {
-        pollId,
+        pollId: pollId,
         duration: seconds,
-        correct: correctAns,
         status: 'live',
         timestamp: Date.now()
     });
 
     document.getElementById('poll-window').classList.add('hidden');
-    alert(`Poll of ${seconds}s started!`);
+    console.log(`Poll started for ${seconds}s`);
 };
     let pollCountdown;
 
@@ -1463,6 +1467,43 @@ window.addShape = (type) => {
     fabricCanvas.add(shape);
     fabricCanvas.setActiveObject(shape);
 };
+    let isDragging = false;
+let currentTarget = null;
+
+document.addEventListener('mousedown', (e) => {
+    const el = e.target.closest('.cursor-move');
+    if (el && !e.target.closest('button')) {
+        isDragging = true;
+        currentTarget = el;
+        el.style.zIndex = 5000000; // Bring to front
+        el.dataset.offsetX = el.offsetLeft - e.clientX;
+        el.dataset.offsetY = el.offsetTop - e.clientY;
+    }
+});
+window.revealAnswer = async () => {
+    const correct = prompt("Set Correct Answer (A, B, C, or D):");
+    if (!correct) return;
+
+    // Update Firebase with the answer and stop the poll
+    await update(ref(db, `live_classes/${currentBatchId}/activePoll`), {
+        correct: correct.toUpperCase(),
+        status: 'finished'
+    });
+
+    // Automatically show the rank list in the sidebar
+    showLiveRankings(currentPollId);
+};
+document.addEventListener('mousemove', (e) => {
+    if (!isDragging || !currentTarget) return;
+    currentTarget.style.left = (e.clientX + parseInt(currentTarget.dataset.offsetX)) + 'px';
+    currentTarget.style.top = (e.clientY + parseInt(currentTarget.dataset.offsetY)) + 'px';
+    currentTarget.style.right = 'auto'; 
+});
+
+document.addEventListener('mouseup', () => {
+    isDragging = false;
+    currentTarget = null;
+});
     // --- INITIALIZE PORTAL ---
     loadBatches();
     lucide.createIcons();
