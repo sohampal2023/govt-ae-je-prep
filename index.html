@@ -408,17 +408,15 @@
 
 // Initialize ReCAPTCHA
 window.setupRecaptcha = () => {
+    // Only initialize if it doesn't exist
     if (!window.recaptchaVerifier) {
-        // Explicitly passing 'auth' prevents the SDK from searching 
-        // for global configs that might be missing
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible',
+            'size': 'invisible', // 'invisible' makes it seamless for students
             'callback': (response) => {
-                // reCAPTCHA solved, you can now call signInWithPhoneNumber
-                console.log("reCAPTCHA resolved successfully");
+                console.log("reCAPTCHA solved. OTP sending...");
             },
             'expired-callback': () => {
-                // Reset reCAPTCHA if it expires
+                // If the captcha expires before they send OTP, reset it
                 grecaptcha.reset();
             }
         });
