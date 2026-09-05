@@ -2,2802 +2,484 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StudyFlow | Smart Learning Portal</title>
-
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StudyFlow LMS</title>
 <style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-}
-
 :root{
-    --primary:#4f46e5;
-    --primary2:#6366f1;
-    --blue:#2563eb;
-    --green:#16a34a;
-    --orange:#f59e0b;
-    --red:#ef4444;
-    --text:#172033;
-    --muted:#6b7280;
-    --bg:#f6f8fc;
-    --card:#ffffff;
-    --border:#e7eaf1;
-    --shadow:0 10px 30px rgba(30,41,59,.08);
-}
-
-body{
-    font-family:Inter,Segoe UI,Arial,sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    min-height:100vh;
-}
-
-button,input,textarea,select{
-    font:inherit;
-}
-
-button{
-    cursor:pointer;
-}
-
-.hidden{
-    display:none!important;
-}
-
-/* LOGIN */
-
-.login-page{
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:30px;
-    background:
-        radial-gradient(circle at 10% 10%,#e0e7ff 0,transparent 28%),
-        radial-gradient(circle at 90% 90%,#dbeafe 0,transparent 28%),
-        #f8fafc;
-}
-
-.login-box{
-    width:430px;
-    max-width:100%;
-    background:white;
-    border-radius:28px;
-    padding:38px;
-    box-shadow:0 25px 70px rgba(30,41,59,.12);
-    animation:fadeUp .6s ease;
-}
-
-.logo{
-    width:65px;
-    height:65px;
-    border-radius:18px;
-    background:linear-gradient(135deg,var(--primary),#818cf8);
-    color:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:30px;
-    margin-bottom:18px;
-    box-shadow:0 10px 25px rgba(79,70,229,.25);
-}
-
-.login-box h1{
-    font-size:30px;
-    margin-bottom:7px;
-}
-
-.login-box p{
-    color:var(--muted);
-    margin-bottom:28px;
-}
-
-.form-group{
-    margin-bottom:17px;
-}
-
-.form-group label{
-    display:block;
-    font-size:14px;
-    font-weight:600;
-    margin-bottom:7px;
-}
-
-input,textarea,select{
-    width:100%;
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:12px 14px;
-    outline:none;
-    background:white;
-    color:var(--text);
-    transition:.2s;
-}
-
-textarea{
-    resize:vertical;
-    min-height:110px;
-}
-
-input:focus,textarea:focus,select:focus{
-    border-color:var(--primary2);
-    box-shadow:0 0 0 4px rgba(99,102,241,.10);
-}
-
-.btn{
-    border:0;
-    border-radius:12px;
-    padding:12px 18px;
-    font-weight:700;
-    transition:.2s;
-}
-
-.btn:hover{
-    transform:translateY(-2px);
-}
-
-.btn-primary{
-    background:var(--primary);
-    color:white;
-}
-
-.btn-secondary{
-    background:#eef2ff;
-    color:#4338ca;
-}
-
-.btn-success{
-    background:#dcfce7;
-    color:#15803d;
-}
-
-.btn-danger{
-    background:#fee2e2;
-    color:#b91c1c;
-}
-
-.full{
-    width:100%;
-}
-
-.demo{
-    background:#f8fafc;
-    border-radius:14px;
-    padding:14px;
-    margin-top:18px;
-    font-size:13px;
-    color:#64748b;
-}
-
-/* APP */
-
-.app{
-    min-height:100vh;
-    display:flex;
-}
-
-.sidebar{
-    width:250px;
-    background:white;
-    border-right:1px solid var(--border);
-    padding:22px 16px;
-    position:fixed;
-    top:0;
-    bottom:0;
-    left:0;
-    z-index:20;
-}
-
-.side-logo{
-    display:flex;
-    align-items:center;
-    gap:11px;
-    padding:8px 10px 25px;
-}
-
-.side-logo-icon{
-    width:42px;
-    height:42px;
-    border-radius:13px;
-    background:linear-gradient(135deg,var(--primary),#818cf8);
-    color:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:20px;
-}
-
-.side-logo strong{
-    font-size:19px;
-}
-
-.nav{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-}
-
-.nav button{
-    width:100%;
-    text-align:left;
-    border:0;
-    background:transparent;
-    padding:12px 13px;
-    border-radius:11px;
-    color:#64748b;
-    font-weight:600;
-}
-
-.nav button:hover,
-.nav button.active{
-    background:#eef2ff;
-    color:#4338ca;
-}
-
-.logout{
-    position:absolute;
-    bottom:20px;
-    left:16px;
-    right:16px;
-}
-
-.main{
-    margin-left:250px;
-    width:calc(100% - 250px);
-}
-
-.topbar{
-    height:75px;
-    background:white;
-    border-bottom:1px solid var(--border);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 30px;
-    position:sticky;
-    top:0;
-    z-index:10;
-}
-
-.user{
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-
-.avatar{
-    width:40px;
-    height:40px;
-    border-radius:50%;
-    background:#e0e7ff;
-    color:#4338ca;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:800;
-}
-
-.content{
-    padding:30px;
-    max-width:1500px;
-    margin:auto;
-}
-
-.page-title{
-    margin-bottom:25px;
-}
-
-.page-title h2{
-    font-size:28px;
-    margin-bottom:5px;
-}
-
-.page-title p{
-    color:var(--muted);
-}
-
-/* CARDS */
-
-.grid{
-    display:grid;
-    gap:20px;
-}
-
-.grid-4{
-    grid-template-columns:repeat(4,1fr);
-}
-
-.grid-3{
-    grid-template-columns:repeat(3,1fr);
-}
-
-.grid-2{
-    grid-template-columns:repeat(2,1fr);
-}
-
-.card{
-    background:white;
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:22px;
-    box-shadow:var(--shadow);
-    animation:fadeUp .4s ease;
-}
-
-.stat{
-    position:relative;
-    overflow:hidden;
-}
-
-.stat:after{
-    content:"";
-    position:absolute;
-    width:100px;
-    height:100px;
-    border-radius:50%;
-    background:#eef2ff;
-    right:-35px;
-    top:-35px;
-}
-
-.stat-icon{
-    width:45px;
-    height:45px;
-    border-radius:13px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:#eef2ff;
-    color:#4338ca;
-    font-size:20px;
-    margin-bottom:14px;
-}
-
-.stat h3{
-    font-size:27px;
-    margin-bottom:4px;
-}
-
-.stat p{
-    color:var(--muted);
-    font-size:14px;
-}
-
-.subject-card{
-    position:relative;
-    overflow:hidden;
-    cursor:pointer;
-    transition:.25s;
-}
-
-.subject-card:hover{
-    transform:translateY(-5px);
-    box-shadow:0 18px 40px rgba(30,41,59,.12);
-}
-
-.subject-icon{
-    width:55px;
-    height:55px;
-    border-radius:16px;
-    background:#eef2ff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:25px;
-    margin-bottom:17px;
-}
-
-.subject-card h3{
-    margin-bottom:6px;
-}
-
-.subject-card p{
-    color:var(--muted);
-    font-size:14px;
-}
-
-.progress{
-    width:100%;
-    height:8px;
-    background:#edf0f5;
-    border-radius:20px;
-    overflow:hidden;
-    margin:14px 0 7px;
-}
-
-.progress-bar{
-    height:100%;
-    background:linear-gradient(90deg,var(--primary),#818cf8);
-    border-radius:20px;
-    transition:width 1s ease;
-}
-
-.progress-row{
-    display:flex;
-    justify-content:space-between;
-    font-size:13px;
-    color:var(--muted);
-}
-
-/* TABLE */
-
-.table-wrap{
-    overflow-x:auto;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-}
-
-th,td{
-    text-align:left;
-    padding:14px;
-    border-bottom:1px solid var(--border);
-    font-size:14px;
-}
-
-th{
-    color:#64748b;
-    font-size:12px;
-    text-transform:uppercase;
-    letter-spacing:.05em;
-}
-
-/* MODULE */
-
-.module{
-    margin-bottom:16px;
-    border:1px solid var(--border);
-    border-radius:17px;
-    overflow:hidden;
-    background:white;
-}
-
-.module-header{
-    padding:17px 19px;
-    background:#fafbff;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    cursor:pointer;
-}
-
-.module-header h3{
-    font-size:16px;
-}
-
-.chapter-list{
-    padding:5px 12px 12px;
-}
-
-.chapter{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:15px;
-    padding:14px;
-    border-bottom:1px solid #f0f1f5;
-}
-
-.chapter:last-child{
-    border-bottom:0;
-}
-
-.chapter-info{
-    display:flex;
-    align-items:center;
-    gap:12px;
-}
-
-.chapter-number{
-    width:34px;
-    height:34px;
-    border-radius:10px;
-    background:#f1f5f9;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:13px;
-    font-weight:700;
-}
-
-.done{
-    background:#dcfce7;
-    color:#15803d;
-}
-
-.badge{
-    display:inline-flex;
-    padding:5px 9px;
-    border-radius:20px;
-    font-size:11px;
-    font-weight:700;
-}
-
-.badge-green{
-    background:#dcfce7;
-    color:#15803d;
-}
-
-.badge-orange{
-    background:#fef3c7;
-    color:#a16207;
-}
-
-.badge-blue{
-    background:#dbeafe;
-    color:#1d4ed8;
-}
-
-/* LEARNING */
-
-.learning{
-    max-width:1000px;
-    margin:auto;
-}
-
-.video-box{
-    background:#111827;
-    border-radius:20px;
-    overflow:hidden;
-    position:relative;
-    aspect-ratio:16/9;
-}
-
-.video-box iframe{
-    width:100%;
-    height:100%;
-    border:0;
-}
-
-.video-placeholder{
-    width:100%;
-    height:100%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:white;
-    flex-direction:column;
-    gap:12px;
-}
-
-.video-placeholder span{
-    font-size:45px;
-}
-
-.stepper{
-    display:flex;
-    gap:8px;
-    margin-bottom:20px;
-}
-
-.step{
-    flex:1;
-    height:7px;
-    border-radius:10px;
-    background:#e5e7eb;
-}
-
-.step.active{
-    background:var(--primary);
-}
-
-.step.complete{
-    background:var(--green);
-}
-
-.timer{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    background:#eef2ff;
-    border-radius:15px;
-    padding:15px 18px;
-    margin-top:15px;
-    color:#4338ca;
-}
-
-.timer strong{
-    font-size:21px;
-}
-
-.question{
-    padding:20px;
-    border:1px solid var(--border);
-    border-radius:16px;
-    margin-bottom:15px;
-}
-
-.option{
-    display:block;
-    padding:12px;
-    margin-top:8px;
-    border:1px solid var(--border);
-    border-radius:10px;
-    cursor:pointer;
-}
-
-.option:hover{
-    background:#f8fafc;
-}
-
-/* MODAL */
-
-.modal-bg{
-    position:fixed;
-    inset:0;
-    background:rgba(15,23,42,.45);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:20px;
-    z-index:100;
-}
-
-.modal{
-    width:650px;
-    max-width:100%;
-    max-height:90vh;
-    overflow:auto;
-    background:white;
-    border-radius:22px;
-    padding:27px;
-    animation:fadeUp .3s ease;
-}
-
-.modal-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom:20px;
-}
-
-.close{
-    border:0;
-    background:#f1f5f9;
-    border-radius:50%;
-    width:35px;
-    height:35px;
-}
-
-/* TOAST */
-
-.toast{
-    position:fixed;
-    right:25px;
-    bottom:25px;
-    background:#172033;
-    color:white;
-    padding:13px 18px;
-    border-radius:12px;
-    box-shadow:0 15px 35px rgba(0,0,0,.15);
-    z-index:500;
-    animation:toast .3s ease;
-}
-
-/* ANIMATION */
-
-@keyframes fadeUp{
-    from{
-        opacity:0;
-        transform:translateY(15px);
-    }
-    to{
-        opacity:1;
-        transform:translateY(0);
-    }
-}
-
-@keyframes toast{
-    from{
-        opacity:0;
-        transform:translateY(15px);
-    }
-    to{
-        opacity:1;
-        transform:translateY(0);
-    }
-}
-
-/* MOBILE */
-
-.mobile-menu{
-    display:none;
-}
-
-@media(max-width:1000px){
-    .grid-4{
-        grid-template-columns:repeat(2,1fr);
-    }
-}
-
-@media(max-width:750px){
-
-    .sidebar{
-        transform:translateX(-100%);
-        transition:.3s;
-    }
-
-    .sidebar.open{
-        transform:translateX(0);
-    }
-
-    .main{
-        margin-left:0;
-        width:100%;
-    }
-
-    .mobile-menu{
-        display:block;
-        border:0;
-        background:#eef2ff;
-        color:#4338ca;
-        border-radius:9px;
-        padding:8px 11px;
-    }
-
-    .content{
-        padding:20px;
-    }
-
-    .topbar{
-        padding:0 18px;
-    }
-
-    .grid-4,
-    .grid-3,
-    .grid-2{
-        grid-template-columns:1fr;
-    }
-
-    .chapter{
-        align-items:flex-start;
-        flex-direction:column;
-    }
-}
+  --bg:#f6f8fc;--surface:#fff;--surface2:#f8fafc;--text:#172033;--muted:#687386;
+  --line:#e6eaf0;--primary:#2563eb;--primary2:#4f46e5;--success:#16a34a;
+  --warning:#d97706;--danger:#dc2626;--shadow:0 12px 35px rgba(31,41,55,.08);
+  --radius:18px;
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,Segoe UI,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+button,input,textarea,select{font:inherit}button{cursor:pointer;border:0}
+.hidden{display:none!important}
+.app{min-height:100vh}.topbar{height:70px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:11px;font-weight:850;font-size:20px}.brandMark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;display:grid;place-items:center;box-shadow:0 8px 18px rgba(37,99,235,.22)}
+.topUser{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}.avatar{width:34px;height:34px;border-radius:50%;background:#e8efff;color:var(--primary);display:grid;place-items:center;font-weight:800}
+.layout{display:grid;grid-template-columns:235px 1fr;min-height:calc(100vh - 70px)}
+.sidebar{background:#fff;border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:7px}.navBtn{width:100%;padding:12px 14px;text-align:left;background:transparent;color:#596579;border-radius:11px;font-weight:650;transition:.2s}.navBtn:hover,.navBtn.active{background:#eef4ff;color:var(--primary);transform:translateX(2px)}
+.main{padding:28px;max-width:1500px;width:100%;margin:auto}.pageTitle{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px}.pageTitle h1{margin:0;font-size:29px}.pageTitle p{margin:6px 0 0;color:var(--muted)}
+.grid{display:grid;gap:18px}.grid4{grid-template-columns:repeat(4,minmax(0,1fr))}.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;animation:rise .35s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.stat{padding:19px}.statLabel{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em}.statValue{font-size:30px;font-weight:850;margin-top:6px}.statIcon{float:right;width:40px;height:40px;border-radius:12px;background:#eff5ff;color:var(--primary);display:grid;place-items:center}
+.btn{padding:10px 14px;border-radius:11px;font-weight:750;transition:.2s}.btn:hover{transform:translateY(-1px)}.btnPrimary{background:var(--primary);color:#fff}.btnSoft{background:#eef4ff;color:var(--primary)}.btnSuccess{background:#eaf8ef;color:var(--success)}.btnDanger{background:#fff0f0;color:var(--danger)}.btnGhost{background:#f3f5f8;color:#4b5563}
+.btnSmall{padding:7px 10px;border-radius:9px;font-size:12px}.row{display:flex;gap:10px;align-items:center}.between{display:flex;justify-content:space-between;gap:12px;align-items:center}
+input,textarea,select{width:100%;padding:11px 12px;border:1px solid #dbe1ea;border-radius:11px;background:#fff;color:var(--text);outline:none}input:focus,textarea:focus,select:focus{border-color:#8db0ff;box-shadow:0 0 0 3px #e9f0ff}label{font-size:12px;font-weight:750;color:#596579;display:block;margin:0 0 6px}.field{margin-bottom:14px}
+.progress{height:9px;background:#edf0f5;border-radius:99px;overflow:hidden}.progressFill{height:100%;background:linear-gradient(90deg,var(--primary),#7c3aed);border-radius:99px;transition:width .5s}
+.badge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}.badgeBlue{background:#eaf1ff;color:#2455bd}.badgeGreen{background:#eaf8ef;color:#15803d}.badgeOrange{background:#fff5e6;color:#b45309}.badgeRed{background:#fff0f0;color:#b91c1c}
+.subjectCard{transition:.25s;cursor:pointer}.subjectCard:hover{transform:translateY(-4px);box-shadow:0 18px 42px rgba(31,41,55,.12)}.subjectIcon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#edf4ff,#f0ecff);display:grid;place-items:center;color:var(--primary);font-size:21px}
+.listItem{border:1px solid var(--line);border-radius:14px;padding:15px;margin-top:10px;background:#fff}.moduleHeader{display:flex;justify-content:space-between;align-items:center;gap:10px}.chapterRow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #f0f2f5}.chapterNo{width:30px;height:30px;border-radius:9px;background:#f0f4fa;display:grid;place-items:center;font-size:12px;font-weight:800;color:#64748b}
+.empty{padding:35px;text-align:center;color:var(--muted);border:1px dashed #d6dce6;border-radius:15px}.search{max-width:320px}
+.loginPage{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#f6f9ff,#f7f6ff)}.loginCard{width:min(440px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 25px 70px rgba(37,51,84,.12);padding:34px}.loginLogo{width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;display:grid;place-items:center;font-size:25px;margin-bottom:18px}.loginCard h1{margin:0;font-size:27px}.loginCard p{color:var(--muted);line-height:1.55}
+.modal{position:fixed;inset:0;background:rgba(17,24,39,.35);display:grid;place-items:center;padding:20px;z-index:50}.modalBox{width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 25px 70px rgba(17,24,39,.2);padding:24px}
+.videoWrap{aspect-ratio:16/9;background:#101828;border-radius:15px;overflow:hidden}.videoWrap iframe{width:100%;height:100%;border:0}.chapterLayout{display:grid;grid-template-columns:1.55fr .85fr;gap:20px}.stickyCard{position:sticky;top:90px;align-self:start}
+.checkRow{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:12px;margin-top:9px}.checkRow input{width:auto;margin-top:4px}.scoreCircle{width:130px;height:130px;border-radius:50%;background:conic-gradient(var(--primary) var(--p),#edf0f5 0);display:grid;place-items:center;margin:auto}.scoreCircle:before{content:"";position:absolute}.scoreInner{width:102px;height:102px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:25px;font-weight:850}
+.toast{position:fixed;right:22px;bottom:22px;background:#172033;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 14px 35px rgba(0,0,0,.18);z-index:100;animation:toast .25s ease}.toast.success{background:#166534}.toast.error{background:#b91c1c}@keyframes toast{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.small{font-size:12px;color:var(--muted)}.tableWrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.table th{font-size:11px;color:var(--muted);text-transform:uppercase}.table td{font-size:13px}
+.adminSection{margin-top:22px}.hero{background:linear-gradient(135deg,#eff5ff,#f7f2ff);border:1px solid #dfe8ff}.hero h2{margin:0 0 7px;font-size:23px}.hero p{color:#5f6b7e}
+.chapterDone{background:#ecfdf3;color:#15803d}.locked{opacity:.65}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{position:sticky;top:70px;z-index:15;flex-direction:row;overflow:auto;border-right:0;border-bottom:1px solid var(--line);padding:9px}.navBtn{min-width:max-content;width:auto}.grid4{grid-template-columns:repeat(2,1fr)}.chapterLayout{grid-template-columns:1fr}.stickyCard{position:static}}
+@media(max-width:650px){.topbar{padding:0 14px}.main{padding:16px}.grid3,.grid2,.grid4{grid-template-columns:1fr}.pageTitle{display:block}.pageTitle .row{margin-top:15px}.topUser span{display:none}.modalBox{padding:18px}}
 </style>
 </head>
-
 <body>
+<div id="root"></div>
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
 
-<!-- LOGIN -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  getDatabase, ref, get, set, update, remove, push, onValue
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-<div id="loginPage" class="login-page">
-
-    <div class="login-box">
-
-        <div class="logo">📚</div>
-
-        <h1>StudyFlow</h1>
-        <p>Smart learning and assessment portal</p>
-
-        <div class="form-group">
-            <label>Username</label>
-            <input id="loginUser" placeholder="Enter username">
-        </div>
-
-        <div class="form-group">
-            <label>Password</label>
-            <input id="loginPassword" type="password" placeholder="Enter password">
-        </div>
-
-        <button class="btn btn-primary full" onclick="login()">
-            Login
-        </button>
-
-        <div class="demo">
-            <strong>Demo Accounts</strong><br><br>
-            Teacher: teacher / 1234<br>
-            Students: student1 to student5 / 1234
-        </div>
-
-    </div>
-</div>
-
-
-<!-- APPLICATION -->
-
-<div id="app" class="app hidden">
-
-    <aside id="sidebar" class="sidebar">
-
-        <div class="side-logo">
-            <div class="side-logo-icon">📚</div>
-            <strong>StudyFlow</strong>
-        </div>
-
-        <div class="nav" id="navigation"></div>
-
-        <button class="btn btn-danger full logout" onclick="logout()">
-            Logout
-        </button>
-
-    </aside>
-
-
-    <main class="main">
-
-        <header class="topbar">
-
-            <button class="mobile-menu" onclick="toggleSidebar()">
-                ☰
-            </button>
-
-            <div id="pageTopTitle">
-                Dashboard
-            </div>
-
-            <div class="user">
-                <div>
-                    <strong id="currentUserName">User</strong>
-                </div>
-                <div class="avatar" id="avatar">U</div>
-            </div>
-
-        </header>
-
-        <div id="content" class="content"></div>
-
-    </main>
-
-</div>
-
-
-<!-- MODAL -->
-
-<div id="modalBg" class="modal-bg hidden">
-    <div class="modal">
-        <div class="modal-header">
-            <h2 id="modalTitle">Modal</h2>
-            <button class="close" onclick="closeModal()">×</button>
-        </div>
-        <div id="modalContent"></div>
-    </div>
-</div>
-
-
-<script>
-
-/* =========================================================
-   DATA
-========================================================= */
-
-const STORAGE_KEY = "studyflow_data_v1";
-
-let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-    students:[
-        {id:"student1",name:"Student 1",password:"1234"},
-        {id:"student2",name:"Student 2",password:"1234"},
-        {id:"student3",name:"Student 3",password:"1234"},
-        {id:"student4",name:"Student 4",password:"1234"},
-        {id:"student5",name:"Student 5",password:"1234"}
-    ],
-
-    subjects:[
-        {
-            id:"sub1",
-            name:"Mathematics",
-            icon:"📐",
-            modules:[
-                {
-                    id:"mod1",
-                    name:"Algebra",
-                    chapters:[
-                        {
-                            id:"ch1",
-                            name:"Introduction to Algebra",
-                            marks:10,
-                            video:"",
-                            questions:[
-                                {
-                                    q:"What is an algebraic variable?",
-                                    options:["A fixed number","A symbol representing a value","A colour","A shape"],
-                                    answer:1
-                                },
-                                {
-                                    q:"Which is a linear expression?",
-                                    options:["2x + 3","x² + 2","x³","xy"],
-                                    answer:0
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-    ],
-
-    results:{},
-    studyTime:{}
+/* Firebase configuration taken from the supplied project. */
+const firebaseConfig = {
+  apiKey: "AIzaSyD16NhAUgo3sgag01nZPZGHXjMvAZZ0rDE",
+  authDomain: "focus-dashboard-5965a.firebaseapp.com",
+  databaseURL: "https://focus-dashboard-5965a-default-rtdb.firebaseio.com",
+  projectId: "focus-dashboard-5965a",
+  storageBucket: "focus-dashboard-5965a.appspot.com",
+  messagingSenderId: "337204334808",
+  appId: "1:337204334808:web:9d0d36bed2fbae9b8147ad"
 };
 
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+const ADMIN_EMAIL = "admin@admin.com";
+const MAX_STUDENTS = 5;
+const MAX_SUBJECTS = 50;
+
 let currentUser = null;
-let currentView = "dashboard";
-let currentSubject = null;
-let currentChapter = null;
+let isAdmin = false;
+let unsubscribeUser = null;
+let unsubscribeCourses = null;
+let currentPage = "dashboard";
+let currentSubjectId = null;
+let currentChapterId = null;
+let studyTick = null;
+let studyLast = 0;
+let studyActive = false;
+let pendingChapter = null;
 
-let studyTimer = null;
-let studySeconds = 0;
-let timerStarted = false;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const uid = () => Math.random().toString(36).slice(2)+Date.now().toString(36);
+const fmtTime = ms => {
+  ms = Math.max(0, Number(ms)||0);
+  const h=Math.floor(ms/3600000), m=Math.floor(ms%3600000/60000), s=Math.floor(ms%60000/1000);
+  return [h,m,s].map((x,i)=>String(x).padStart(i===0?2:2,"0")).join(":");
+};
+const fmtDate = ts => ts ? new Date(ts).toLocaleString() : "—";
+const youtubeId = url => {
+  const s=String(url||"").trim();
+  const m=s.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/);
+  return m ? m[1] : (s.match(/^[A-Za-z0-9_-]{6,}$/)||[])[0] || "";
+};
+const slug = s => String(s).trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 
+function toast(msg,type=""){
+  const el=document.createElement("div"); el.className="toast "+type; el.textContent=msg;
+  $("toastRoot").appendChild(el); setTimeout(()=>el.remove(),3000);
+}
+function loading(){return `<div class="empty">Loading…</div>`}
 
-/* =========================================================
-   SAVE
-========================================================= */
-
-function saveData(){
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+function loginView(error=""){
+  $("root").innerHTML=`
+  <div class="loginPage">
+    <div class="loginCard">
+      <div class="loginLogo">📚</div>
+      <h1>StudyFlow LMS</h1>
+      <p>Teacher and student learning management with Firebase real-time sync.</p>
+      ${error?`<div class="badge badgeRed" style="margin-bottom:14px">${esc(error)}</div>`:""}
+      <form id="loginForm">
+        <div class="field"><label>Email / Student ID</label><input id="loginEmail" type="email" placeholder="student@example.com" required></div>
+        <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="Password" required></div>
+        <button class="btn btnPrimary" style="width:100%;padding:13px">Sign in</button>
+      </form>
+      <div class="small" style="margin-top:15px">Teacher account: <b>${ADMIN_EMAIL}</b>. Any other valid Firebase Auth email is treated as a student.</div>
+    </div>
+  </div>`;
+  $("loginForm").onsubmit=async e=>{
+    e.preventDefault();
+    try{
+      await signInWithEmailAndPassword(auth,$("loginEmail").value.trim().toLowerCase(),$("loginPassword").value);
+    }catch(err){ loginView("Login failed. Check the email/ID and password."); }
+  };
 }
 
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-function login(){
-
-    const username=document.getElementById("loginUser").value.trim();
-    const password=document.getElementById("loginPassword").value;
-
-    if(username==="teacher" && password==="1234"){
-
-        currentUser={
-            role:"teacher",
-            id:"teacher",
-            name:"Teacher"
-        };
-
-    }else{
-
-        const student=data.students.find(
-            s=>s.id===username && s.password===password
-        );
-
-        if(!student){
-            toast("Invalid username or password");
-            return;
-        }
-
-        currentUser={
-            role:"student",
-            id:student.id,
-            name:student.name
-        };
-    }
-
-    document.getElementById("loginPage").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-
-    document.getElementById("currentUserName").textContent=currentUser.name;
-    document.getElementById("avatar").textContent=currentUser.name.charAt(0).toUpperCase();
-
-    setupNavigation();
-    showView("dashboard");
+function shell(){
+  $("root").innerHTML=`
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><div class="brandMark">S</div>StudyFlow</div>
+      <div class="topUser"><span id="userEmail"></span><div class="avatar" id="avatar">U</div><button class="btn btnGhost btnSmall" id="logoutBtn">Logout</button></div>
+    </header>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar"></aside>
+      <main class="main" id="main">${loading()}</main>
+    </div>
+  </div>`;
+  $("logoutBtn").onclick=()=>signOut(auth);
+  $("userEmail").textContent=currentUser.email;
+  $("avatar").textContent=(currentUser.email||"U")[0].toUpperCase();
+  renderNav();
 }
 
+function renderNav(){
+  $("sidebar").innerHTML = isAdmin ? `
+    ${nav("dashboard","▦","Dashboard")}
+    ${nav("subjects","📚","Subjects")}
+    ${nav("students","👥","Students")}
+  ` : `
+    ${nav("dashboard","⌂","My Dashboard")}
+    ${nav("subjects","📚","Subjects")}
+    ${nav("progress","◔","My Progress")}
+  `;
+  document.querySelectorAll(".navBtn").forEach(b=>b.onclick=()=>{currentPage=b.dataset.page;renderPage();});
+}
+function nav(page,icon,label){return `<button class="navBtn ${currentPage===page?"active":""}" data-page="${page}">${icon}&nbsp; ${label}</button>`}
 
-function logout(){
-
-    stopStudyTimer();
-
-    currentUser=null;
-
-    document.getElementById("app").classList.add("hidden");
-    document.getElementById("loginPage").classList.remove("hidden");
-
-    document.getElementById("loginUser").value="";
-    document.getElementById("loginPassword").value="";
+async function getUserData(){
+  const snap=await get(ref(db,`users/${currentUser.uid}`));
+  return snap.exists()?snap.val():{};
+}
+async function ensureUser(){
+  if(isAdmin)return;
+  const r=ref(db,`users/${currentUser.uid}/profile`);
+  const s=await get(r);
+  if(!s.exists()) await set(r,{email:currentUser.email,role:"student",createdAt:Date.now()});
+}
+async function getCourses(){
+  const s=await get(ref(db,"courses"));
+  return s.exists()?s.val():{};
+}
+async function getProgress(){
+  const s=await get(ref(db,`progress/${currentUser.uid}`));
+  return s.exists()?s.val():{};
+}
+function courseArray(courses){return Object.entries(courses).map(([id,v])=>({id,...v})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))}
+function allChapters(c){
+  const out=[];
+  Object.entries(c.modules||{}).forEach(([mid,m])=>Object.entries(m.chapters||{}).forEach(([cid,ch])=>out.push({cid,mid,module:m,...ch})));
+  return out;
 }
 
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-function setupNavigation(){
-
-    const nav=document.getElementById("navigation");
-
-    if(currentUser.role==="teacher"){
-
-        nav.innerHTML=`
-            <button onclick="showView('dashboard')">🏠 Dashboard</button>
-            <button onclick="showView('subjects')">📚 Subjects</button>
-            <button onclick="showView('students')">👨‍🎓 Students</button>
-            <button onclick="showView('results')">📊 Results</button>
-            <button onclick="showView('analytics')">⏱ Study Analytics</button>
-        `;
-
-    }else{
-
-        nav.innerHTML=`
-            <button onclick="showView('dashboard')">🏠 Dashboard</button>
-            <button onclick="showView('subjects')">📚 My Subjects</button>
-            <button onclick="showView('progress')">📈 My Progress</button>
-            <button onclick="showView('studytime')">⏱ Study Time</button>
-        `;
-    }
+async function renderPage(){
+  if(!currentUser)return;
+  renderNav();
+  if(currentPage==="dashboard") return isAdmin?adminDashboard():studentDashboard();
+  if(currentPage==="subjects") return isAdmin?adminSubjects():studentSubjects();
+  if(currentPage==="students") return adminStudents();
+  if(currentPage==="progress") return studentProgress();
 }
 
-
-function showView(view){
-
-    stopStudyTimer();
-
-    currentView=view;
-
-    document.querySelectorAll(".nav button")
-        .forEach(b=>b.classList.remove("active"));
-
-    document.getElementById("sidebar").classList.remove("open");
-
-    const content=document.getElementById("content");
-
-    if(view==="dashboard"){
-
-        currentUser.role==="teacher"
-            ? renderTeacherDashboard()
-            : renderStudentDashboard();
-
-    }else if(view==="subjects"){
-
-        currentUser.role==="teacher"
-            ? renderTeacherSubjects()
-            : renderStudentSubjects();
-
-    }else if(view==="students"){
-
-        renderStudents();
-
-    }else if(view==="results"){
-
-        renderResults();
-
-    }else if(view==="analytics"){
-
-        renderAnalytics();
-
-    }else if(view==="progress"){
-
-        renderStudentProgress();
-
-    }else if(view==="studytime"){
-
-        renderStudyTime();
-    }
+async function studentDashboard(){
+  $("main").innerHTML=loading();
+  const [courses,prog,user]=await Promise.all([getCourses(),getProgress(),getUserData()]);
+  const arr=courseArray(courses);
+  const chapters=arr.flatMap(c=>allChapters(c));
+  const done=chapters.filter(ch=>prog[ch.cid]?.completed).length;
+  const pct=chapters.length?Math.round(done/chapters.length*100):0;
+  $("main").innerHTML=`
+    <div class="pageTitle"><div><h1>Welcome back 👋</h1><p>Continue your learning from where you stopped.</p></div></div>
+    <div class="card hero" style="margin-bottom:18px"><h2>${esc(currentUser.email)}</h2><p>Your study time is recorded only while you are actively using the learning page. Remarks and “What I learned” responses are not stored permanently.</p></div>
+    <div class="grid grid4">
+      ${stat("📚","Subjects",arr.length)}
+      ${stat("📖","Chapters",chapters.length)}
+      ${stat("✓","Completed",done)}
+      ${stat("⏱","Study Time",fmtTime(user.stats?.studyMs||0))}
+    </div>
+    <div class="card" style="margin-top:18px"><div class="between"><h3 style="margin:0">Overall Progress</h3><b>${pct}%</b></div><div class="progress" style="margin-top:12px"><div class="progressFill" style="width:${pct}%"></div></div></div>
+    <div style="margin-top:22px"><div class="between"><h2 style="margin:0">Your Subjects</h2><button class="btn btnSoft btnSmall" onclick="go('subjects')">View all</button></div><div class="grid grid3" style="margin-top:14px">${arr.slice(0,6).map(subjectCard).join("")||`<div class="empty">No subjects have been published yet.</div>`}</div></div>`;
+}
+function stat(icon,label,value){return `<div class="card stat"><div class="statIcon">${icon}</div><div class="statLabel">${label}</div><div class="statValue">${esc(value)}</div></div>`}
+function subjectCard(c){
+  const n=allChapters(c).length;
+  return `<div class="card subjectCard" onclick="openSubject('${c.id}')"><div class="between"><div class="subjectIcon">📘</div><span class="badge badgeBlue">${n} chapters</span></div><h3 style="margin:16px 0 5px">${esc(c.name)}</h3><div class="small">${Object.keys(c.modules||{}).length} modules</div></div>`;
 }
 
-
-function toggleSidebar(){
-    document.getElementById("sidebar").classList.toggle("open");
+async function studentSubjects(){
+  const [courses,prog]=await Promise.all([getCourses(),getProgress()]);
+  const arr=courseArray(courses);
+  $("main").innerHTML=`<div class="pageTitle"><div><h1>Subjects</h1><p>Choose a subject and study module by module.</p></div><input class="search" id="subjectSearch" placeholder="Search subjects"></div><div id="subjectGrid" class="grid grid3">${arr.map(c=>subjectCardWithProgress(c,prog)).join("")||`<div class="empty">No subjects available.</div>`}</div>`;
+  $("subjectSearch").oninput=e=>{
+    const q=e.target.value.toLowerCase();
+    $("subjectGrid").innerHTML=arr.filter(c=>c.name.toLowerCase().includes(q)).map(c=>subjectCardWithProgress(c,prog)).join("")||`<div class="empty">No matching subjects.</div>`;
+  };
+}
+function subjectCardWithProgress(c,prog){
+  const chapters=allChapters(c),done=chapters.filter(x=>prog[x.cid]?.completed).length,p=chapters.length?Math.round(done/chapters.length*100):0;
+  return `<div class="card subjectCard" onclick="openSubject('${c.id}')"><div class="between"><div class="subjectIcon">📘</div><span class="badge ${p===100?"badgeGreen":"badgeBlue"}">${p}%</span></div><h3 style="margin:16px 0 5px">${esc(c.name)}</h3><div class="small">${Object.keys(c.modules||{}).length} modules · ${chapters.length} chapters</div><div class="progress" style="margin-top:13px"><div class="progressFill" style="width:${p}%"></div></div></div>`;
 }
 
-
-/* =========================================================
-   TEACHER DASHBOARD
-========================================================= */
-
-function renderTeacherDashboard(){
-
-    document.getElementById("pageTopTitle").textContent="Teacher Dashboard";
-
-    let chapters=0;
-
-    data.subjects.forEach(s=>{
-        s.modules.forEach(m=>{
-            chapters+=m.chapters.length;
-        });
-    });
-
-    const completed=Object.values(data.results)
-        .filter(r=>r.completed).length;
-
-    const totalStudy=Object.values(data.studyTime)
-        .reduce((a,b)=>a+b,0);
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-            <h2>Good day, Teacher 👋</h2>
-            <p>Manage your learning content and monitor student performance.</p>
-        </div>
-
-        <div class="grid grid-4">
-
-            ${statCard("👨‍🎓",data.students.length+"/5","Students")}
-
-            ${statCard("📚",data.subjects.length+"/50","Subjects")}
-
-            ${statCard("📖",chapters,"Total Chapters")}
-
-            ${statCard("⏱",formatTime(totalStudy),"Total Study Time")}
-
-        </div>
-
-        <br>
-
-        <div class="card">
-
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:10px;flex-wrap:wrap">
-
-                <div>
-                    <h3>Subject Overview</h3>
-                    <p style="color:var(--muted);font-size:14px;margin-top:4px">
-                        Manage up to 50 subjects
-                    </p>
-                </div>
-
-                <button class="btn btn-primary" onclick="addSubject()">
-                    + Add Subject
-                </button>
-
-            </div>
-
-            <div class="grid grid-3">
-
-                ${data.subjects.slice(0,6).map(subjectCardTeacher).join("")}
-
-            </div>
-
-        </div>
-    `;
+async function openSubject(id){
+  currentSubjectId=id; currentPage="subjects";
+  const [courses,prog]=await Promise.all([getCourses(),getProgress()]);
+  const c=courses[id]; if(!c)return;
+  $("main").innerHTML=`<div class="pageTitle"><div><button class="btn btnGhost btnSmall" onclick="go('subjects')">← Back</button><h1 style="margin-top:12px">${esc(c.name)}</h1><p>Study each module and complete every chapter.</p></div></div>
+  <div>${Object.entries(c.modules||{}).map(([mid,m],i)=>moduleBlock(c,mid,m,i,prog)).join("")||`<div class="empty">No modules yet.</div>`}</div>`;
+}
+function moduleBlock(c,mid,m,i,prog){
+  const ch=Object.entries(m.chapters||{});
+  return `<div class="card" style="margin-bottom:16px"><div class="moduleHeader"><div><span class="badge badgeBlue">MODULE ${i+1}</span><h3 style="margin:8px 0 0">${esc(m.name)}</h3></div><span class="small">${ch.length} chapters</span></div>
+  ${ch.map(([cid,x],n)=>{
+    const done=!!prog[cid]?.completed;
+    return `<div class="chapterRow"><div class="chapterNo">${n+1}</div><div style="flex:1"><b>${esc(x.name)}</b><div class="small">${x.questions?.length||0} assessment questions · ${x.task?"Task assigned":"No task"}</div></div>${done?`<span class="badge badgeGreen">Completed</span>`:""}<button class="btn ${done?"btnSuccess":"btnPrimary"} btnSmall" onclick="openChapter('${c.id}','${mid}','${cid}')">${done?"Review":"Start"}</button></div>`;
+  }).join("")}</div>`;
 }
 
-
-function statCard(icon,value,label){
-
-    return `
-        <div class="card stat">
-            <div class="stat-icon">${icon}</div>
-            <h3>${value}</h3>
-            <p>${label}</p>
-        </div>
-    `;
+async function openChapter(subjectId,moduleId,chapterId){
+  currentSubjectId=subjectId;currentChapterId=chapterId;
+  const [courses,prog]=await Promise.all([getCourses(),getProgress()]);
+  const c=courses[subjectId],ch=c?.modules?.[moduleId]?.chapters?.[chapterId];
+  if(!ch)return;
+  stopStudyTimer();
+  pendingChapter={subjectId,moduleId,chapterId,ch};
+  const done=prog[chapterId]?.completed;
+  const yt=youtubeId(ch.videoUrl||"");
+  $("main").innerHTML=`<div class="pageTitle"><div><button class="btn btnGhost btnSmall" onclick="openSubject('${subjectId}')">← Back to ${esc(c.name)}</button><h1 style="margin-top:12px">${esc(ch.name)}</h1><p>${esc(c.modules[moduleId].name)}</p></div></div>
+  <div class="chapterLayout">
+    <section>
+      <div class="card">
+        <div class="between"><h3 style="margin:0">1. Watch the video</h3><span id="studyState" class="badge badgeOrange">Study timer active</span></div>
+        <div class="videoWrap" style="margin-top:14px">${yt?`<iframe src="https://www.youtube.com/embed/${encodeURIComponent(yt)}?rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`:`<div style="height:100%;display:grid;place-items:center;color:#fff">No valid YouTube URL added.</div>`}</div>
+      </div>
+      <div class="card">
+        <h3>2. Video remarks</h3><p class="small">Tell the teacher what you thought about the video. This response is intentionally not stored permanently.</p>
+        <textarea id="remarks" rows="4" placeholder="Your remarks about the video..."></textarea>
+      </div>
+      <div class="card">
+        <h3>3. What I learned</h3><p class="small">Write a short learning reflection. It is used only for this submission and is not stored permanently.</p>
+        <textarea id="learned" rows="4" placeholder="What did you learn?"></textarea>
+      </div>
+      <div class="card"><h3>4. Assessment</h3>${renderQuestions(ch.questions||[])}</div>
+      <div class="card"><h3>5. Task</h3><p>${esc(ch.task||"No task has been assigned for this chapter.")}</p><textarea id="taskAnswer" rows="5" placeholder="Write your task answer / submission..."></textarea></div>
+      <div class="card"><button class="btn btnPrimary" style="width:100%;padding:13px" onclick="submitChapter()">Submit Chapter</button></div>
+    </section>
+    <aside class="stickyCard"><div class="card"><div class="statLabel">Chapter Progress</div><div style="font-size:34px;font-weight:850;margin-top:6px" id="chapterProgressText">${done?100:0}%</div><div class="progress" style="margin:12px 0 18px"><div id="chapterProgressBar" class="progressFill" style="width:${done?100:0}%"></div></div><div class="small">Study time this session</div><div id="sessionClock" style="font-size:25px;font-weight:850;margin-top:5px">00:00:00</div><div class="small" style="margin-top:12px">Only active visible study time is counted.</div></div></aside>
+  </div>`;
+  startStudyTimer();
 }
-
-
-/* =========================================================
-   SUBJECTS
-========================================================= */
-
-function subjectCardTeacher(s){
-
-    const total=s.modules.reduce((a,m)=>a+m.chapters.length,0);
-
-    return `
-        <div class="card subject-card"
-             onclick="openSubject('${s.id}')">
-
-            <div class="subject-icon">${s.icon}</div>
-
-            <h3>${escapeHTML(s.name)}</h3>
-
-            <p>
-                ${s.modules.length} Modules · ${total} Chapters
-            </p>
-
-            <div style="margin-top:15px">
-                <button class="btn btn-secondary"
-                        onclick="event.stopPropagation();openSubject('${s.id}')">
-                    Manage
-                </button>
-            </div>
-
-        </div>
-    `;
+function renderQuestions(qs){
+  if(!qs.length)return `<div class="empty">No assessment has been added.</div>`;
+  return qs.map((q,i)=>`<div style="margin-top:15px"><b>${i+1}. ${esc(q.text)}</b>${(q.options||[]).map((o,j)=>`<label class="checkRow"><input type="radio" name="q${i}" value="${j}"><span>${esc(o)}</span></label>`).join("")}</div>`).join("");
 }
-
-
-function renderTeacherSubjects(){
-
-    document.getElementById("pageTopTitle").textContent="Subjects";
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-
-            <h2>Subjects</h2>
-
-            <p>
-                ${data.subjects.length}/50 subjects created
-            </p>
-
-        </div>
-
-        <div style="margin-bottom:20px">
-            <button class="btn btn-primary" onclick="addSubject()">
-                + Add New Subject
-            </button>
-        </div>
-
-        <div class="grid grid-3">
-
-            ${data.subjects.map(subjectCardTeacher).join("")}
-
-        </div>
-    `;
-}
-
-
-function renderStudentSubjects(){
-
-    document.getElementById("pageTopTitle").textContent="My Subjects";
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-            <h2>My Subjects</h2>
-            <p>Choose a subject to continue your learning.</p>
-        </div>
-
-        <div class="grid grid-3">
-
-            ${data.subjects.map(s=>{
-
-                const p=getSubjectProgress(s);
-
-                return `
-                    <div class="card subject-card"
-                         onclick="openSubject('${s.id}')">
-
-                        <div class="subject-icon">${s.icon}</div>
-
-                        <h3>${escapeHTML(s.name)}</h3>
-
-                        <p>${s.modules.length} modules</p>
-
-                        <div class="progress">
-                            <div class="progress-bar"
-                                 style="width:${p}%"></div>
-                        </div>
-
-                        <div class="progress-row">
-                            <span>Progress</span>
-                            <strong>${p}%</strong>
-                        </div>
-
-                    </div>
-                `;
-
-            }).join("")}
-
-        </div>
-    `;
-}
-
-
-/* =========================================================
-   SUBJECT VIEW
-========================================================= */
-
-function openSubject(id){
-
-    const subject=data.subjects.find(s=>s.id===id);
-
-    if(!subject)return;
-
-    currentSubject=subject;
-
-    document.getElementById("pageTopTitle").textContent=subject.name;
-
-    const isTeacher=currentUser.role==="teacher";
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap">
-
-                <div>
-                    <h2>${subject.icon} ${escapeHTML(subject.name)}</h2>
-                    <p>Module-wise learning structure</p>
-                </div>
-
-                ${isTeacher ? `
-                    <div>
-                        <button class="btn btn-secondary"
-                                onclick="addModule('${subject.id}')">
-                            + Add Module
-                        </button>
-
-                        <button class="btn btn-danger"
-                                onclick="deleteSubject('${subject.id}')">
-                            Delete Subject
-                        </button>
-                    </div>
-                `:""}
-
-            </div>
-
-        </div>
-
-        ${subject.modules.map((m,i)=>moduleHTML(subject,m,i)).join("")}
-
-        ${subject.modules.length===0 ? `
-            <div class="card">
-                <p style="color:var(--muted)">
-                    No modules created yet.
-                </p>
-            </div>
-        `:""}
-
-    `;
-}
-
-
-function moduleHTML(subject,module,index){
-
-    const isTeacher=currentUser.role==="teacher";
-
-    return `
-        <div class="module">
-
-            <div class="module-header"
-                 onclick="toggleModule('${module.id}')">
-
-                <div>
-                    <h3>
-                        Module ${index+1}: ${escapeHTML(module.name)}
-                    </h3>
-
-                    <small style="color:var(--muted)">
-                        ${module.chapters.length} chapters
-                    </small>
-                </div>
-
-                <span>⌄</span>
-
-            </div>
-
-            <div id="module-${module.id}" class="chapter-list">
-
-                ${module.chapters.map((c,i)=>chapterHTML(c,i)).join("")}
-
-                ${isTeacher ? `
-                    <button class="btn btn-secondary"
-                            style="margin:10px"
-                            onclick="addChapter('${subject.id}','${module.id}')">
-                        + Add Chapter
-                    </button>
-
-                    <button class="btn btn-danger"
-                            onclick="deleteModule('${subject.id}','${module.id}')">
-                        Delete Module
-                    </button>
-                `:""}
-
-            </div>
-
-        </div>
-    `;
-}
-
-
-function toggleModule(id){
-
-    const el=document.getElementById("module-"+id);
-
-    if(el){
-        el.classList.toggle("hidden");
-    }
-}
-
-
-function chapterHTML(ch,index){
-
-    const result=data.results[`${currentUser.id}_${ch.id}`];
-
-    const completed=result?.completed;
-
-    return `
-        <div class="chapter">
-
-            <div class="chapter-info">
-
-                <div class="chapter-number ${completed?"done":""}">
-                    ${completed?"✓":index+1}
-                </div>
-
-                <div>
-                    <strong>${escapeHTML(ch.name)}</strong>
-
-                    <div style="font-size:12px;color:var(--muted);margin-top:3px">
-                        ${ch.marks} Marks
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div>
-
-                ${completed
-                    ? `<span class="badge badge-green">Completed</span>`
-                    : `<span class="badge badge-orange">Pending</span>`
-                }
-
-                <button class="btn btn-primary"
-                        style="margin-left:8px"
-                        onclick="openChapter('${ch.id}')">
-
-                    ${currentUser.role==="teacher"?"Edit":"Study"}
-
-                </button>
-
-            </div>
-
-        </div>
-    `;
-}
-
-
-/* =========================================================
-   ADD SUBJECT
-========================================================= */
-
-function addSubject(){
-
-    if(data.subjects.length>=50){
-        toast("Maximum 50 subjects allowed");
-        return;
-    }
-
-    openModal(
-        "Add Subject",
-        `
-        <div class="form-group">
-            <label>Subject Name</label>
-            <input id="newSubjectName" placeholder="e.g. Physics">
-        </div>
-
-        <div class="form-group">
-            <label>Subject Icon</label>
-            <input id="newSubjectIcon" value="📚">
-        </div>
-
-        <button class="btn btn-primary"
-                onclick="saveSubject()">
-            Create Subject
-        </button>
-        `
-    );
-}
-
-
-function saveSubject(){
-
-    const name=document.getElementById("newSubjectName").value.trim();
-    const icon=document.getElementById("newSubjectIcon").value.trim() || "📚";
-
-    if(!name){
-        toast("Enter subject name");
-        return;
-    }
-
-    data.subjects.push({
-        id:"sub_"+Date.now(),
-        name,
-        icon,
-        modules:[]
-    });
-
-    saveData();
-    closeModal();
-    toast("Subject created");
-    showView("subjects");
-}
-
-
-/* =========================================================
-   MODULE
-========================================================= */
-
-function addModule(subjectId){
-
-    openModal(
-        "Add Module",
-        `
-        <div class="form-group">
-            <label>Module Name</label>
-            <input id="moduleName"
-                   placeholder="e.g. Algebra">
-        </div>
-
-        <button class="btn btn-primary"
-                onclick="saveModule('${subjectId}')">
-            Create Module
-        </button>
-        `
-    );
-}
-
-
-function saveModule(subjectId){
-
-    const name=document.getElementById("moduleName").value.trim();
-
-    if(!name){
-        toast("Enter module name");
-        return;
-    }
-
-    const subject=data.subjects.find(s=>s.id===subjectId);
-
-    subject.modules.push({
-        id:"mod_"+Date.now(),
-        name,
-        chapters:[]
-    });
-
-    saveData();
-    closeModal();
-    toast("Module created");
-    openSubject(subjectId);
-}
-
-
-function deleteModule(subjectId,moduleId){
-
-    if(!confirm("Delete this module and all its chapters?"))return;
-
-    const subject=data.subjects.find(s=>s.id===subjectId);
-
-    subject.modules=subject.modules.filter(m=>m.id!==moduleId);
-
-    saveData();
-    openSubject(subjectId);
-}
-
-
-/* =========================================================
-   CHAPTER
-========================================================= */
-
-function addChapter(subjectId,moduleId){
-
-    openChapterEditor(subjectId,moduleId,null);
-}
-
-
-function openChapterEditor(subjectId,moduleId,chapter){
-
-    const editing=!!chapter;
-
-    openModal(
-        editing?"Edit Chapter":"Add Chapter",
-        `
-        <div class="form-group">
-            <label>Chapter Name</label>
-            <input id="chapterName"
-                   value="${editing?escapeAttr(chapter.name):""}"
-                   placeholder="Chapter name">
-        </div>
-
-        <div class="form-group">
-            <label>YouTube Video URL</label>
-            <input id="chapterVideo"
-                   value="${editing?escapeAttr(chapter.video||""):""}"
-                   placeholder="https://www.youtube.com/watch?v=...">
-        </div>
-
-        <div class="form-group">
-            <label>Chapter Marks</label>
-            <input id="chapterMarks"
-                   type="number"
-                   min="1"
-                   value="${editing?chapter.marks:10}">
-        </div>
-
-        <div class="form-group">
-            <label>Assessment Question 1</label>
-            <input id="q1"
-                   placeholder="Question">
-        </div>
-
-        <div class="form-group">
-            <label>Options separated by |</label>
-            <input id="o1"
-                   placeholder="Option A | Option B | Option C | Option D">
-        </div>
-
-        <div class="form-group">
-            <label>Correct option number (1-4)</label>
-            <input id="a1" type="number" min="1" max="4" value="1">
-        </div>
-
-        <div class="form-group">
-            <label>Assessment Question 2</label>
-            <input id="q2"
-                   placeholder="Question">
-        </div>
-
-        <div class="form-group">
-            <label>Options separated by |</label>
-            <input id="o2"
-                   placeholder="Option A | Option B | Option C | Option D">
-        </div>
-
-        <div class="form-group">
-            <label>Correct option number (1-4)</label>
-            <input id="a2" type="number" min="1" max="4" value="1">
-        </div>
-
-        <button class="btn btn-primary"
-                onclick="saveChapter('${subjectId}','${moduleId}',${editing?`'${chapter.id}'`:"null"})">
-            ${editing?"Save Changes":"Create Chapter"}
-        </button>
-        `
-    );
-}
-
-
-function saveChapter(subjectId,moduleId,chapterId){
-
-    const name=document.getElementById("chapterName").value.trim();
-    const video=document.getElementById("chapterVideo").value.trim();
-    const marks=Number(document.getElementById("chapterMarks").value)||10;
-
-    if(!name){
-        toast("Enter chapter name");
-        return;
-    }
-
-    const questions=[];
-
-    for(let i=1;i<=2;i++){
-
-        const q=document.getElementById("q"+i).value.trim();
-        const opts=document.getElementById("o"+i).value
-            .split("|")
-            .map(x=>x.trim())
-            .filter(Boolean);
-
-        const answer=Number(document.getElementById("a"+i).value)-1;
-
-        if(q && opts.length>=2){
-
-            questions.push({
-                q,
-                options:opts,
-                answer:Math.max(0,Math.min(answer,opts.length-1))
-            });
-        }
-    }
-
-    const subject=data.subjects.find(s=>s.id===subjectId);
-    const module=subject.modules.find(m=>m.id===moduleId);
-
-    if(chapterId==="null"){
-
-        module.chapters.push({
-            id:"ch_"+Date.now(),
-            name,
-            video,
-            marks,
-            questions
-        });
-
-    }else{
-
-        const chapter=module.chapters.find(c=>c.id===chapterId);
-
-        chapter.name=name;
-        chapter.video=video;
-        chapter.marks=marks;
-        chapter.questions=questions;
-    }
-
-    saveData();
-    closeModal();
-    toast("Chapter saved");
-    openSubject(subjectId);
-}
-
-
-/* =========================================================
-   OPEN CHAPTER
-========================================================= */
-
-function openChapter(chapterId){
-
-    let found=null;
-
-    for(const s of data.subjects){
-
-        for(const m of s.modules){
-
-            const c=m.chapters.find(x=>x.id===chapterId);
-
-            if(c){
-                found={
-                    subject:s,
-                    module:m,
-                    chapter:c
-                };
-            }
-        }
-    }
-
-    if(!found)return;
-
-    currentSubject=found.subject;
-    currentChapter=found.chapter;
-
-    if(currentUser.role==="teacher"){
-
-        openChapterEditor(
-            found.subject.id,
-            found.module.id,
-            found.chapter
-        );
-
-        return;
-    }
-
-    startLearning(found);
-}
-
-
-/* =========================================================
-   LEARNING WORKFLOW
-========================================================= */
-
-function startLearning(found){
-
-    studySeconds=0;
-    timerStarted=false;
-
-    let step=1;
-
-    function renderStep(){
-
-        const c=found.chapter;
-
-        const videoId=getYouTubeId(c.video);
-
-        let body="";
-
-        if(step===1){
-
-            body=`
-
-                <div class="card">
-
-                    <div class="video-box">
-
-                        ${
-                            videoId
-                            ?
-                            `<iframe
-                                src="https://www.youtube.com/embed/${videoId}"
-                                allowfullscreen>
-                             </iframe>`
-                            :
-                            `<div class="video-placeholder">
-                                <span>▶</span>
-                                <div>No video added for this chapter</div>
-                             </div>`
-                        }
-
-                    </div>
-
-                    <div class="timer">
-                        <span>⏱ Study Time</span>
-                        <strong id="studyTimer">00:00:00</strong>
-                    </div>
-
-                    <br>
-
-                    <button class="btn btn-primary full"
-                            onclick="nextStep()">
-                        Video Completed ✓
-                    </button>
-
-                </div>
-            `;
-
-        }else if(step===2){
-
-            body=`
-
-                <div class="card">
-
-                    <h3>Video Remarks</h3>
-
-                    <p style="color:var(--muted);margin:7px 0 20px">
-                        Share your feedback about this video.
-                    </p>
-
-                    <div class="form-group">
-                        <label>How was the video?</label>
-
-                        <select id="videoRating">
-                            <option>Very Easy</option>
-                            <option>Easy</option>
-                            <option>Moderate</option>
-                            <option>Difficult</option>
-                            <option>Very Difficult</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Your Remarks</label>
-                        <textarea id="videoRemarks"
-                            placeholder="Write your remarks..."></textarea>
-                    </div>
-
-                    <button class="btn btn-primary"
-                            onclick="nextStep()">
-                        Continue
-                    </button>
-
-                </div>
-            `;
-
-        }else if(step===3){
-
-            body=`
-
-                <div class="card">
-
-                    <h3>What Did You Learn?</h3>
-
-                    <p style="color:var(--muted);margin:7px 0 20px">
-                        Write the important things you understood.
-                    </p>
-
-                    <textarea id="learnedText"
-                        placeholder="What did you learn from this chapter?"></textarea>
-
-                    <br><br>
-
-                    <button class="btn btn-primary"
-                            onclick="nextStep()">
-                        Continue to Assessment
-                    </button>
-
-                </div>
-            `;
-
-        }else if(step===4){
-
-            const questions=c.questions||[];
-
-            body=`
-
-                <div class="card">
-
-                    <h3>Assessment</h3>
-
-                    <p style="color:var(--muted);margin:7px 0 20px">
-                        ${questions.length} Questions · ${c.marks} Marks
-                    </p>
-
-                    ${
-                        questions.length
-                        ?
-                        questions.map((q,i)=>`
-
-                            <div class="question">
-
-                                <strong>
-                                    ${i+1}. ${escapeHTML(q.q)}
-                                </strong>
-
-                                ${q.options.map((o,j)=>`
-
-                                    <label class="option">
-
-                                        <input
-                                            type="radio"
-                                            name="question${i}"
-                                            value="${j}">
-
-                                        ${escapeHTML(o)}
-
-                                    </label>
-
-                                `).join("")}
-
-                            </div>
-
-                        `).join("")
-                        :
-                        `<p style="color:var(--muted)">
-                            No assessment questions have been added.
-                        </p>`
-                    }
-
-                    <button class="btn btn-primary"
-                            onclick="submitAssessment()">
-                        Submit Assessment
-                    </button>
-
-                </div>
-            `;
-
-        }
-
-        document.getElementById("pageTopTitle").textContent=c.name;
-
-        document.getElementById("content").innerHTML=`
-
-            <div class="learning">
-
-                <div class="page-title">
-                    <h2>${escapeHTML(c.name)}</h2>
-                    <p>
-                        ${escapeHTML(found.subject.name)}
-                        ·
-                        ${escapeHTML(found.module.name)}
-                    </p>
-                </div>
-
-                <div class="stepper">
-
-                    ${[1,2,3,4].map(x=>`
-                        <div class="step
-                            ${x<step?"complete":""}
-                            ${x===step?"active":""}">
-                        </div>
-                    `).join("")}
-
-                </div>
-
-                ${body}
-
-            </div>
-        `;
-
-        if(step===1){
-
-            startStudyTimer();
-
-        }
-    }
-
-
-    window.nextStep=function(){
-
-        if(step<4){
-
-            step++;
-            renderStep();
-
-        }
-    };
-
-
-    window.submitAssessment=function(){
-
-        const questions=found.chapter.questions||[];
-
-        let correct=0;
-
-        questions.forEach((q,i)=>{
-
-            const selected=document.querySelector(
-                `input[name="question${i}"]:checked`
-            );
-
-            if(selected && Number(selected.value)===q.answer){
-                correct++;
-            }
-        });
-
-        const score=questions.length
-            ? Math.round(
-                correct/questions.length*found.chapter.marks
-              )
-            : found.chapter.marks;
-
-        stopStudyTimer();
-
-        const key=`${currentUser.id}_${found.chapter.id}`;
-
-        data.results[key]={
-            studentId:currentUser.id,
-            subjectId:found.subject.id,
-            moduleId:found.module.id,
-            chapterId:found.chapter.id,
-            score,
-            maxMarks:found.chapter.marks,
-            completed:true,
-            studySeconds
-        };
-
-        data.studyTime[currentUser.id]=
-            (data.studyTime[currentUser.id]||0)+studySeconds;
-
-        saveData();
-
-        document.getElementById("content").innerHTML=`
-
-            <div class="learning">
-
-                <div class="card"
-                     style="text-align:center;padding:50px 25px">
-
-                    <div style="font-size:65px;margin-bottom:15px">
-                        🎉
-                    </div>
-
-                    <h2>Chapter Completed!</h2>
-
-                    <p style="color:var(--muted);margin:8px 0 25px">
-                        ${escapeHTML(found.chapter.name)}
-                    </p>
-
-                    <div class="grid grid-3">
-
-                        ${statCard("⭐",
-                            score+"/"+found.chapter.marks,
-                            "Assessment Score")}
-
-                        ${statCard("⏱",
-                            formatTime(studySeconds),
-                            "Study Time")}
-
-                        ${statCard("✓",
-                            "100%",
-                            "Completion")}
-
-                    </div>
-
-                    <br>
-
-                    <button class="btn btn-primary"
-                            onclick="openSubject('${found.subject.id}')">
-                        Back to Subject
-                    </button>
-
-                </div>
-
-            </div>
-        `;
-    };
-
-
-    renderStep();
-}
-
-
-/* =========================================================
-   TIMER
-========================================================= */
 
 function startStudyTimer(){
-
-    stopStudyTimer();
-
-    timerStarted=true;
-
-    studyTimer=setInterval(()=>{
-
-        if(timerStarted){
-
-            studySeconds++;
-
-            const el=document.getElementById("studyTimer");
-
-            if(el){
-                el.textContent=formatTime(studySeconds);
-            }
-        }
-
-    },1000);
-}
-
-
-function stopStudyTimer(){
-
-    if(studyTimer){
-        clearInterval(studyTimer);
-        studyTimer=null;
+  studyActive=true;studyLast=Date.now();let session=0;
+  clearInterval(studyTick);
+  studyTick=setInterval(async()=>{
+    const active=studyActive && document.visibilityState==="visible" && document.hasFocus();
+    const now=Date.now();const delta=Math.min(2000,Math.max(0,now-studyLast));studyLast=now;
+    if(active){session+=delta; $("sessionClock").textContent=fmtTime(session);}
+    if(active && delta>0 && currentUser){
+      const r=ref(db,`users/${currentUser.uid}/stats/studyMs`);
+      const s=await get(r);await set(r,(Number(s.val())||0)+delta);
     }
-
-    timerStarted=false;
+  },1000);
+  document.addEventListener("visibilitychange",studyVisibility,{passive:true});
+}
+function studyVisibility(){studyLast=Date.now();}
+function stopStudyTimer(){studyActive=false;clearInterval(studyTick);studyTick=null;document.removeEventListener("visibilitychange",studyVisibility)}
+async function submitChapter(){
+  if(!pendingChapter)return;
+  const {chapterId,ch}=pendingChapter;
+  const qs=ch.questions||[];let correct=0,answered=0;
+  qs.forEach((q,i)=>{const x=document.querySelector(`input[name="q${i}"]:checked`);if(x){answered++;if(Number(x.value)===Number(q.answer))correct++;}});
+  const score=qs.length?Math.round(correct/qs.length*100):100;
+  if(qs.length && answered<qs.length){toast("Please answer every assessment question.","error");return}
+  const taskAnswer=$("taskAnswer")?.value.trim()||"";
+  if(ch.task && !taskAnswer){toast("Please submit the task answer.","error");return}
+  const result={completed:true,score,correct,total:qs.length,taskSubmitted:!!taskAnswer,completedAt:Date.now()};
+  await set(ref(db,`progress/${currentUser.uid}/${chapterId}`),result);
+  stopStudyTimer();
+  toast(`Chapter completed: ${score}%`,"success");
+  setTimeout(()=>openChapter(pendingChapter.subjectId,pendingChapter.moduleId,pendingChapter.chapterId),500);
 }
 
-
-function formatTime(seconds){
-
-    seconds=Math.floor(seconds||0);
-
-    const h=Math.floor(seconds/3600);
-    const m=Math.floor((seconds%3600)/60);
-    const s=seconds%60;
-
-    return String(h).padStart(2,"0")+":"+
-           String(m).padStart(2,"0")+":"+
-           String(s).padStart(2,"0");
+async function studentProgress(){
+  const [courses,prog,user]=await Promise.all([getCourses(),getProgress(),getUserData()]);
+  const arr=courseArray(courses);
+  $("main").innerHTML=`<div class="pageTitle"><div><h1>My Progress</h1><p>Your completed chapters, scores and total active study time.</p></div></div>
+  <div class="grid grid3">${arr.map(c=>{
+    const ch=allChapters(c),done=ch.filter(x=>prog[x.cid]?.completed),p=ch.length?Math.round(done.length/ch.length*100):0;
+    const avg=done.length?Math.round(done.reduce((a,x)=>a+(prog[x.cid]?.score||0),0)/done.length):0;
+    return `<div class="card"><div class="between"><h3 style="margin:0">${esc(c.name)}</h3><span class="badge badgeBlue">${p}%</span></div><div class="progress" style="margin:14px 0"><div class="progressFill" style="width:${p}%"></div></div><div class="small">${done.length}/${ch.length} chapters completed · Avg. score ${avg}%</div></div>`
+  }).join("")||`<div class="empty">No subjects yet.</div>`}</div>
+  <div class="card" style="margin-top:18px"><div class="statLabel">TOTAL ACTIVE STUDY TIME</div><div style="font-size:38px;font-weight:850;margin-top:5px">${fmtTime(user.stats?.studyMs||0)}</div></div>`;
 }
 
+/* ---------- ADMIN ---------- */
+async function adminDashboard(){
+  const [courses,users]=await Promise.all([getCourses(),get(ref(db,"users"))]);
+  const us=users.exists()?users.val():{};
+  const students=Object.values(us).filter(u=>u.profile?.email && u.profile.email!==ADMIN_EMAIL);
+  const arr=courseArray(courses);
+  const chapters=arr.flatMap(allChapters);
+  let completed=0,totalScore=0,scoreCount=0,totalMs=0;
+  students.forEach(u=>{totalMs+=Number(u.stats?.studyMs||0)});
+  const rows=[];
+  for(const u of students){
+    const p=u.progress||{};
+    Object.values(p).forEach(x=>{if(x.completed){completed++;totalScore+=Number(x.score||0);scoreCount++}});
+  }
+  $("main").innerHTML=`<div class="pageTitle"><div><h1>Teacher Dashboard</h1><p>Manage learning content and monitor student performance.</p></div><button class="btn btnPrimary" onclick="openSubjectEditor()">+ New Subject</button></div>
+  <div class="grid grid4">
+    ${stat("👥","Students",students.length+"/"+MAX_STUDENTS)}
+    ${stat("📚","Subjects",arr.length+"/"+MAX_SUBJECTS)}
+    ${stat("📖","Chapters",chapters.length)}
+    ${stat("⏱","Study Time",fmtTime(totalMs))}
+  </div>
+  <div class="grid grid2 adminSection">
+    <div class="card"><div class="between"><h3 style="margin:0">Learning Completion</h3><b>${chapters.length?Math.round(completed/(chapters.length*Math.max(students.length,1))*100):0}%</b></div><div class="progress" style="margin-top:13px"><div class="progressFill" style="width:${chapters.length?Math.min(100,completed/(chapters.length*Math.max(students.length,1))*100):0}%"></div></div><p class="small">Average assessment score: ${scoreCount?Math.round(totalScore/scoreCount):0}%</p></div>
+    <div class="card"><h3 style="margin-top:0">Quick Actions</h3><div class="row" style="flex-wrap:wrap"><button class="btn btnSoft" onclick="go('subjects')">Manage Subjects</button><button class="btn btnSoft" onclick="go('students')">View Students</button></div></div>
+  </div>
+  <div class="card adminSection"><div class="between"><h3 style="margin:0">Subjects</h3><button class="btn btnSoft btnSmall" onclick="go('subjects')">Manage</button></div><div class="grid grid3" style="margin-top:14px">${arr.slice(0,6).map(subjectCardAdmin).join("")||`<div class="empty">Create your first subject.</div>`}</div></div>`;
+}
+function subjectCardAdmin(c){return `<div class="listItem"><div class="between"><b>${esc(c.name)}</b><span class="badge badgeBlue">${allChapters(c).length} chapters</span></div><div class="small" style="margin:7px 0 12px">${Object.keys(c.modules||{}).length} modules</div><button class="btn btnSoft btnSmall" onclick="editSubject('${c.id}')">Open & Edit</button></div>`}
 
-/* =========================================================
-   PROGRESS
-========================================================= */
-
-function getSubjectProgress(subject){
-
-    let total=0;
-    let completed=0;
-
-    subject.modules.forEach(m=>{
-
-        m.chapters.forEach(c=>{
-
-            total++;
-
-            const key=`${currentUser.id}_${c.id}`;
-
-            if(data.results[key]?.completed){
-                completed++;
-            }
-
-        });
-
-    });
-
-    return total
-        ? Math.round(completed/total*100)
-        : 0;
+async function adminSubjects(){
+  const courses=await getCourses(),arr=courseArray(courses);
+  $("main").innerHTML=`<div class="pageTitle"><div><h1>Subject Management</h1><p>Create subjects, unlimited modules and separate chapters.</p></div><button class="btn btnPrimary" onclick="openSubjectEditor()">+ Add Subject</button></div>
+  <div class="grid grid2">${arr.map(c=>adminSubjectEditorCard(c)).join("")||`<div class="empty">No subjects created.</div>`}</div>`;
+}
+function adminSubjectEditorCard(c){
+  return `<div class="card"><div class="between"><div><span class="badge badgeBlue">SUBJECT</span><h3 style="margin:8px 0">${esc(c.name)}</h3></div><button class="btn btnDanger btnSmall" onclick="deleteSubject('${c.id}')">Delete</button></div>
+  <div class="small">${Object.keys(c.modules||{}).length} modules · ${allChapters(c).length} chapters</div>
+  <div class="row" style="margin-top:14px"><button class="btn btnPrimary btnSmall" onclick="editSubject('${c.id}')">Manage Modules</button></div></div>`;
 }
 
-
-function renderStudentDashboard(){
-
-    document.getElementById("pageTopTitle").textContent="Student Dashboard";
-
-    const study=data.studyTime[currentUser.id]||0;
-
-    let totalChapters=0;
-    let completed=0;
-
-    data.subjects.forEach(s=>{
-
-        s.modules.forEach(m=>{
-
-            m.chapters.forEach(c=>{
-
-                totalChapters++;
-
-                if(data.results[`${currentUser.id}_${c.id}`]?.completed){
-                    completed++;
-                }
-
-            });
-
-        });
-
-    });
-
-    const percentage=totalChapters
-        ? Math.round(completed/totalChapters*100)
-        : 0;
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-            <h2>Good morning, ${escapeHTML(currentUser.name)} 👋</h2>
-            <p>Continue your learning journey.</p>
-        </div>
-
-        <div class="grid grid-4">
-
-            ${statCard("📚",
-                completed+"/"+totalChapters,
-                "Chapters Completed")}
-
-            ${statCard("📈",
-                percentage+"%",
-                "Overall Progress")}
-
-            ${statCard("⏱",
-                formatTime(study),
-                "Total Study Time")}
-
-            ${statCard("🎯",
-                data.subjects.length,
-                "Available Subjects")}
-
-        </div>
-
-        <br>
-
-        <div class="card">
-
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-
-                <div>
-                    <h3>My Subjects</h3>
-                    <p style="color:var(--muted);font-size:14px">
-                        Continue where you left off.
-                    </p>
-                </div>
-
-                <button class="btn btn-secondary"
-                        onclick="showView('subjects')">
-                    View All
-                </button>
-
-            </div>
-
-            <div class="grid grid-3">
-
-                ${data.subjects.slice(0,6).map(s=>{
-
-                    const p=getSubjectProgress(s);
-
-                    return `
-                        <div class="card subject-card"
-                             onclick="openSubject('${s.id}')">
-
-                            <div class="subject-icon">${s.icon}</div>
-
-                            <h3>${escapeHTML(s.name)}</h3>
-
-                            <div class="progress">
-                                <div class="progress-bar"
-                                     style="width:${p}%"></div>
-                            </div>
-
-                            <div class="progress-row">
-                                <span>Progress</span>
-                                <strong>${p}%</strong>
-                            </div>
-
-                        </div>
-                    `;
-
-                }).join("")}
-
-            </div>
-
-        </div>
-    `;
+async function editSubject(id){
+  const courses=await getCourses(),c=courses[id];if(!c)return;
+  $("main").innerHTML=`<div class="pageTitle"><div><button class="btn btnGhost btnSmall" onclick="go('subjects')">← Subjects</button><h1 style="margin-top:12px">${esc(c.name)}</h1><p>Every module can contain any number of separate chapters.</p></div><button class="btn btnPrimary" onclick="openModuleEditor('${id}')">+ Add Module</button></div>
+  <div id="moduleList">${Object.entries(c.modules||{}).map(([mid,m],i)=>adminModuleBlock(id,mid,m,i)).join("")||`<div class="empty">No modules. Add the first module above.</div>`}</div>`;
+}
+function adminModuleBlock(sid,mid,m,i){
+  const ch=Object.entries(m.chapters||{});
+  return `<div class="card" style="margin-bottom:16px"><div class="between"><div><span class="badge badgeBlue">MODULE ${i+1}</span><h3 style="margin:8px 0">${esc(m.name)}</h3></div><div class="row"><button class="btn btnSoft btnSmall" onclick="openModuleEditor('${sid}','${mid}')">Edit</button><button class="btn btnDanger btnSmall" onclick="deleteModule('${sid}','${mid}')">Delete</button></div></div>
+  ${ch.map(([cid,x],n)=>`<div class="chapterRow"><div class="chapterNo">${n+1}</div><div style="flex:1"><b>${esc(x.name)}</b><div class="small">${x.videoUrl?"YouTube video":"No video"} · ${x.questions?.length||0} questions</div></div><button class="btn btnSoft btnSmall" onclick="openChapterEditor('${sid}','${mid}','${cid}')">Edit</button><button class="btn btnDanger btnSmall" onclick="deleteChapter('${sid}','${mid}','${cid}')">Delete</button></div>`).join("")}
+  <button class="btn btnPrimary btnSmall" style="margin-top:12px" onclick="openChapterEditor('${sid}','${mid}')">+ Add Chapter</button></div>`;
 }
 
+function openSubjectEditor(id=""){
+  showModal(`<h2>${id?"Edit":"Create"} Subject</h2><div class="field"><label>Subject Name</label><input id="mSubjectName" value="${id?esc(""):""}" placeholder="e.g. Mathematics"></div><div class="row" style="justify-content:flex-end"><button class="btn btnGhost" onclick="closeModal()">Cancel</button><button class="btn btnPrimary" onclick="saveSubject('${id}')">Save</button></div>`);
+}
+async function saveSubject(id){
+  const name=$("mSubjectName").value.trim();if(!name)return toast("Enter subject name.","error");
+  const courses=await getCourses();
+  if(!id && Object.keys(courses).length>=MAX_SUBJECTS)return toast("Maximum 50 subjects reached.","error");
+  const subject={name,createdAt:id?(courses[id]?.createdAt||Date.now()):Date.now(),modules:id?(courses[id]?.modules||{}):{}};
+  const key=id?id:push(ref(db,"courses")).key;
+  await set(ref(db,`courses/${key}`),subject);closeModal();toast("Subject saved.","success");go("subjects");
+}
+function openModuleEditor(sid,mid=""){
+  getCourses().then(courses=>{
+    const m=mid?courses[sid]?.modules?.[mid]:null;
+    showModal(`<h2>${mid?"Edit":"Add"} Module</h2><div class="field"><label>Module Name</label><input id="mModuleName" value="${esc(m?.name||"")}" placeholder="e.g. Module 1 - Algebra"></div><div class="row" style="justify-content:flex-end"><button class="btn btnGhost" onclick="closeModal()">Cancel</button><button class="btn btnPrimary" onclick="saveModule('${sid}','${mid}')">Save</button></div>`);
+  });
+}
+async function saveModule(sid,mid){
+  const name=$("mModuleName").value.trim();if(!name)return toast("Enter module name.","error");
+  const courses=await getCourses(),c=courses[sid];if(!c)return;
+  const key=mid||push(ref(db,`courses/${sid}/modules`)).key;
+  await set(ref(db,`courses/${sid}/modules/${key}`),{name,chapters:mid?(c.modules?.[mid]?.chapters||{}):{},createdAt:mid?(c.modules?.[mid]?.createdAt||Date.now()):Date.now()});
+  closeModal();toast("Module saved.","success");editSubject(sid);
+}
+async function openChapterEditor(sid,mid,cid=""){
+  const courses=await getCourses(),ch=cid?courses[sid]?.modules?.[mid]?.chapters?.[cid]:null;
+  const questions=ch?.questions||[];
+  showModal(`<h2>${cid?"Edit":"Add"} Chapter</h2>
+  <div class="field"><label>Chapter Name</label><input id="chName" value="${esc(ch?.name||"")}" placeholder="Chapter 1"></div>
+  <div class="field"><label>YouTube URL</label><input id="chVideo" value="${esc(ch?.videoUrl||"")}" placeholder="https://www.youtube.com/watch?v=..."></div>
+  <div class="field"><label>Task</label><textarea id="chTask" rows="3" placeholder="Task to complete">${esc(ch?.task||"")}</textarea></div>
+  <div class="field"><label>Assessment Questions</label><div id="questionEditor">${questions.map((q,i)=>questionEditor(q,i)).join("")}</div><button class="btn btnSoft btnSmall" onclick="addQuestionEditor()">+ Add Question</button></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn btnGhost" onclick="closeModal()">Cancel</button><button class="btn btnPrimary" onclick="saveChapter('${sid}','${mid}','${cid}')">Save Chapter</button></div>`);
+}
+function questionEditor(q={},i){
+  return `<div class="listItem questionEditor" style="margin-top:8px"><div class="between"><b>Question ${i+1}</b><button class="btn btnDanger btnSmall" onclick="this.closest('.questionEditor').remove()">Remove</button></div><div class="field" style="margin-top:10px"><label>Question</label><input class="qText" value="${esc(q.text||"")}"></div><div class="grid grid2">${[0,1,2,3].map(j=>`<div class="field"><label>Option ${String.fromCharCode(65+j)}</label><input class="qOpt" value="${esc(q.options?.[j]||"")}"></div>`).join("")}</div><div class="field"><label>Correct Option</label><select class="qAnswer"><option value="0" ${q.answer==0?"selected":""}>A</option><option value="1" ${q.answer==1?"selected":""}>B</option><option value="2" ${q.answer==2?"selected":""}>C</option><option value="3" ${q.answer==3?"selected":""}>D</option></select></div></div>`;
+}
+window.addQuestionEditor=()=>{const box=$("questionEditor");box.insertAdjacentHTML("beforeend",questionEditor({},box.children.length))}
+async function saveChapter(sid,mid,cid){
+  const name=$("chName").value.trim(),videoUrl=$("chVideo").value.trim(),task=$("chTask").value.trim();
+  if(!name)return toast("Enter chapter name.","error");
+  const questions=[...document.querySelectorAll(".questionEditor")].map(el=>{
+    const opts=[...el.querySelectorAll(".qOpt")].map(x=>x.value.trim());
+    return {text:el.querySelector(".qText").value.trim(),options:opts,answer:Number(el.querySelector(".qAnswer").value)};
+  }).filter(q=>q.text && q.options.every(Boolean));
+  const courses=await getCourses();
+  const key=cid||push(ref(db,`courses/${sid}/modules/${mid}/chapters`)).key;
+  await set(ref(db,`courses/${sid}/modules/${mid}/chapters/${key}`),{name,videoUrl,task,questions,createdAt:cid?(courses[sid].modules[mid].chapters[cid].createdAt||Date.now()):Date.now()});
+  closeModal();toast("Chapter saved.","success");editSubject(sid);
+}
+async function deleteSubject(id){if(!confirm("Delete this subject and all its modules/chapters?"))return;await remove(ref(db,`courses/${id}`));toast("Subject deleted.","success");go("subjects")}
+async function deleteModule(sid,mid){if(!confirm("Delete this module and its chapters?"))return;await remove(ref(db,`courses/${sid}/modules/${mid}`));toast("Module deleted.","success");editSubject(sid)}
+async function deleteChapter(sid,mid,cid){if(!confirm("Delete this chapter?"))return;await remove(ref(db,`courses/${sid}/modules/${mid}/chapters/${cid}`));toast("Chapter deleted.","success");editSubject(sid)}
 
-/* =========================================================
-   STUDENT PROGRESS
-========================================================= */
-
-function renderStudentProgress(){
-
-    document.getElementById("pageTopTitle").textContent="My Progress";
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-            <h2>My Progress</h2>
-            <p>Subject and chapter completion overview.</p>
-        </div>
-
-        <div class="grid grid-2">
-
-            ${data.subjects.map(s=>{
-
-                const p=getSubjectProgress(s);
-
-                return `
-                    <div class="card">
-
-                        <div style="display:flex;justify-content:space-between">
-                            <strong>
-                                ${s.icon} ${escapeHTML(s.name)}
-                            </strong>
-
-                            <strong>${p}%</strong>
-                        </div>
-
-                        <div class="progress">
-                            <div class="progress-bar"
-                                 style="width:${p}%"></div>
-                        </div>
-
-                    </div>
-                `;
-
-            }).join("")}
-
-        </div>
-    `;
+async function adminStudents(){
+  const snap=await get(ref(db,"users")),users=snap.exists()?snap.val():{};
+  const arr=Object.entries(users).filter(([id,u])=>u.profile?.email && u.profile.email!==ADMIN_EMAIL);
+  $("main").innerHTML=`<div class="pageTitle"><div><h1>Students</h1><p>Any Firebase Auth account except ${ADMIN_EMAIL} is treated as a student.</p></div><span class="badge ${arr.length>=MAX_STUDENTS?"badgeRed":"badgeBlue"}">${arr.length}/${MAX_STUDENTS} students</span></div>
+  <div class="card"><div class="tableWrap"><table class="table"><thead><tr><th>Student</th><th>Study Time</th><th>Completed</th><th>Average Score</th></tr></thead><tbody>${arr.map(([id,u])=>{
+    const p=u.progress||{},vals=Object.values(p).filter(x=>x.completed),avg=vals.length?Math.round(vals.reduce((a,x)=>a+Number(x.score||0),0)/vals.length):0;
+    return `<tr><td><b>${esc(u.profile.email)}</b><div class="small">${id}</div></td><td>${fmtTime(u.stats?.studyMs||0)}</td><td>${vals.length}</td><td>${avg}%</td></tr>`
+  }).join("")||`<tr><td colspan="4">No students have signed in yet.</td></tr>`}</tbody></table></div></div>
+  <div class="card" style="margin-top:18px"><p class="small">Student creation is handled by Firebase Authentication. This website deliberately does not maintain a separate whitelist, so a successful non-teacher login is automatically a student.</p></div>`;
 }
 
-
-/* =========================================================
-   STUDY TIME
-========================================================= */
-
-function renderStudyTime(){
-
-    document.getElementById("pageTopTitle").textContent="Study Time";
-
-    const total=data.studyTime[currentUser.id]||0;
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-            <h2>Study Time</h2>
-            <p>Your tracked learning time.</p>
-        </div>
-
-        <div class="grid grid-3">
-
-            ${statCard("⏱",
-                formatTime(total),
-                "Total Study Time")}
-
-            ${statCard("📅",
-                Math.floor(total/3600),
-                "Study Hours")}
-
-            ${statCard("📖",
-                Object.values(data.results)
-                    .filter(r=>r.studentId===currentUser.id && r.completed).length,
-                "Completed Tasks")}
-
-        </div>
-
-        <br>
-
-        <div class="card">
-
-            <h3>How study time is counted</h3>
-
-            <p style="color:var(--muted);margin-top:10px">
-                Study time is counted while you are actively working
-                through a chapter. The timer starts when the learning
-                video page opens and stops when the task is submitted.
-            </p>
-
-        </div>
-    `;
-}
-
-
-/* =========================================================
-   STUDENTS
-========================================================= */
-
-function renderStudents(){
-
-    document.getElementById("pageTopTitle").textContent="Students";
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-
-            <div style="display:flex;justify-content:space-between;align-items:center">
-
-                <div>
-                    <h2>Students</h2>
-                    <p>${data.students.length}/5 student accounts</p>
-                </div>
-
-                <button class="btn btn-primary"
-                        onclick="addStudent()"
-                        ${data.students.length>=5?"disabled":""}>
-                    + Add Student
-                </button>
-
-            </div>
-
-        </div>
-
-        <div class="card">
-
-            <div class="table-wrap">
-
-                <table>
-
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Completed</th>
-                            <th>Study Time</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                        ${data.students.map(s=>{
-
-                            const completed=Object.values(data.results)
-                                .filter(r=>r.studentId===s.id && r.completed)
-                                .length;
-
-                            const time=data.studyTime[s.id]||0;
-
-                            return `
-                                <tr>
-
-                                    <td>
-                                        <strong>${escapeHTML(s.name)}</strong>
-                                        <br>
-                                        <small>${escapeHTML(s.id)}</small>
-                                    </td>
-
-                                    <td>${completed}</td>
-
-                                    <td>${formatTime(time)}</td>
-
-                                    <td>
-                                        <button class="btn btn-secondary"
-                                                onclick="deleteStudent('${s.id}')">
-                                            Remove
-                                        </button>
-                                    </td>
-
-                                </tr>
-                            `;
-
-                        }).join("")}
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </div>
-    `;
-}
-
-
-function addStudent(){
-
-    if(data.students.length>=5){
-        toast("Maximum 5 students allowed");
-        return;
-    }
-
-    openModal(
-        "Add Student",
-        `
-        <div class="form-group">
-            <label>Student Username</label>
-            <input id="studentId"
-                   placeholder="student6">
-        </div>
-
-        <div class="form-group">
-            <label>Student Name</label>
-            <input id="studentName"
-                   placeholder="Student Name">
-        </div>
-
-        <div class="form-group">
-            <label>Password</label>
-            <input id="studentPassword"
-                   value="1234">
-        </div>
-
-        <button class="btn btn-primary"
-                onclick="saveStudent()">
-            Create Student
-        </button>
-        `
-    );
-}
-
-
-function saveStudent(){
-
-    const id=document.getElementById("studentId").value.trim();
-    const name=document.getElementById("studentName").value.trim();
-    const password=document.getElementById("studentPassword").value;
-
-    if(!id||!name||!password){
-        toast("Fill all fields");
-        return;
-    }
-
-    if(data.students.some(s=>s.id===id)){
-        toast("Username already exists");
-        return;
-    }
-
-    data.students.push({
-        id,
-        name,
-        password
-    });
-
-    saveData();
-    closeModal();
-    renderStudents();
-    toast("Student account created");
-}
-
-
-function deleteStudent(id){
-
-    if(!confirm("Remove this student?"))return;
-
-    data.students=data.students.filter(s=>s.id!==id);
-
-    Object.keys(data.results).forEach(key=>{
-        if(data.results[key].studentId===id){
-            delete data.results[key];
-        }
-    });
-
-    delete data.studyTime[id];
-
-    saveData();
-    renderStudents();
-}
-
-
-/* =========================================================
-   RESULTS
-========================================================= */
-
-function renderResults(){
-
-    document.getElementById("pageTopTitle").textContent="Results";
-
-    const rows=[];
-
-    data.students.forEach(student=>{
-
-        Object.values(data.results)
-            .filter(r=>r.studentId===student.id)
-            .forEach(r=>{
-
-                let subject=data.subjects.find(
-                    s=>s.id===r.subjectId
-                );
-
-                rows.push(`
-                    <tr>
-                        <td>${escapeHTML(student.name)}</td>
-                        <td>${escapeHTML(subject?.name||"Unknown")}</td>
-                        <td>${r.score}/${r.maxMarks}</td>
-                        <td>
-                            <span class="badge badge-green">
-                                Completed
-                            </span>
-                        </td>
-                        <td>${formatTime(r.studySeconds||0)}</td>
-                    </tr>
-                `);
-            });
-    });
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-            <h2>Assessment Results</h2>
-            <p>Student chapter performance.</p>
-        </div>
-
-        <div class="card">
-
-            <div class="table-wrap">
-
-                <table>
-
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Subject</th>
-                            <th>Marks</th>
-                            <th>Status</th>
-                            <th>Study Time</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                        ${
-                            rows.length
-                            ? rows.join("")
-                            :
-                            `<tr>
-                                <td colspan="5">
-                                    No assessments submitted yet.
-                                </td>
-                             </tr>`
-                        }
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </div>
-    `;
-}
-
-
-/* =========================================================
-   ANALYTICS
-========================================================= */
-
-function renderAnalytics(){
-
-    document.getElementById("pageTopTitle").textContent="Study Analytics";
-
-    document.getElementById("content").innerHTML=`
-
-        <div class="page-title">
-            <h2>Study Analytics</h2>
-            <p>Track learning activity across all students.</p>
-        </div>
-
-        <div class="grid grid-2">
-
-            ${data.students.map(s=>{
-
-                const time=data.studyTime[s.id]||0;
-
-                const completed=Object.values(data.results)
-                    .filter(r=>r.studentId===s.id && r.completed)
-                    .length;
-
-                return `
-                    <div class="card">
-
-                        <div style="display:flex;justify-content:space-between">
-
-                            <div>
-                                <h3>${escapeHTML(s.name)}</h3>
-                                <p style="color:var(--muted);font-size:13px">
-                                    ${escapeHTML(s.id)}
-                                </p>
-                            </div>
-
-                            <div style="font-size:28px">
-                                👨‍🎓
-                            </div>
-
-                        </div>
-
-                        <br>
-
-                        <div class="grid grid-2">
-
-                            ${statCard("⏱",
-                                formatTime(time),
-                                "Study Time")}
-
-                            ${statCard("✓",
-                                completed,
-                                "Completed")}
-
-                        </div>
-
-                    </div>
-                `;
-
-            }).join("")}
-
-        </div>
-    `;
-}
-
-
-/* =========================================================
-   DELETE SUBJECT
-========================================================= */
-
-function deleteSubject(id){
-
-    if(!confirm("Delete this subject and all its modules?"))return;
-
-    data.subjects=data.subjects.filter(s=>s.id!==id);
-
-    saveData();
-    showView("subjects");
-}
-
-
-/* =========================================================
-   MODAL
-========================================================= */
-
-function openModal(title,html){
-
-    document.getElementById("modalTitle").textContent=title;
-    document.getElementById("modalContent").innerHTML=html;
-    document.getElementById("modalBg").classList.remove("hidden");
-}
-
-
-function closeModal(){
-
-    document.getElementById("modalBg").classList.add("hidden");
-}
-
-
-/* =========================================================
-   UTILITIES
-========================================================= */
-
-function toast(message){
-
-    const old=document.querySelector(".toast");
-
-    if(old)old.remove();
-
-    const el=document.createElement("div");
-
-    el.className="toast";
-    el.textContent=message;
-
-    document.body.appendChild(el);
-
-    setTimeout(()=>{
-        el.remove();
-    },2500);
-}
-
-
-function escapeHTML(str){
-
-    return String(str||"")
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
-}
-
-
-function escapeAttr(str){
-
-    return escapeHTML(str);
-}
-
-
-function getYouTubeId(url){
-
-    if(!url)return null;
-
-    const patterns=[
-        /youtu\.be\/([^?&]+)/,
-        /youtube\.com\/watch\?v=([^?&]+)/,
-        /youtube\.com\/embed\/([^?&]+)/,
-        /youtube\.com\/shorts\/([^?&]+)/
-    ];
-
-    for(const pattern of patterns){
-
-        const match=url.match(pattern);
-
-        if(match)return match[1];
-    }
-
-    return null;
-}
-
-
-/* =========================================================
-   KEYBOARD
-========================================================= */
-
-document.addEventListener("keydown",e=>{
-
-    if(e.key==="Escape"){
-        closeModal();
-    }
-
+/* ---------- MODAL / NAV ---------- */
+function showModal(html){$("modalRoot").innerHTML=`<div class="modal" id="modal"><div class="modalBox">${html}</div></div>`}
+function closeModal(){$("modalRoot").innerHTML=""}
+window.closeModal=closeModal;
+window.go=p=>{currentPage=p;renderPage()};
+window.openSubject=openSubject;
+window.editSubject=editSubject;
+window.openSubjectEditor=openSubjectEditor;
+window.saveSubject=saveSubject;
+window.openModuleEditor=openModuleEditor;
+window.saveModule=saveModule;
+window.openChapterEditor=openChapterEditor;
+window.saveChapter=saveChapter;
+window.deleteSubject=deleteSubject;
+window.deleteModule=deleteModule;
+window.deleteChapter=deleteChapter;
+
+onAuthStateChanged(auth,async user=>{
+  stopStudyTimer();
+  currentUser=user;
+  if(!user){isAdmin=false;loginView();return}
+  isAdmin=(user.email||"").toLowerCase()===ADMIN_EMAIL;
+  await ensureUser();
+  shell();
+  await renderPage();
 });
-
-
-/* =========================================================
-   INITIAL DEMO
-========================================================= */
-
 </script>
-
 </body>
 </html>
