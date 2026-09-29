@@ -386,7 +386,6 @@ async function adminDashboard(){
     
     $("adminContent").innerHTML=`<div class="card"><h2>Schedule Candidates</h2><p class="muted">Assign an exam and date to registered students. This will officially assign their Roll No and dispatch the automated email.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Candidate</th><th>Dept</th><th>Assign Exam & Date</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No unassigned candidates.</div>`}</div></div>`;
 };
-
 window.scheduleAndEmail = async (safeRoll) => {
     let examId = $(`exam-${safeRoll}`).value;
     let dateVal = $(`date-${safeRoll}`).value;
@@ -399,41 +398,10 @@ window.scheduleAndEmail = async (safeRoll) => {
     
     let btn = event.target;
     let originalText = btn.innerText;
-    btn.innerText = "Sending...";
+    btn.innerText = "Opening Email...";
     btn.disabled = true;
 
     try {
-        // Send Email via Transactional API (Brevo used as example)
-        await fetch("https://api.brevo.com/v3/smtp/email", {
-            method: "POST",
-            headers: {
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "api-key": "YOUR_API_KEY_HERE" // <--- Paste your Brevo/Email API key here
-            },
-            body: JSON.stringify({
-                sender: { email: "no-reply@your-institute.com", name: "ExamFlow System" },
-                to: [{ email: v.email, name: v.name }],
-                subject: "Exam Scheduled - Roll Number Enclosed",
-                htmlContent: `
-                    <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-                        <div style="background: #0f172a; padding: 20px; color: #ffffff; text-align: center;"><h2 style="margin: 0;">Exam Scheduled</h2></div>
-                        <div style="padding: 30px; background: #ffffff; color: #334155;">
-                            <p>Hello <b>${v.name}</b>,</p>
-                            <p>Your examination has been scheduled. Please find your official Roll Number and exam details below:</p>
-                            
-                            <div style="background: #f8fafc; border-left: 4px solid #4f46e5; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
-                                <p style="margin: 0 0 5px 0; font-size: 13px; color: #64748b; text-transform: uppercase;">System Generated Roll Number</p>
-                                <h3 style="margin: 0; color: #0f172a; font-size: 24px; letter-spacing: 2px;">${v.roll}</h3>
-                            </div>
-                            
-                            <p><b>Exam Name:</b> ${examName}<br><b>Reporting Date & Time:</b> ${formattedDate}</p>
-                            <p><b>Next Steps:</b><br>Please present this Roll Number and your photo ID to the Invigilator at the center to undergo verification and receive your Secret Login ID.</p>
-                        </div>
-                    </div>`
-            })
-        });
-        
         // Update Firebase status so they move to the ID Verification tab
         await update(ref(db, "verifications/" + safeRoll), { 
             status: 'pending', 
@@ -441,11 +409,26 @@ window.scheduleAndEmail = async (safeRoll) => {
             examDate: dateVal 
         });
         
-        toast("Email dispatched and candidate scheduled!");
-        adminScheduling(); // Refresh UI
+        // Prepare the text for your personal email client
+        let subject = encodeURIComponent(`Exam Scheduled: Your Official Roll Number`);
+        let bodyText = `Hello ${v.name},\n\nYour examination has been officially scheduled. Please find your Roll Number and exam details below:\n\n`
+                     + `System Generated Roll Number: ${v.roll}\n`
+                     + `Exam Name: ${examName}\n`
+                     + `Reporting Date & Time: ${formattedDate}\n\n`
+                     + `Next Steps:\nPlease present this Roll Number and your photo ID to the Invigilator at the examination center to undergo verification and receive your Secret Login ID.\n\n`
+                     + `Regards,\nAdministrator`;
+                     
+        let body = encodeURIComponent(bodyText);
+        
+        toast("Candidate scheduled! Opening your email app...");
+        adminScheduling(); // Refresh UI to remove them from this list
+        
+        // This triggers your personal email app (Gmail, Outlook, Apple Mail, etc.)
+        window.location.href = `mailto:${v.email}?subject=${subject}&body=${body}`;
+        
     } catch (e) {
         console.error(e);
-        toast("Failed to dispatch email. Check API key.");
+        toast("Failed to schedule candidate.");
         btn.innerText = originalText;
         btn.disabled = false;
     }
