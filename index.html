@@ -322,12 +322,17 @@ window.studentLogin = async () => {
     let studentData = s.val();
     
     if(studentData.secretId !== secret) return toast("Invalid Secret ID.");
-    if(studentData.active === false) return toast("This account is disabled.");
     
-    state.role = "student"; state.studentId = safeRoll; state.student = studentData; // studentId is now safe format
+    // Check if the 10-minute validity window has passed
+    if(studentData.secretExpiry && Date.now() > studentData.secretExpiry) {
+        return toast("Secret ID has expired (Valid for 10 mins only). Please see the Invigilator.");
+    }
+    
+    if(studentData.active === false) return toast("This account is disabled or the exam is already completed.");
+    
+    state.role = "student"; state.studentId = safeRoll; state.student = studentData;
     studentHome();
 };
-
 window.adminLogin=()=>{if($("apin").value===ADMIN_PIN){state.role="admin";adminDashboard()}else toast("Invalid admin PIN")};
 
 // ==========================================
@@ -487,45 +492,90 @@ window.adminExams = () => {
 
 window.adminIDManagement = () => {
     setTab('tab-idm'); window.currentAdminTab = 'idm';
-    let verifications = window._cache.verifications || {};
-    let exams = window._cache.exams || {}; 
+    $("adminContent").innerHTML = `
+    <div class="card">
+        <h2>ID Verification & Check-in</h2>
+        <p class="muted">Enter the candidate's Roll Number to pull up their scheduled details.</p>
+        <div class="field">
+            <label>Candidate Roll Number</label>
+            <div style="display:flex; gap:10px; max-width: 450px;">
+                <input id="verifyRollInput" placeholder="Enter 10-digit Roll No" onkeydown="if(event.key==='Enter') searchVerifyCandidate()">
+                <button class="btn btn-primary" onclick="searchVerifyCandidate()">Search Candidate</button>
+            </div>
+        </div>
+        <div id="verifyDetailsBox" style="margin-top: 24px;"></div>
+    </div>`;
+};
+
+window.searchVerifyCandidate = () => {
+    let roll = $("verifyRollInput").value.trim().replace(/[\/\.#$\[\]]/g, "-");
+    if(!roll) return toast("Enter a Roll Number");
     
-    // Only show candidates who HAVE been scheduled ('pending' or 'approved')
-    let rows = Object.values(verifications).filter(v => v.status !== 'unassigned').sort((a,b)=>b.timestamp-a.timestamp).map(v => {
-        let examName = exams[v.examId] ? exams[v.examId].name : v.examId;
-        let scheduledDate = v.examDate ? new Date(v.examDate).toLocaleString() : "N/A";
-        return `
-        <tr>
-            <td><b>${esc(v.roll)}</b></td>
-            <td>${esc(v.name)}<br><span class="badge blue" style="margin-top:4px">${esc(examName)}</span></td>
-            <td>${esc(v.phone)}<br><small class="muted">${scheduledDate}</small></td>
-            <td>
-                ${v.status === 'pending' 
-                    ? `<button class="btn btn-sm btn-primary" onclick="verifyCandidate('${v.safeRoll}')">Tally & Issue Secret ID</button>` 
-                    : `<span class="badge purple">Verified · ID: ${v.secretId}</span>`}
-            </td>
-        </tr>
-    `}).join("");
-    
-    $("adminContent").innerHTML=`<div class="card"><h2>ID Management & Check-in</h2><p class="muted">Tally the candidate's physical ID with the scheduled records below. Click Verify to issue the Secret ID.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Roll No</th><th>Candidate & Exam</th><th>Contact & Date</th><th>Action / Status</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No scheduled candidates pending check-in.</div>`}</div></div>`;
+    let v = window._cache.verifications[roll];
+    if(!v || v.status !== 'pending') {
+        $("verifyDetailsBox").innerHTML = `<div class="empty">Candidate not found, or they have not been scheduled yet.</div>`;
+        return;
+    }
+
+    let examName = window._cache.exams[v.examId] ? window._cache.exams[v.examId].name : v.examId;
+    let examDate = new Date(v.examDate).toLocaleString();
+
+    $("verifyDetailsBox").innerHTML = `
+    <div style="border:1px solid #cbd5e1; border-radius:12px; padding:24px; background:#f8fafc;">
+        <h3 style="margin-top:0; color:#0f172a">Candidate Details Found</h3>
+        <p class="muted small" style="margin-bottom:15px">Please physically verify each of the following details. Mark the checkbox once verified.</p>
+        
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom: 24px;">
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-size:14px; padding:12px 16px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+                <input type="checkbox" class="tally-chk" onchange="checkTally()" style="width:18px;height:18px;"> 
+                <span><b>Name matches ID:</b> ${esc(v.name)}</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-size:14px; padding:12px 16px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+                <input type="checkbox" class="tally-chk" onchange="checkTally()" style="width:18px;height:18px;"> 
+                <span><b>Department:</b> ${esc(v.dept)}</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-size:14px; padding:12px 16px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+                <input type="checkbox" class="tally-chk" onchange="checkTally()" style="width:18px;height:18px;"> 
+                <span><b>Contact Info:</b> ${esc(v.phone)} / ${esc(v.email)}</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-size:14px; padding:12px 16px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+                <input type="checkbox" class="tally-chk" onchange="checkTally()" style="width:18px;height:18px;"> 
+                <span><b>Scheduled Exam:</b> ${esc(examName)} <span class="muted">(${examDate})</span></span>
+            </label>
+        </div>
+        
+        <button id="btnGenerateKey" class="btn btn-success" disabled onclick="verifyCandidate('${roll}')" style="width:100%; padding:14px; font-size:15px">All Details Verified - Generate Secret Key</button>
+    </div>`;
+};
+
+window.checkTally = () => {
+    let allChecked = Array.from(document.querySelectorAll('.tally-chk')).every(c => c.checked);
+    $("btnGenerateKey").disabled = !allChecked;
 };
 window.verifyCandidate = async (safeRoll) => {
-    if(!confirm("Are you sure the candidate's details match their physical ID?")) return;
-
     let v = window._cache.verifications[safeRoll];
     let secretId = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Push the verified student into the active students database
+    // Set expiry to exactly 10 minutes from now
+    let secretExpiry = Date.now() + (10 * 60 * 1000); 
+    
     await set(ref(db, "students/" + safeRoll), {
-        roll: v.roll, safeRoll: safeRoll, name: v.name, phone: v.phone, email: v.email, department: v.dept, examId: v.examId, secretId, active: true, createdAt: Date.now()
+        roll: v.roll, safeRoll: safeRoll, name: v.name, phone: v.phone, email: v.email, department: v.dept, examId: v.examId, secretId: secretId, secretExpiry: secretExpiry, active: true, createdAt: Date.now()
     });
     
-    // Mark as approved in verification lobby
     await update(ref(db, "verifications/" + safeRoll), { status: 'approved', secretId });
     
-    alert(`CANDIDATE VERIFIED!\n\nName: ${v.name}\nRoll No: ${v.roll}\n\nSECRET ID: ${secretId}\n\nPlease verbally give this Secret ID to the candidate so they can log in.`);
+    // Display the Key and warning directly on the screen
+    $("verifyDetailsBox").innerHTML = `
+    <div style="background:#f0fdf4; border:1px solid #16a34a; border-radius:12px; padding:30px; text-align:center; box-shadow:0 4px 15px rgba(22,163,74,0.1)">
+        <div style="color:#16a34a; font-weight:800; font-size:18px; margin-bottom:10px; text-transform:uppercase">✔ Verification Complete</div>
+        <p style="color:#334155">Please verbally provide this Secret ID to the candidate.</p>
+        <div style="font-size:48px; font-weight:900; letter-spacing:6px; color:#0f172a; margin:20px 0; background:#fff; padding:15px; border-radius:8px; border:2px dashed #cbd5e1; display:inline-block">${secretId}</div>
+        <div style="color:#dc2626; font-weight:700; font-size:14px; background:#fef2f2; padding:10px; border-radius:6px; max-width:400px; margin:0 auto;">
+            ⚠ SECURITY ALERT: This code will permanently expire in exactly 10 minutes. The candidate must log in immediately.
+        </div>
+    </div>`;
 };
-
 // ==========================================
 // 3. SYNCHRONIZED LIVE COMMAND CENTER
 // ==========================================
@@ -887,16 +937,36 @@ window.nextQuestion=async()=>{clearInterval(state.timer);await saveSession();if(
 async function timeUp(){await saveSession();show(`<div class="modal"><div class="modal-box" style="text-align:center"><h1>TIME UP</h1><p>Question locked.</p></div></div>`); setTimeout(async()=>{if(state.session.currentIndex===state.session.totalQuestions-1){finishExam();return}state.session.currentIndex++;state.session.timeLeft=state.session.questions[state.session.currentIndex].allocatedTime;await saveSession();renderExam()},2000)}
 
 async function finishExam(){
-clearInterval(window.screenCaptureInterval); if(state.screenStream)state.screenStream.getTracks().forEach(t=>t.stop());
-let s=state.session,obtained=0,correct=0,wrong=0,unanswered=0,sections={};
-s.questions.forEach((q,i)=>{ let r=s.responses[i],ok=r&&Number(r.selectedOriginal)===Number(q.correctIndex); let marks=ok?q.marks:0;if(r){if(ok)correct++;else wrong++}else unanswered++; obtained+=marks;if(!sections[q.section])sections[q.section]={marks:0,total:0,correct:0,wrong:0,unanswered:0}; sections[q.section].marks+=marks;sections[q.section].total+=q.marks;if(r){ok?sections[q.section].correct++:sections[q.section].wrong++}else sections[q.section].unanswered++; });
-let sectionResults={};let overallPass=true;
-Object.entries(sections).forEach(([name,x])=>{let pct=x.total?x.marks/x.total*100:0;let pass=pct>=65;if(!pass)overallPass=false;sectionResults[name]={...x,percentage:pct,pass}});
-let result={studentId:state.studentId,studentName:state.student.name,examId:state.examId,examName:state.exam.name,obtained,totalMarks:state.exam.totalMarks,percentage:state.exam.totalMarks?obtained/state.exam.totalMarks*100:0,overallPass,correct,wrong,unanswered,sectionResults,responses:s.responses,completedAt:Date.now()};
-await set(ref(db,"examResults/"+state.examId+"/"+state.studentId),result); 
-await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),{status:"completed",completedAt:Date.now()});
-await set(ref(db, "screens/" + state.studentId), null); // Delete screen from DB to remove from Monitor instantly
-state.result=result; show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div></div><div class="page"><div class="card result-hero"><div class="muted">Examination Completed</div><div class="result-score">${result.obtained} / ${result.totalMarks}</div><h2>${result.overallPass?"PASS":"FAIL"}</h2></div><div style="text-align:center;margin-top:20px"><button class="btn btn-light" onclick="landing()">Exit</button></div></div></div>`);
+    clearInterval(window.screenCaptureInterval); 
+    if(state.screenStream) state.screenStream.getTracks().forEach(t=>t.stop());
+    
+    let s=state.session, obtained=0, correct=0, wrong=0, unanswered=0, sections={};
+    
+    s.questions.forEach((q,i)=>{ 
+        let r=s.responses[i], ok=r&&Number(r.selectedOriginal)===Number(q.correctIndex); 
+        let marks=ok?q.marks:0;
+        if(r){if(ok)correct++;else wrong++}else unanswered++; 
+        obtained+=marks;
+        if(!sections[q.section])sections[q.section]={marks:0,total:0,correct:0,wrong:0,unanswered:0}; 
+        sections[q.section].marks+=marks; sections[q.section].total+=q.marks;
+        if(r){ok?sections[q.section].correct++:sections[q.section].wrong++}else sections[q.section].unanswered++; 
+    });
+    
+    let sectionResults={}; let overallPass=true;
+    Object.entries(sections).forEach(([name,x])=>{let pct=x.total?x.marks/x.total*100:0;let pass=pct>=65;if(!pass)overallPass=false;sectionResults[name]={...x,percentage:pct,pass}});
+    
+    let result={studentId:state.studentId, studentName:state.student.name, examId:state.examId, examName:state.exam.name, obtained, totalMarks:state.exam.totalMarks, percentage:state.exam.totalMarks?obtained/state.exam.totalMarks*100:0, overallPass, correct, wrong, unanswered, sectionResults, responses:s.responses, completedAt:Date.now()};
+    
+    // Save Result
+    await set(ref(db,"examResults/"+state.examId+"/"+state.studentId), result); 
+    await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId), {status:"completed", completedAt:Date.now()});
+    await set(ref(db, "screens/" + state.studentId), null); 
+    
+    // SECURITY: Delete Secret ID and deactivate student so they can never log back in
+    await update(ref(db, "students/" + state.studentId), { secretId: null, secretExpiry: null, active: false });
+    
+    state.result=result; 
+    show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div></div><div class="page"><div class="card result-hero"><div class="muted">Examination Completed</div><div class="result-score">${result.obtained} / ${result.totalMarks}</div><h2>${result.overallPass?"PASS":"FAIL"}</h2></div><div style="text-align:center;margin-top:20px"><button class="btn btn-light" onclick="landing()">Exit</button></div></div></div>`);
 }
 
 // Admin Utilities
@@ -906,7 +976,6 @@ window.createExam=async()=>{ try{ let id=$("ei").value.trim().toUpperCase(),name
 window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
 window.deleteExam=async id=>{if(!confirm("Delete this examination?"))return;await set(ref(db,"exams/"+id),null); toast("Exam deleted"); adminExams(); };
 
-Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, copyEmailText, adminIDManagement, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });landing();
-</script>
+Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, adminIDManagement, searchVerifyCandidate, checkTally, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });</script>
 </body>
 </html>
