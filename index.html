@@ -252,18 +252,17 @@ show(`<div class="app">
   
   <div class="card">
     <h2>1. Candidate Registration</h2>
-    <p class="muted">Fill this out on exam day. Use the Roll Number assigned by your institute.</p>
-    <div class="field"><label>Assigned Roll No</label><input id="regRoll" placeholder="e.g. EE/2026/01"></div>
+    <p class="muted">Fill this out on exam day. A 10-digit Roll Number will be generated.</p>
     <div class="field"><label>Full Name</label><input id="regName" placeholder="Name"></div>
     <div class="field"><label>Phone & Email</label><div style="display:flex;gap:10px"><input id="regPhone" placeholder="Phone"><input id="regEmail" placeholder="Email"></div></div>
     <div class="field"><label>Department</label><input id="regDept" placeholder="Department"></div>
-    <button class="btn btn-primary" style="width:100%" onclick="submitRegistration()">Submit Details</button>
+    <button class="btn btn-primary" style="width:100%" onclick="submitRegistration()">Submit Details & Get Roll No</button>
   </div>
 
   <div class="card" style="border-color:var(--primary); box-shadow:var(--shadow-lg)">
     <h2>2. Exam Login</h2>
     <p class="muted">After admin verifies your ID, use your Roll No and Secret ID to enter.</p>
-    <div class="field"><label>Roll Number</label><input id="loginRoll" placeholder="e.g. EE/2026/01"></div>
+    <div class="field"><label>Roll Number</label><input id="loginRoll" placeholder="e.g. 1234567890"></div>
     <div class="field"><label>Secret ID</label><input id="loginSecret" type="password" placeholder="e.g. 582914"></div>
     <button class="btn btn-primary" style="width:100%; background:var(--text)" onclick="studentLogin()">Secure Login</button>
   </div>
@@ -279,16 +278,21 @@ show(`<div class="app">
 }
 
 window.submitRegistration = async () => {
-    let originalRoll = $("regRoll").value.trim().toUpperCase();
-    let safeRoll = originalRoll.replace(/[\/\.#$\[\]]/g, "-"); // Fix Firebase path corruption
     let name = $("regName").value.trim();
-    if(!safeRoll || !name) return toast("Roll No and Name are required.");
+    if(!name) return toast("Name is required.");
+    
+    // Auto Generate 10-digit Roll Number
+    let generatedRoll = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    let safeRoll = generatedRoll;
+    
     await set(ref(db, "verifications/" + safeRoll), {
-        roll: originalRoll, safeRoll: safeRoll, name, phone: $("regPhone").value.trim(), email: $("regEmail").value.trim(), dept: $("regDept").value.trim(),
+        roll: generatedRoll, safeRoll: safeRoll, name, phone: $("regPhone").value.trim(), email: $("regEmail").value.trim(), dept: $("regDept").value.trim(),
         status: 'pending', timestamp: Date.now()
     });
-    toast("Registration submitted. Please proceed to the Invigilator desk for ID Verification.");
-    $("regRoll").value = ""; $("regName").value = ""; $("regPhone").value = ""; $("regEmail").value = ""; $("regDept").value = "";
+    
+    alert("Registration successful!\n\nYour System Generated Roll No is: " + generatedRoll + "\n\nPlease note this down and proceed to the Invigilator desk for ID Verification.");
+    
+    $("regName").value = ""; $("regPhone").value = ""; $("regEmail").value = ""; $("regDept").value = "";
 };
 
 window.studentLogin = async () => {
