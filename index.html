@@ -1087,6 +1087,8 @@ window.openExamModal = () => {
 };window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
 window.deleteExam=async id=>{if(!confirm("Delete this examination?"))return;await set(ref(db,"exams/"+id),null); toast("Exam deleted"); adminExams(); };
 
-Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, adminIDManagement, searchVerifyCandidate, checkTally, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });</script>
+Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, adminIDManagement, searchVerifyCandidate, checkTally, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });
+window.landing();
+</script>
 </body>
 </html>
