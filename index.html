@@ -2,330 +2,281 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ExamFlow | Real-Time Examination System</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ExamFlow | Online Examination System</title>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 :root{
-  --bg:#f5f7fb;--surface:#fff;--surface2:#f8fafc;--text:#172033;--muted:#697586;
-  --line:#e5e9f0;--primary:#2563eb;--primary2:#4f46e5;--success:#16a34a;
-  --warning:#d97706;--danger:#dc2626;--shadow:0 14px 40px rgba(20,35,65,.08);--radius:18px;
+  --bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#6b7280;--primary:#2563eb;
+  --primary2:#1d4ed8;--success:#16a34a;--danger:#dc2626;--warning:#d97706;
+  --border:#e5e7eb;--shadow:0 12px 35px rgba(15,23,42,.08);--radius:18px
 }
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-family:Inter,Segoe UI,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
 button,input,textarea,select{font:inherit}button{cursor:pointer;border:0}
 .hidden{display:none!important}.app{min-height:100vh}
-.topbar{height:70px;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:30}
-.brand{display:flex;align-items:center;gap:11px;font-weight:850;font-size:20px}.brandMark{width:39px;height:39px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;display:grid;place-items:center;box-shadow:0 8px 18px rgba(37,99,235,.22)}
-.topUser{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}.avatar{width:35px;height:35px;border-radius:50%;background:#e8efff;color:var(--primary);display:grid;place-items:center;font-weight:800}
-.layout{display:grid;grid-template-columns:235px 1fr;min-height:calc(100vh - 70px)}.sidebar{background:#fff;border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:7px}
-.navBtn{width:100%;padding:12px 14px;text-align:left;background:transparent;color:#596579;border-radius:11px;font-weight:650}.navBtn:hover,.navBtn.active{background:#eef4ff;color:var(--primary)}
-.main{padding:28px;max-width:1600px;width:100%;margin:auto}.pageTitle{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px}.pageTitle h1{margin:0;font-size:29px}.pageTitle p{margin:6px 0 0;color:var(--muted)}
-.grid{display:grid;gap:18px}.grid4{grid-template-columns:repeat(4,minmax(0,1fr))}.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
-.stat{padding:19px}.statLabel{font-size:12px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.06em}.statValue{font-size:30px;font-weight:850;margin-top:6px}.statIcon{float:right;width:40px;height:40px;border-radius:12px;background:#eff5ff;color:var(--primary);display:grid;place-items:center}
-.btn{padding:10px 14px;border-radius:11px;font-weight:750;transition:.18s}.btn:hover{transform:translateY(-1px)}.btnPrimary{background:var(--primary);color:#fff}.btnSoft{background:#eef4ff;color:var(--primary)}.btnSuccess{background:#eaf8ef;color:var(--success)}.btnDanger{background:#fff0f0;color:var(--danger)}.btnGhost{background:#f1f3f6;color:#4b5563}.btnSmall{padding:7px 10px;border-radius:9px;font-size:12px}
-.row{display:flex;gap:10px;align-items:center}.between{display:flex;justify-content:space-between;gap:12px;align-items:center}
-input,textarea,select{width:100%;padding:11px 12px;border:1px solid #dbe1ea;border-radius:11px;background:#fff;color:var(--text);outline:none}input:focus,textarea:focus,select:focus{border-color:#8db0ff;box-shadow:0 0 0 3px #e9f0ff}
-label{font-size:12px;font-weight:750;color:#596579;display:block;margin:0 0 6px}.field{margin-bottom:14px}
-.progress{height:9px;background:#edf0f5;border-radius:99px;overflow:hidden}.progressFill{height:100%;background:linear-gradient(90deg,var(--primary),#7c3aed);border-radius:99px;transition:width .4s}
-.badge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}.badgeBlue{background:#eaf1ff;color:#2455bd}.badgeGreen{background:#eaf8ef;color:#15803d}.badgeOrange{background:#fff5e6;color:#b45309}.badgeRed{background:#fff0f0;color:#b91c1c}.badgeGray{background:#eef0f3;color:#667085}
-.tableWrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.table th{font-size:11px;color:var(--muted);text-transform:uppercase}.table td{font-size:13px}
-.empty{padding:35px;text-align:center;color:var(--muted);border:1px dashed #d6dce6;border-radius:15px}.modal{position:fixed;inset:0;background:rgba(17,24,39,.4);display:grid;place-items:center;padding:20px;z-index:80}.modalBox{width:min(850px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 25px 70px rgba(17,24,39,.2);padding:24px}
-.toast{position:fixed;right:22px;bottom:22px;background:#172033;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 14px 35px rgba(0,0,0,.18);z-index:100}.toast.success{background:#166534}.toast.error{background:#b91c1c}
-.loginPage{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#f5f9ff,#f8f5ff)}.loginCard{width:min(440px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 25px 70px rgba(37,51,84,.12);padding:34px}.loginLogo{width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;display:grid;place-items:center;font-size:25px;margin-bottom:18px}.loginCard h1{margin:0;font-size:27px}.loginCard p{color:var(--muted);line-height:1.55}
-.hero{background:linear-gradient(135deg,#eff5ff,#f7f2ff);border:1px solid #dfe8ff}.sectionCard{border:1px solid var(--line);border-radius:15px;padding:15px;background:#fff}.optionBtn{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:#fff;border:1px solid #dfe4ec;border-radius:13px;padding:14px;margin-top:10px;transition:.15s}.optionBtn:hover{border-color:#9ab8ff;background:#f8fbff}.optionBtn.selected{border-color:var(--primary);background:#eef4ff;box-shadow:0 0 0 2px #dce8ff}.optionLetter{width:30px;height:30px;min-width:30px;border-radius:9px;background:#f0f3f7;display:grid;place-items:center;font-weight:800;color:#596579}.optionBtn.selected .optionLetter{background:var(--primary);color:#fff}
-.examLayout{max-width:1200px;margin:auto}.examTop{position:sticky;top:70px;z-index:20;background:#fff;border-bottom:1px solid var(--line);padding:14px 18px}.examMeta{display:flex;justify-content:space-between;gap:15px;align-items:center}.timer{font-size:26px;font-weight:900;color:var(--primary);font-variant-numeric:tabular-nums}.timer.danger{color:var(--danger)}.questionNo{font-size:13px;color:var(--muted);font-weight:750}.questionText{font-size:21px;line-height:1.5;font-weight:750;margin:14px 0 18px}.examFooter{display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:12px}.transition{position:fixed;inset:0;background:rgba(10,18,35,.9);z-index:100;display:grid;place-items:center;color:#fff;text-align:center}.transitionBox{width:min(480px,90%);padding:35px}.transitionTitle{font-size:34px;font-weight:900}.transitionCount{font-size:80px;font-weight:900;color:#8db0ff;margin:10px}.transitionSmall{color:#b9c3d4}.statusDot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px}.dotGreen{background:#16a34a}.dotYellow{background:#f59e0b}.dotRed{background:#dc2626}.dotGray{background:#94a3b8}
-.monitorGrid{display:grid;grid-template-columns:1.6fr .9fr;gap:18px}.studentRow{cursor:pointer}.studentRow:hover{background:#f8fbff}.liveQuestion{font-size:30px;font-weight:900}.responsePill{font-size:12px;padding:5px 8px;border-radius:8px;background:#f1f5f9}.resultBig{font-size:54px;font-weight:900}.pass{color:var(--success)}.fail{color:var(--danger)}
-@media(max-width:1050px){.layout{grid-template-columns:1fr}.sidebar{position:sticky;top:70px;z-index:25;flex-direction:row;overflow:auto;border-right:0;border-bottom:1px solid var(--line);padding:9px}.navBtn{min-width:max-content;width:auto}.grid4{grid-template-columns:repeat(2,1fr)}.monitorGrid{grid-template-columns:1fr}}
-@media(max-width:650px){.topbar{padding:0 14px}.main{padding:16px}.grid3,.grid2,.grid4{grid-template-columns:1fr}.pageTitle{display:block}.pageTitle .row{margin-top:15px}.topUser span{display:none}.examMeta{align-items:flex-start}.timer{font-size:22px}.questionText{font-size:18px}}
+.topbar{height:70px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;
+justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:20px}.logo{width:40px;height:40px;border-radius:12px;
+background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:grid;place-items:center;font-weight:900}
+.top-actions{display:flex;gap:10px;align-items:center}.pill{padding:8px 12px;background:#eef2ff;color:#3730a3;border-radius:999px;font-size:13px;font-weight:700}
+.btn{padding:11px 16px;border-radius:11px;font-weight:700;transition:.18s}.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary2)}
+.btn-light{background:#eef2f7;color:#334155}.btn-danger{background:#fee2e2;color:#991b1b}.btn-success{background:#dcfce7;color:#166534}
+.btn-warning{background:#fef3c7;color:#92400e}.btn-sm{padding:8px 11px;font-size:13px}
+.page{max-width:1250px;margin:0 auto;padding:30px 22px}.hero{padding:40px 0 28px;text-align:center}
+.hero h1{font-size:42px;margin:0 0 10px}.hero p{color:var(--muted);font-size:17px}
+.auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:850px;margin:20px auto}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
+.card h2,.card h3{margin-top:0}.field{margin:14px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px;color:#475569}
+input,textarea,select{width:100%;border:1px solid #d7dce4;border-radius:11px;padding:12px 13px;outline:none;background:#fff}
+input:focus,textarea:focus,select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px #dbeafe}
+textarea{min-height:110px;resize:vertical}.muted{color:var(--muted)}.small{font-size:13px}
+.dashboard-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}
+.dashboard-head h1{margin:0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:22px}
+.stat{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px}.stat .n{font-size:28px;font-weight:800;margin-top:6px}
+.tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}.tab{padding:10px 14px;border-radius:10px;background:#e9eef6;font-weight:700;color:#475569}.tab.active{background:#dbeafe;color:#1d4ed8}
+.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:14px}.table{width:100%;border-collapse:collapse;background:#fff}.table th,.table td{padding:13px 14px;border-bottom:1px solid var(--border);text-align:left;font-size:14px}.table th{background:#f8fafc;color:#475569}
+.badge{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800}.green{background:#dcfce7;color:#166534}.red{background:#fee2e2;color:#991b1b}.amber{background:#fef3c7;color:#92400e}.blue{background:#dbeafe;color:#1d4ed8}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:grid;place-items:center;padding:20px;z-index:50}
+.modal-box{background:#fff;border-radius:20px;width:min(800px,100%);max-height:90vh;overflow:auto;padding:25px;box-shadow:0 30px 80px rgba(0,0,0,.2)}
+.modal-head{display:flex;justify-content:space-between;align-items:center}.close{background:#f1f5f9;border-radius:10px;padding:8px 11px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}
+.exam-shell{min-height:100vh;background:#f7f9fc}.exam-top{height:74px;background:#fff;border-bottom:1px solid var(--border);
+display:flex;align-items:center;justify-content:space-between;padding:0 25px;position:sticky;top:0;z-index:10}
+.timer{font-size:23px;font-weight:900;padding:9px 15px;border-radius:12px;background:#eff6ff;color:#1d4ed8;min-width:105px;text-align:center}
+.timer.danger{background:#fee2e2;color:#b91c1c}.exam-layout{max-width:1250px;margin:auto;padding:25px;display:grid;grid-template-columns:1fr 300px;gap:20px}
+.question-card{background:#fff;border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);padding:28px}
+.q-meta{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px;margin-bottom:20px}.question{font-size:21px;line-height:1.55;font-weight:750;margin-bottom:25px}
+.options{display:grid;gap:12px}.option{border:2px solid #e5e7eb;border-radius:13px;padding:15px;display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.option:hover{border-color:#93c5fd;background:#f8fbff}.option.selected{border-color:#2563eb;background:#eff6ff}.option input{width:auto;margin-top:4px}
+.exam-side{background:#fff;border:1px solid var(--border);border-radius:20px;padding:20px;height:max-content;position:sticky;top:95px}
+.progress{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:10px 0 18px}.progress span{display:block;height:100%;background:#2563eb}
+.side-row{display:flex;justify-content:space-between;margin:9px 0;font-size:14px}.notice{padding:13px;border-radius:12px;background:#fff7ed;color:#9a3412;font-size:13px;line-height:1.5;margin-top:16px}
+.transition{position:fixed;inset:0;background:#111827;color:#fff;display:grid;place-items:center;z-index:100;text-align:center}
+.transition .box{padding:30px}.transition h1{font-size:52px;margin:0 0 8px}.transition p{font-size:18px;color:#cbd5e1}
+.result-hero{text-align:center;padding:35px 20px}.result-score{font-size:58px;font-weight:900;color:#2563eb}.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.section-result{border:1px solid var(--border);border-radius:14px;padding:17px}
+.empty{text-align:center;padding:40px;color:var(--muted)}.toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:13px 17px;border-radius:11px;z-index:200;box-shadow:var(--shadow)}
+.file-note{padding:13px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;margin-top:10px}
+@media(max-width:900px){.auth-grid,.exam-layout{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.exam-side{position:static}.result-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.topbar{padding:0 14px}.page{padding:20px 14px}.hero h1{font-size:31px}.stats{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.full{grid-column:auto}.question{font-size:18px}.exam-layout{padding:12px}.question-card{padding:18px}}
 </style>
 </head>
 <body>
-<div id="root"></div><div id="modalRoot"></div><div id="toastRoot"></div><div id="transitionRoot"></div>
+<div id="app"></div>
+<div id="toast" class="toast hidden"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, get, set, update, remove, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getDatabase, ref, get, set, update, onValue, push } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
-/* Firebase configuration: retained from the supplied website only. */
 const firebaseConfig = {
-  apiKey: "AIzaSyD16NhAUgo3sgag01nZPZGHXjMvAZZ0rDE",
-  authDomain: "focus-dashboard-5965a.firebaseapp.com",
-  databaseURL: "https://focus-dashboard-5965a-default-rtdb.firebaseio.com",
-  projectId: "focus-dashboard-5965a",
-  storageBucket: "focus-dashboard-5965a.appspot.com",
-  messagingSenderId: "337204334808",
-  appId: "1:337204334808:web:9d0d36bed2fbae9b8147ad"
+  apiKey: "AIzaSyBKqBYNRY_80b_UOLg1ls9pIKdX-Y8b3CM",
+  authDomain: "placement-96094.firebaseapp.com",
+  databaseURL: "https://placement-96094-default-rtdb.firebaseio.com",
+  projectId: "placement-96094",
+  storageBucket: "placement-96094.firebasestorage.app",
+  messagingSenderId: "1061247846675",
+  appId: "1:1061247846675:web:c6885811fcf1884582b2e6"
+};
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+
+const ADMIN_PIN="ADMIN2026";
+let state={role:null,studentId:null,student:null,exam:null,session:null,timer:null,transition:false};
+
+const $=id=>document.getElementById(id);
+function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
+function esc(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function show(html){$("app").innerHTML=html}
+function genId(){return "EX"+Math.random().toString(36).slice(2,7).toUpperCase()+Date.now().toString().slice(-4)}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function landing(){
+show(`<div class="app">
+<div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">Online Examination</span></div></div>
+<div class="page"><div class="hero"><h1>Online Examination Portal</h1><p>Secure, timed and structured computer-based examination system.</p></div>
+<div class="auth-grid">
+<div class="card"><h2>Student Login</h2><p class="muted">Enter the Student ID provided by your examination administrator.</p>
+<div class="field"><label>Student ID</label><input id="sid" placeholder="Example: STU1001" autocomplete="off"></div>
+<button class="btn btn-primary" style="width:100%" onclick="studentLogin()">Enter Examination</button>
+<div class="file-note small">No Firebase email or password is required for students.</div></div>
+<div class="card"><h2>Administrator</h2><p class="muted">Create exams, issue Student IDs, publish exams and monitor submissions.</p>
+<div class="field"><label>Admin PIN</label><input id="apin" type="password" placeholder="Enter admin PIN"></div>
+<button class="btn btn-light" style="width:100%" onclick="adminLogin()">Open Admin Panel</button>
+<div class="file-note small">Admin PIN is a website-level control. For production, use Firebase Auth or a server-side admin role.</div></div>
+</div></div></div>`);
+}
+
+window.adminLogin=()=>{if($("apin").value===ADMIN_PIN){state.role="admin";adminDashboard()}else toast("Invalid admin PIN")};
+
+async function studentLogin(){
+let id=$("sid").value.trim().toUpperCase();
+if(!id)return toast("Enter your Student ID");
+try{
+let s=await get(ref(db,"students/"+id));
+if(!s.exists())return toast("Student ID not found");
+state.role="student";state.studentId=id;state.student=s.val();studentHome();
+}catch(e){console.error(e);toast("Database permission error. Check Firebase Rules.");}
+}
+
+async function adminDashboard(){
+let [studentsSnap,examsSnap,sessionsSnap,resultsSnap]=await Promise.all([
+get(ref(db,"students")),get(ref(db,"exams")),get(ref(db,"examSessions")),get(ref(db,"examResults"))
+]);
+let students=studentsSnap.exists()?studentsSnap.val():{}, exams=examsSnap.exists()?examsSnap.val():{}, sessions=sessionsSnap.exists()?sessionsSnap.val():{}, results=resultsSnap.exists()?resultsSnap.val():{};
+show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow <span class="pill">ADMIN</span></div><div class="top-actions"><button class="btn btn-light btn-sm" onclick="landing()">Logout</button></div></div>
+<div class="page"><div class="dashboard-head"><div><h1>Admin Dashboard</h1><div class="muted">Manage examinations and student access</div></div><div><button class="btn btn-primary" onclick="openExamModal()">+ Create Exam</button> <button class="btn btn-success" onclick="openStudentModal()">+ Student ID</button></div></div>
+<div class="stats"><div class="stat"><div class="muted">Students</div><div class="n">${Object.keys(students).length}</div></div><div class="stat"><div class="muted">Exams</div><div class="n">${Object.keys(exams).length}</div></div><div class="stat"><div class="muted">Live Sessions</div><div class="n">${countSessions(sessions)}</div></div><div class="stat"><div class="muted">Results</div><div class="n">${countResults(results)}</div></div></div>
+<div class="tabs"><button class="tab active" onclick="adminExams()">Exams</button><button class="tab" onclick="adminStudents()">Student IDs</button><button class="tab" onclick="adminMonitor()">Live Monitor</button><button class="tab" onclick="adminResults()">Results</button></div>
+<div id="adminContent"></div></div></div>`);
+window._cache={students,exams,sessions,results};adminExams();
+}
+function countSessions(x){return Object.values(x).reduce((n,v)=>n+Object.values(v||{}).filter(s=>s.status==="live").length,0)}
+function countResults(x){return Object.values(x).reduce((n,v)=>n+Object.keys(v||{}).length,0)}
+
+function adminExams(){
+let exams=window._cache.exams||{};
+let rows=Object.entries(exams).map(([id,e])=>`<tr><td><b>${esc(id)}</b></td><td>${esc(e.name)}</td><td>${e.questions?.length||0}</td><td>${e.totalMarks||0}</td><td><span class="badge ${e.status==="published"?"green":"amber"}">${esc(e.status||"draft")}</span></td><td><button class="btn btn-sm btn-light" onclick="toggleExam('${id}')">${e.status==="published"?"Unpublish":"Publish"}</button> <button class="btn btn-sm btn-danger" onclick="deleteExam('${id}')">Delete</button></td></tr>`).join("");
+$("adminContent").innerHTML=`<div class="card"><h2>Examinations</h2><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Exam ID</th><th>Name</th><th>Questions</th><th>Marks</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No exams created yet.</div>`}</div></div>`;
+}
+function adminStudents(){
+let st=window._cache.students||{};
+let rows=Object.entries(st).map(([id,s])=>`<tr><td><b>${esc(id)}</b></td><td>${esc(s.name||"-")}</td><td>${esc(s.roll||"-")}</td><td>${esc(s.department||"-")}</td><td>${s.active!==false?'<span class="badge green">Active</span>':'<span class="badge red">Disabled</span>'}</td><td><button class="btn btn-sm btn-light" onclick="toggleStudent('${id}')">${s.active!==false?"Disable":"Enable"}</button></td></tr>`).join("");
+$("adminContent").innerHTML=`<div class="card"><h2>Student IDs</h2><p class="muted">These IDs are used directly by students to enter the examination portal.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Student ID</th><th>Name</th><th>Roll</th><th>Department</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No Student IDs created yet.</div>`}</div></div>`;
+}
+function adminMonitor(){
+let sessions=window._cache.sessions||{},exams=window._cache.exams||{};
+let rows=[];
+Object.entries(sessions).forEach(([eid,ss])=>Object.entries(ss||{}).forEach(([sid,s])=>{rows.push(`<tr><td>${esc(sid)}</td><td>${esc(exams[eid]?.name||eid)}</td><td>${esc(s.currentIndex+1||1)}/${s.totalQuestions||"?"}</td><td>${s.timeLeft??"-"} sec</td><td><span class="badge ${s.status==="live"?"green":"amber"}">${esc(s.status||"-")}</span></td><td>${esc(s.currentSection||"-")}</td></tr>`) }));
+$("adminContent").innerHTML=`<div class="card"><h2>Live Monitoring</h2><p class="muted">Updates automatically when students save their current state.</p><div class="table-wrap">${rows.length?`<table class="table"><thead><tr><th>Student</th><th>Exam</th><th>Question</th><th>Time Left</th><th>Status</th><th>Section</th></tr></thead><tbody>${rows.join("")}</tbody></table>`:`<div class="empty">No active sessions.</div>`}</div></div>`;
+}
+function adminResults(){
+let results=window._cache.results||{};
+let exams=window._cache.exams||{},rows=[];
+Object.entries(results).forEach(([eid,rs])=>Object.entries(rs||{}).forEach(([sid,r])=>rows.push(`<tr><td>${esc(sid)}</td><td>${esc(r.examName||exams[eid]?.name||eid)}</td><td>${r.obtained}/${r.totalMarks}</td><td>${Number(r.percentage||0).toFixed(1)}%</td><td><span class="badge ${r.overallPass?"green":"red"}">${r.overallPass?"PASS":"FAIL"}</span></td><td><button class="btn btn-sm btn-light" onclick="viewResult('${eid}','${sid}')">View</button></td></tr>`)));
+$("adminContent").innerHTML=`<div class="card"><h2>Results</h2><div class="table-wrap">${rows.length?`<table class="table"><thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Percentage</th><th>Result</th><th></th></tr></thead><tbody>${rows.join("")}</tbody></table>`:`<div class="empty">No completed results.</div>`}</div></div>`;
+}
+
+window.adminStudents=adminStudents;window.adminExams=adminExams;window.adminMonitor=adminMonitor;window.adminResults=adminResults;
+window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"});await adminDashboard();toast("Exam status updated")};
+window.deleteExam=async id=>{if(!confirm("Delete this examination?"))return;await set(ref(db,"exams/"+id),null);await adminDashboard();toast("Exam deleted")};
+window.toggleStudent=async id=>{let s=window._cache.students[id];await update(ref(db,"students/"+id),{active:s.active===false});await adminDashboard();toast("Student status updated")};
+
+window.openStudentModal=()=>{
+$("app").insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><h2>Create Student ID</h2><button class="close" onclick="$('modal').remove()">✕</button></div>
+<div class="form-grid"><div class="field"><label>Student Name</label><input id="sn"></div><div class="field"><label>Roll Number</label><input id="sr"></div><div class="field"><label>Department</label><input id="sd" value="Electrical Engineering"></div><div class="field"><label>Student ID</label><input id="si" value="${genId()}"></div></div>
+<button class="btn btn-success" onclick="createStudent()">Create Student ID</button></div></div>`)
+};
+window.createStudent=async()=>{
+let id=$("si").value.trim().toUpperCase(),name=$("sn").value.trim();
+if(!id||!name)return toast("Student ID and name are required");
+await set(ref(db,"students/"+id),{id,name,roll:$("sr").value.trim(),department:$("sd").value.trim(),active:true,createdAt:Date.now()});
+$("modal").remove();toast("Student ID created: "+id);adminDashboard();
 };
 
-const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getDatabase(app);
-const ADMIN_EMAIL_FALLBACK="admin@admin.com";
-const $=id=>document.getElementById(id);
-const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-const fmtDate=ts=>ts?new Date(ts).toLocaleString():"—";
-const fmtSec=n=>{n=Math.max(0,Math.floor(Number(n)||0));return String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0")};
-const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
-let currentUser=null,isAdmin=false,currentPage="dashboard",liveUnsubs=[],studentTimer=null,examState=null;
+window.openExamModal=()=>{
+$("app").insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><h2>Create Examination</h2><button class="close" onclick="$('modal').remove()">✕</button></div>
+<div class="form-grid"><div class="field full"><label>Exam Name</label><input id="en" placeholder="Example: Electrical Engineering Mock Test"></div><div class="field"><label>Exam ID</label><input id="ei" value="${genId()}"></div><div class="field"><label>Instructions</label><input id="ein" value="Read each question carefully. You cannot return to a previous question."></div>
+<div class="field full"><label>Questions JSON</label><textarea id="qjson" placeholder='[
+ {"q":"Ohm law is?","a":["V=IR","P=VI","I=V/R","All"],"correct":0,"marks":2,"time":30,"section":"Electrical Basics"}
+]'></textarea></div></div>
+<div class="file-note"><b>Question format</b><br>q = question, a = 4 options, correct = 0 to 3, marks = marks, time = seconds, section = section name.</div><br>
+<button class="btn btn-primary" onclick="createExam()">Create Exam</button></div></div>`)
+};
+window.createExam=async()=>{
+try{
+let id=$("ei").value.trim().toUpperCase(),name=$("en").value.trim(),questions=JSON.parse($("qjson").value);
+if(!id||!name||!Array.isArray(questions)||!questions.length)throw Error("Invalid exam data");
+let clean=questions.map((q,i)=>{if(!q.q||!Array.isArray(q.a)||q.a.length!==4||q.correct<0||q.correct>3)throw Error("Invalid question "+(i+1));return {
+id:i+1,text:q.q,options:q.a,correctIndex:Number(q.correct),marks:Number(q.marks||1),allocatedTime:Number(q.time||30),section:q.section||"General"}});
+let total=clean.reduce((a,q)=>a+q.marks,0);
+await set(ref(db,"exams/"+id),{id,name,instructions:$("ein").value,questions:clean,totalMarks:total,status:"draft",createdAt:Date.now(),sectionComments:{}});
+$("modal").remove();toast("Exam created");adminDashboard();
+}catch(e){toast(e.message||"Could not create exam")}
+};
 
-function toast(msg,type=""){const e=document.createElement("div");e.className="toast "+type;e.textContent=msg;$("toastRoot").appendChild(e);setTimeout(()=>e.remove(),3000)}
-function clearLive(){liveUnsubs.forEach(x=>x&&x());liveUnsubs=[]}
-function nav(page,icon,label){return `<button class="navBtn ${currentPage===page?"active":""}" data-page="${page}">${icon}&nbsp; ${label}</button>`}
-function shell(){
-  $("root").innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="brandMark">E</div>ExamFlow</div><div class="topUser"><span>${esc(currentUser.email)}</span><div class="avatar">${esc((currentUser.email||"U")[0].toUpperCase())}</div><button class="btn btnGhost btnSmall" id="logout">Logout</button></div></header><div class="layout"><aside class="sidebar" id="sidebar"></aside><main class="main" id="main"></main></div></div>`;
-  $("logout").onclick=()=>signOut(auth); renderNav();
-}
-function renderNav(){
-  $("sidebar").innerHTML=isAdmin
-    ? `${nav("dashboard","▦","Dashboard")}${nav("exams","📝","Exams")}${nav("monitor","📡","Live Monitor")}${nav("students","👥","Students")}${nav("results","📊","Results")}`
-    : `${nav("dashboard","⌂","My Dashboard")}${nav("exams","📝","Available Exams")}${nav("results","📊","My Results")}`;
-  document.querySelectorAll(".navBtn").forEach(b=>b.onclick=()=>{currentPage=b.dataset.page;renderPage()});
-}
-async function userData(){const s=await get(ref(db,`users/${currentUser.uid}`));return s.exists()?s.val():{}}
-async function ensureUser(){
-  const r=ref(db,`users/${currentUser.uid}/profile`),s=await get(r);
-  if(!s.exists()) await set(r,{email:currentUser.email,role:currentUser.email?.toLowerCase()===ADMIN_EMAIL_FALLBACK?"admin":"student",createdAt:Date.now()});
-  const p=await get(r); isAdmin=p.val()?.role==="admin" || currentUser.email?.toLowerCase()===ADMIN_EMAIL_FALLBACK;
-}
-function loginView(error=""){
-  $("root").innerHTML=`<div class="loginPage"><div class="loginCard"><div class="loginLogo">✓</div><h1>ExamFlow</h1><p>Real-time examination system with question-level timing, shuffled options and live monitoring.</p>${error?`<div class="badge badgeRed" style="margin-bottom:14px">${esc(error)}</div>`:""}<form id="loginForm"><div class="field"><label>Email</label><input id="email" type="email" required placeholder="student@example.com"></div><div class="field"><label>Password</label><input id="password" type="password" required placeholder="Password"></div><button class="btn btnPrimary" style="width:100%;padding:13px">Sign in</button></form></div></div>`;
-  $("loginForm").onsubmit=async e=>{e.preventDefault();try{await signInWithEmailAndPassword(auth,$("email").value.trim().toLowerCase(),$("password").value)}catch(x){loginView("Login failed. Check your Firebase Authentication email and password.")}};
-}
-async function renderPage(){
-  clearLive();renderNav();
-  if(currentPage==="dashboard") return isAdmin?adminDashboard():studentDashboard();
-  if(currentPage==="exams") return isAdmin?adminExams():studentExams();
-  if(currentPage==="monitor") return adminMonitor();
-  if(currentPage==="students") return adminStudents();
-  if(currentPage==="results") return isAdmin?adminResults():studentResults();
+async function studentHome(){
+let snap=await get(ref(db,"exams"));let exams=snap.exists()?snap.val():{};
+let available=Object.entries(exams).filter(([id,e])=>e.status==="published");
+let cards=available.map(([id,e])=>`<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div><h3>${esc(e.name)}</h3><p class="muted">${e.questions?.length||0} Questions • ${e.totalMarks||0} Marks</p></div><span class="badge blue">${esc(id)}</span></div><button class="btn btn-primary" onclick="startExam('${id}')">Start Examination</button></div>`).join("");
+show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">${esc(state.student.name)} · ${esc(state.studentId)}</span><button class="btn btn-light btn-sm" onclick="landing()">Logout</button></div></div>
+<div class="page"><div class="hero"><h1>Welcome, ${esc(state.student.name)}</h1><p>Select your assigned examination.</p></div>${cards||`<div class="card empty">No published examinations are available for you.</div>`}</div></div>`);
 }
 
-/* ---------- CSV ---------- */
-function parseCSV(text){
-  const rows=[];let row=[],cell="",quote=false;
-  for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];
-    if(c==='"'&&quote&&n==='"'){cell+='"';i++;continue}
-    if(c==='"'){quote=!quote;continue}
-    if(c===','&&!quote){row.push(cell);cell="";continue}
-    if((c==='\n'||c==='\r')&&!quote){if(c==='\r'&&n==='\n')i++;row.push(cell);if(row.some(x=>x.trim()!==""))rows.push(row);row=[];cell="";continue}
-    cell+=c;
-  }
-  if(cell!==""||row.length){row.push(cell);if(row.some(x=>x.trim()!==""))rows.push(row)}
-  if(!rows.length)return [];
-  const headers=rows[0].map(x=>x.trim());
-  return rows.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,(r[i]??"").trim()])));
-}
-function normalizeQuestion(q,i){
-  const get=(...names)=>{for(const n of names)if(q[n]!==undefined)return q[n];return""};
-  const no=Number(get("Qn No","Question No","Sl No"))||i+1;
-  const answer=String(get("Correct Option","Correct Answer")).trim().toUpperCase();
-  const opts=["A","B","C","D"];
-  if(!opts.includes(answer)) throw new Error(`Row ${i+2}: Correct Option must be A, B, C or D.`);
-  const marks=Number(get("Marks"));const time=Number(get("Allocated Time"));
-  if(!Number.isFinite(marks)||marks<0)throw new Error(`Row ${i+2}: Marks must be a number.`);
-  if(!Number.isFinite(time)||time<=0)throw new Error(`Row ${i+2}: Allocated Time must be greater than 0.`);
-  const section=get("Qn Section","Section").trim();if(!section)throw new Error(`Row ${i+2}: Qn Section is required.`);
-  const text=get("Qn","Question").trim();if(!text)throw new Error(`Row ${i+2}: Qn is required.`);
-  const options=[get("Option A","A"),get("Option B","B"),get("Option C","C"),get("Option D","D")].map(x=>String(x).trim());
-  if(options.some(x=>!x))throw new Error(`Row ${i+2}: all four options are required.`);
-  return {qnNo:no,text,options,correctIndex:opts.indexOf(answer),marks,allocatedTime:time,section};
-}
-async function readCSV(file){return normalizeQuestions(parseCSV(await file.text()))}
-function normalizeQuestions(rows){if(!rows.length)throw new Error("CSV contains no question rows.");const seen=new Set();const qs=rows.map(normalizeQuestion);qs.forEach(q=>{if(seen.has(q.qnNo))throw new Error(`Duplicate question number: ${q.qnNo}`);seen.add(q.qnNo)});qs.sort((a,b)=>a.qnNo-b.qnNo);return qs}
-function sectionsOf(qs){const m={};qs.forEach(q=>{if(!m[q.section])m[q.section]={name:q.section,totalMarks:0,questions:0};m[q.section].totalMarks+=q.marks;m[q.section].questions++});return m}
-function totalMarks(qs){return qs.reduce((a,q)=>a+q.marks,0)}
+window.startExam=async examId=>{
+let snap=await get(ref(db,"exams/"+examId));if(!snap.exists())return toast("Exam not found");
+let exam=snap.val();
+let existing=await get(ref(db,"examSessions/"+examId+"/"+state.studentId));
+if(existing.exists() && existing.val().status==="completed")return toast("You have already completed this examination.");
+let questions=exam.questions.map(q=>{let opts=q.options.map((text,i)=>({text,original:i}));opts=shuffle(opts);return {...q,displayed:opts}});
+state.exam=exam;state.examId=examId;
+state.session={studentId:state.studentId,studentName:state.student.name,status:"live",currentIndex:0,totalQuestions:questions.length,
+startedAt:Date.now(),timeLeft:questions[0].allocatedTime,responses:{},questions};
+await set(ref(db,"examSessions/"+examId+"/"+state.studentId),state.session);
+renderExam();
+};
 
-async function uploadExamModal(){
-  showModal(`<h2>Create Examination</h2><div class="field"><label>Exam Name</label><input id="examName" placeholder="e.g. Electrical Engineering Mock Test"></div><div class="field"><label>CSV Question File</label><input id="csvFile" type="file" accept=".csv"></div><div id="csvPreview" class="small">Upload your CSV to validate questions, sections, marks and timing.</div><div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn btnGhost" onclick="closeModal()">Cancel</button><button class="btn btnPrimary" id="createExamBtn">Create Exam</button></div>`);
-  $("csvFile").onchange=async()=>{try{const qs=await readCSV($("csvFile").files[0]);const sec=sectionsOf(qs);$("csvPreview").innerHTML=`<span class="badge badgeGreen">✓ Valid CSV</span><div style="margin-top:10px"><b>${qs.length}</b> questions · <b>${Object.keys(sec).length}</b> sections · <b>${totalMarks(qs)}</b> total marks · <b>${Math.round(qs.reduce((a,q)=>a+q.allocatedTime,0)/60*10)/10}</b> total minutes</div>`}catch(e){$("csvPreview").innerHTML=`<span class="badge badgeRed">${esc(e.message)}</span>`}};
-  $("createExamBtn").onclick=async()=>{try{
-    const name=$("examName").value.trim(),file=$("csvFile").files[0];if(!name||!file)return toast("Enter exam name and select a CSV.","error");
-    const qs=await readCSV(file),sections=sectionsOf(qs),key=push(ref(db,"exams")).key;
-    const comments={};Object.keys(sections).forEach(s=>comments[s]="");
-    await set(ref(db,`exams/${key}`),{name,questions:qs,sections,sectionComments:comments,totalMarks:totalMarks(qs),createdAt:Date.now(),status:"draft"});
-    closeModal();toast("Exam created.","success");currentPage="exams";renderPage();
-  }catch(e){toast(e.message,"error")}};
+function renderExam(){
+clearInterval(state.timer);let s=state.session,q=s.questions[s.currentIndex],chosen=s.responses[s.currentIndex]?.selectedOriginal;
+show(`<div class="exam-shell"><div class="exam-top"><div><b>${esc(state.exam.name)}</b><div class="small muted">${esc(state.student.name)} · ${esc(state.studentId)}</div></div><div class="timer" id="timer">${fmt(s.timeLeft)}</div></div>
+<div class="exam-layout"><main class="question-card"><div class="q-meta"><span>Question ${s.currentIndex+1} of ${s.totalQuestions}</span><span>${esc(q.section)} · ${q.marks} marks</span></div>
+<div class="progress"><span style="width:${((s.currentIndex+1)/s.totalQuestions)*100}%"></span></div>
+<div class="question">${esc(q.text)}</div><div class="options">${q.displayed.map((o,i)=>`<label class="option ${chosen===o.original?"selected":""}" id="op${i}"><input type="radio" name="opt" ${chosen===o.original?"checked":""} onchange="chooseOption(${o.original})"><span><b>${String.fromCharCode(65+i)}.</b> ${esc(o.text)}</span></label>`).join("")}</div>
+<div style="display:flex;justify-content:flex-end;margin-top:25px"><button class="btn btn-primary" onclick="nextQuestion()">${s.currentIndex===s.totalQuestions-1?"Submit Examination":"Save & Next →"}</button></div>
+<div class="notice">Once you move to the next question, you cannot return to this question. If the timer reaches zero, the question will automatically lock.</div>
+</main><aside class="exam-side"><h3>Exam Progress</h3><div class="side-row"><span>Current</span><b>${s.currentIndex+1}</b></div><div class="side-row"><span>Remaining</span><b>${s.totalQuestions-s.currentIndex-1}</b></div><div class="side-row"><span>Total Marks</span><b>${state.exam.totalMarks}</b></div><div class="notice">Do not close or refresh this page during the examination.</div></aside></div></div>`);
+startTimer();
 }
-function showModal(html){$("modalRoot").innerHTML=`<div class="modal"><div class="modalBox">${html}</div></div>`}
-function closeModal(){$("modalRoot").innerHTML=""}
-window.closeModal=closeModal;window.uploadExamModal=uploadExamModal;
+function fmt(sec){sec=Math.max(0,Math.ceil(sec));return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0")}
+function startTimer(){
+let end=Date.now()+state.session.timeLeft*1000;
+state.timer=setInterval(()=>{state.session.timeLeft=Math.max(0,Math.ceil((end-Date.now())/1000));let t=$("timer");if(t)t.textContent=fmt(state.session.timeLeft);if(t&&state.session.timeLeft<=10)t.classList.add("danger");if(state.session.timeLeft<=0){clearInterval(state.timer);timeUp()}},250);
+}
+window.chooseOption=original=>{
+let q=state.session.questions[state.session.currentIndex];
+state.session.responses[state.session.currentIndex]={selectedOriginal:original,questionId:q.id,section:q.section,marks:q.marks,timeUsed:q.allocatedTime-state.session.timeLeft};
+document.querySelectorAll(".option").forEach(x=>x.classList.remove("selected"));
+let idx=q.displayed.findIndex(x=>x.original===original);if($("op"+idx))$("op"+idx).classList.add("selected");
+};
+async function saveSession(){await set(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session)}
+window.nextQuestion=async()=>{clearInterval(state.timer);await saveSession();if(state.session.currentIndex===state.session.totalQuestions-1){finishExam();return}state.session.currentIndex++;state.session.timeLeft=state.session.questions[state.session.currentIndex].allocatedTime;await saveSession();renderExam()};
+async function timeUp(){await saveSession();showTransition("TIME UP",state.session.totalQuestions-state.session.currentIndex-1);setTimeout(async()=>{if(state.session.currentIndex===state.session.totalQuestions-1){finishExam();return}state.session.currentIndex++;state.session.timeLeft=state.session.questions[state.session.currentIndex].allocatedTime;await saveSession();renderExam()},2000)}
+function showTransition(title,remaining){show(`<div class="transition"><div class="box"><h1>${title}</h1><p>Question locked.</p><p>${Math.max(0,remaining)} question${remaining===1?"":"s"} remaining</p></div></div>`)}
 
-async function exams(){const s=await get(ref(db,"exams"));return s.exists()?s.val():{}}
-function examArr(x){return Object.entries(x).map(([id,v])=>({id,...v})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))}
-
-/* ---------- ADMIN ---------- */
-async function adminDashboard(){
-  const [es,us]=await Promise.all([exams(),get(ref(db,"users"))]);const ea=examArr(es),u=us.exists()?us.val():{};
-  const students=Object.values(u).filter(x=>x.profile?.role==="student"||x.profile?.email&&x.profile.email!==ADMIN_EMAIL_FALLBACK);
-  const sessions=await get(ref(db,"examSessions"));const ss=sessions.exists()?sessions.val():{};
-  const active=Object.values(ss).filter(x=>x.status==="active").length;
-  $("main").innerHTML=`<div class="pageTitle"><div><h1>Exam Control Center</h1><p>Real-time examination administration and monitoring.</p></div><button class="btn btnPrimary" onclick="uploadExamModal()">+ Create Exam</button></div><div class="grid grid4">${stat("📝","Exams",ea.length)}${stat("👥","Students",students.length)}${stat("🟢","Live Students",active)}${stat("📊","Published",ea.filter(x=>x.status==="published").length)}</div><div class="card" style="margin-top:18px"><div class="between"><h3 style="margin:0">Recent Exams</h3><button class="btn btnSoft btnSmall" onclick="go('exams')">Manage</button></div><div class="tableWrap" style="margin-top:10px"><table class="table"><thead><tr><th>Exam</th><th>Questions</th><th>Sections</th><th>Marks</th><th>Status</th></tr></thead><tbody>${ea.slice(0,8).map(e=>`<tr><td><b>${esc(e.name)}</b></td><td>${e.questions?.length||0}</td><td>${Object.keys(e.sections||{}).length}</td><td>${e.totalMarks}</td><td>${statusBadge(e.status)}</td></tr>`).join("")||`<tr><td colspan="5">No exams yet.</td></tr>`}</tbody></table></div></div>`;
-}
-function stat(icon,label,value){return `<div class="card stat"><div class="statIcon">${icon}</div><div class="statLabel">${label}</div><div class="statValue">${esc(value)}</div></div>`}
-function statusBadge(s){return `<span class="badge ${s==="published"?"badgeGreen":s==="active"?"badgeBlue":s==="completed"?"badgeGray":"badgeOrange"}">${esc((s||"draft").toUpperCase())}</span>`}
-async function adminExams(){
-  const ea=examArr(await exams());
-  $("main").innerHTML=`<div class="pageTitle"><div><h1>Examinations</h1><p>Upload CSV question banks, configure sections and publish exams.</p></div><button class="btn btnPrimary" onclick="uploadExamModal()">+ Create Exam</button></div><div class="grid grid2">${ea.map(e=>adminExamCard(e)).join("")||`<div class="empty">Create your first exam.</div>`}</div>`;
-}
-function adminExamCard(e){
-  const secs=Object.values(e.sections||{}).map(s=>`${esc(s.name)} · ${s.totalMarks} marks`).join(" &nbsp;•&nbsp; ");
-  return `<div class="card"><div class="between"><div><span class="badge badgeBlue">${e.questions?.length||0} QUESTIONS</span><h3 style="margin:10px 0 4px">${esc(e.name)}</h3></div>${statusBadge(e.status)}</div><div class="small">${Object.keys(e.sections||{}).length} sections · ${e.totalMarks} marks</div><div class="small" style="margin-top:9px">${secs}</div><div class="row" style="margin-top:16px;flex-wrap:wrap"><button class="btn btnSoft btnSmall" onclick="editExam('${e.id}')">Settings</button><button class="btn btnSuccess btnSmall" onclick="publishExam('${e.id}')">Publish</button><button class="btn btnPrimary btnSmall" onclick="startAdminMonitor('${e.id}')">Live Monitor</button><button class="btn btnDanger btnSmall" onclick="deleteExam('${e.id}')">Delete</button></div></div>`;
-}
-async function editExam(id){
-  const e=(await exams())[id];if(!e)return;
-  const secs=Object.entries(e.sections||{}).map(([k,s])=>`<div class="sectionCard"><div class="between"><b>${esc(s.name)}</b><span>${s.totalMarks} marks · ${s.questions} questions</span></div><div class="field" style="margin-top:10px"><label>Section Comment</label><textarea class="sectionComment" data-section="${esc(k)}" rows="2" placeholder="Optional admin comment">${esc(e.sectionComments?.[k]||"")}</textarea></div></div>`).join("");
-  showModal(`<h2>${esc(e.name)}</h2><p class="small">Questions are always in CSV order. Options are shuffled separately for each student.</p>${secs}<div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn btnGhost" onclick="closeModal()">Close</button><button class="btn btnPrimary" onclick="saveExamComments('${id}')">Save Comments</button></div>`);
-}
-async function saveExamComments(id){const comments={};document.querySelectorAll(".sectionComment").forEach(x=>comments[x.dataset.section]=x.value.trim());await update(ref(db,`exams/${id}`),{sectionComments:comments});closeModal();toast("Section comments saved.","success")}
-async function publishExam(id){await update(ref(db,`exams/${id}`),{status:"published",publishedAt:Date.now()});toast("Exam published.","success");adminExams()}
-async function deleteExam(id){if(!confirm("Delete this exam and its question bank?"))return;await remove(ref(db,`exams/${id}`));toast("Exam deleted.","success");adminExams()}
-window.editExam=editExam;window.publishExam=publishExam;window.deleteExam=deleteExam;window.saveExamComments=saveExamComments;
-
-async function adminMonitor(examId=null){
-  const ea=examArr(await exams());if(!examId){$("main").innerHTML=`<div class="pageTitle"><div><h1>Live Monitor</h1><p>Select an exam to watch every student's question, response, timer and status in real time.</p></div></div><div class="grid grid2">${ea.map(e=>`<div class="card"><div class="between"><h3>${esc(e.name)}</h3>${statusBadge(e.status)}</div><div class="small">${e.questions?.length||0} questions · ${e.totalMarks} marks</div><button class="btn btnPrimary btnSmall" style="margin-top:14px" onclick="startAdminMonitor('${e.id}')">Open Monitor</button></div>`).join("")||`<div class="empty">No exams.</div>`}</div>`;return}
-  const e=(await exams())[examId];if(!e)return;
-  $("main").innerHTML=`<div class="pageTitle"><div><button class="btn btnGhost btnSmall" onclick="go('monitor')">← Exams</button><h1 style="margin-top:12px">${esc(e.name)}</h1><p>Live student response monitoring. No refresh required.</p></div><button class="btn btnSoft" onclick="downloadExamPDF('${examId}')">Download Summary PDF</button></div><div id="liveMonitor"></div>`;
-  const r=ref(db,`examSessions/${examId}`);const unsub=onValue(r,s=>renderLiveMonitor(examId,e,s.exists()?s.val():{}));liveUnsubs.push(unsub);
-}
-window.startAdminMonitor=id=>{currentPage="monitor";adminMonitor(id)};
-
-function renderLiveMonitor(examId,e,data){
-  const sessions=Object.entries(data||{}).map(([id,x])=>({id,...x})).filter(x=>x.studentUid);
-  const active=sessions.filter(x=>x.status==="active").length,submitted=sessions.filter(x=>x.status==="submitted").length,offline=sessions.filter(x=>x.status==="offline").length;
-  $("liveMonitor").innerHTML=`<div class="grid grid4">${stat("🟢","Active",active)}${stat("🔵","Submitted",submitted)}${stat("🔴","Offline",offline)}${stat("👥","Participants",sessions.length)}</div><div class="monitorGrid" style="margin-top:18px"><div class="card"><div class="between"><h3 style="margin:0">Students</h3><span class="small">Live sync</span></div><div class="tableWrap" style="margin-top:10px"><table class="table"><thead><tr><th>Student</th><th>Question</th><th>Section</th><th>Time</th><th>Response</th><th>Status</th></tr></thead><tbody>${sessions.map(s=>`<tr class="studentRow" onclick="viewStudentSession('${examId}','${s.id}')"><td><b>${esc(s.studentName||s.studentEmail||s.studentUid)}</b></td><td>${Number(s.currentIndex||0)+1}/${e.questions.length}</td><td>${esc(s.currentSection||"—")}</td><td>${fmtSec(s.timeLeft)}</td><td>${s.currentResponse?`<span class="responsePill">${esc(s.currentResponse)}</span>`:"—"}</td><td>${liveBadge(s.status)}</td></tr>`).join("")||`<tr><td colspan="6">No students have started this exam.</td></tr>`}</tbody></table></div></div><div id="monitorDetail" class="card"><div class="empty">Click a student to inspect every question response and timing.</div></div></div>`;
-}
-function liveBadge(s){const map={active:["badgeGreen","● ACTIVE"],transition:["badgeOrange","● TRANSITION"],submitted:["badgeBlue","● SUBMITTED"],offline:["badgeRed","● OFFLINE"]};const [c,t]=map[s]||["badgeGray","● "+String(s||"UNKNOWN").toUpperCase()];return `<span class="badge ${c}">${t}</span>`}
-
-async function viewStudentSession(examId,sessionId){
-  const e=(await exams())[examId],s=(await get(ref(db,`examSessions/${examId}/${sessionId}`))).val();if(!s)return;
-  const responses=s.responses||{};
-  $("monitorDetail").innerHTML=`<div class="between"><div><span class="badge badgeBlue">STUDENT</span><h3 style="margin:8px 0">${esc(s.studentName||s.studentEmail)}</h3></div>${liveBadge(s.status)}</div><div class="grid grid2" style="margin-top:12px"><div><div class="small">Current Question</div><b>${Number(s.currentIndex||0)+1} / ${e.questions.length}</b></div><div><div class="small">Current Time</div><b>${fmtSec(s.timeLeft)}</b></div><div><div class="small">Current Section</div><b>${esc(s.currentSection||"—")}</b></div><div><div class="small">Current Response</div><b>${esc(s.currentResponse||"Unanswered")}</b></div></div><div style="margin-top:18px"><h4>Question-by-question response</h4>${e.questions.map((q,i)=>{const r=responses[i]||{};return `<div class="sectionCard" style="margin-top:8px"><div class="between"><b>Q${q.qnNo}. ${esc(q.text)}</b><span class="badge ${r.correct?"badgeGreen":r.answer?"badgeRed":"badgeGray"}">${r.answer?(r.correct?"CORRECT":"WRONG"):"UNANSWERED"}</span></div><div class="small" style="margin-top:7px">Displayed options: ${r.displayedOptions? r.displayedOptions.map((o,j)=>`${String.fromCharCode(65+j)}. ${esc(o)}`).join(" | "):"—"}</div><div class="small" style="margin-top:5px">Student response: <b>${esc(r.answer||"—")}</b> · Time used: <b>${fmtSec(r.timeUsed)}</b> · Marks: <b>${r.marksAwarded??0}</b></div></div>`}).join("")}</div>`;
-}
-window.viewStudentSession=viewStudentSession;
-
-/* ---------- STUDENT ---------- */
-async function studentDashboard(){
-  const es=examArr(await exams()),published=es.filter(e=>e.status==="published");
-  $("main").innerHTML=`<div class="pageTitle"><div><h1>Welcome to ExamFlow</h1><p>Your available examinations and results.</p></div></div><div class="card hero"><h2>Examination Rules</h2><p>Questions stay in the same order for every student. Options are shuffled individually. Once you leave a question, you cannot return to it. When its time expires, a 2-second transition shows the number of questions remaining before the next question starts.</p></div><div class="grid grid3" style="margin-top:18px">${published.slice(0,6).map(studentExamCard).join("")||`<div class="empty">No published examinations are available.</div>`}</div>`;
-}
-function studentExams(){return studentDashboard()}
-function studentExamCard(e){return `<div class="card"><div class="between"><span class="badge badgeGreen">AVAILABLE</span><b>${e.questions.length} Q</b></div><h3>${esc(e.name)}</h3><div class="small">${Object.keys(e.sections||{}).length} sections · ${e.totalMarks} marks</div><button class="btn btnPrimary" style="margin-top:16px" onclick="startExam('${e.id}')">Start Exam</button></div>`}
-window.startExam=startExam;
-
-function shuffleOptions(q){
-  const arr=q.options.map((text,i)=>({text,originalIndex:i}));for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr;
-}
-async function startExam(examId){
-  const e=(await exams())[examId];if(!e||e.status!=="published")return toast("This exam is not available.","error");
-  const existing=await get(ref(db,`examSessions/${examId}/${currentUser.uid}`));
-  if(existing.exists()&&["active","submitted"].includes(existing.val().status))return toast(existing.val().status==="submitted"?"You have already submitted this exam.":"Your exam is already active.","error");
-  const questions=e.questions.map(q=>{const d=shuffleOptions(q);return {...q,displayedOptions:d.map(x=>x.text),displayedOriginalIndices:d.map(x=>x.originalIndex)}});
-  examState={examId,e,questions,index:0,startedAt:Date.now(),timeLeft:questions[0].allocatedTime,response:null,locked:false,responses:{},timer:null};
-  await set(ref(db,`examSessions/${examId}/${currentUser.uid}`),{
-    studentUid:currentUser.uid,studentEmail:currentUser.email,studentName:(await userData()).profile?.name||currentUser.email,
-    status:"active",currentIndex:0,currentSection:questions[0].section,timeLeft:questions[0].allocatedTime,currentResponse:"",
-    startedAt:examState.startedAt,responses:{}
-  });
-  renderExamQuestion();startQuestionTimer();
-}
-function renderExamQuestion(){
-  const x=examState.questions[examState.index],selected=examState.response;
-  $("root").innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="brandMark">E</div>ExamFlow</div><div class="topUser"><span>${esc(currentUser.email)}</span><span class="badge badgeBlue">${esc(examState.e.name)}</span></div></header><div class="examTop"><div class="examLayout examMeta"><div><div class="questionNo">QUESTION ${examState.index+1} / ${examState.questions.length}</div><b>${esc(x.section)}</b></div><div style="text-align:right"><div class="small">Time left</div><div id="examTimer" class="timer">${fmtSec(examState.timeLeft)}</div></div></div></div><main class="main"><div class="examLayout"><div class="card"><div class="between"><span class="badge badgeBlue">${esc(x.section)}</span><span class="small">${x.marks} mark${x.marks===1?"":"s"}</span></div><div class="questionText">${esc(x.text)}</div><div id="options">${x.displayedOptions.map((o,i)=>`<button class="optionBtn ${selected===i?"selected":""}" data-i="${i}"><span class="optionLetter">${String.fromCharCode(65+i)}</span><span>${esc(o)}</span></button>`).join("")}</div><div class="examFooter"><div class="small">Questions remaining after this: ${examState.questions.length-examState.index-1}</div><button id="nextBtn" class="btn btnPrimary" disabled>Next →</button></div></div></div></main></div>`;
-  document.querySelectorAll(".optionBtn").forEach(b=>b.onclick=()=>selectOption(Number(b.dataset.i)));
-  $("nextBtn").onclick=()=>advanceQuestion("manual");
-  updateNextButton();
-}
-function selectOption(i){if(examState.locked)return;examState.response=i;document.querySelectorAll(".optionBtn").forEach((b,j)=>b.classList.toggle("selected",i===j));updateNextButton();saveLiveResponse(i)}
-function updateNextButton(){const b=$("nextBtn");if(b){b.disabled=examState.response===null;b.textContent=examState.index===examState.questions.length-1?"Submit Exam →":"Next →"}}
-async function saveLiveResponse(i){
-  if(!examState)return;const q=examState.questions[examState.index],letter=String.fromCharCode(65+i);
-  await update(ref(db,`examSessions/${examState.examId}/${currentUser.uid}`),{currentResponse:letter,lastActivity:Date.now()});
-}
-function startQuestionTimer(){
-  clearInterval(examState.timer);let last=Date.now();
-  examState.timer=setInterval(async()=>{if(!examState||examState.locked)return;const now=Date.now(),delta=Math.max(0,Math.min(2,Math.round((now-last)/1000)));last=now;if(!delta)return;examState.timeLeft=Math.max(0,examState.timeLeft-delta);const t=$("examTimer");if(t){t.textContent=fmtSec(examState.timeLeft);t.classList.toggle("danger",examState.timeLeft<=5)}await update(ref(db,`examSessions/${examState.examId}/${currentUser.uid}`),{timeLeft:examState.timeLeft,lastActivity:Date.now()});if(examState.timeLeft<=0)advanceQuestion("timeout")},1000);
-}
-async function advanceQuestion(reason){
-  if(!examState||examState.locked)return;examState.locked=true;clearInterval(examState.timer);
-  const q=examState.questions[examState.index],response=examState.response;
-  const correct=response!==null && q.displayedOriginalIndices[response]===q.correctIndex;
-  const marks=correct?q.marks:0;
-  examState.responses[examState.index]={answer:response===null?"":String.fromCharCode(65+response),correct,marksAwarded:marks,timeUsed:q.allocatedTime-examState.timeLeft,displayedOptions:q.displayedOptions,displayedOriginalIndices:q.displayedOriginalIndices,questionNo:q.qnNo,section:q.section};
-  await update(ref(db,`examSessions/${examState.examId}/${currentUser.uid}/responses`),{[examState.index]:examState.responses[examState.index]});
-  const remaining=examState.questions.length-examState.index-1;
-  if(remaining<=0){await finishExam();return}
-  showTransition(reason,remaining,2);
-}
-function showTransition(reason,remaining,seconds){
-  let n=seconds;$("transitionRoot").innerHTML=`<div class="transition"><div class="transitionBox"><div class="transitionTitle">${reason==="timeout"?"⏰ TIME UP":"✓ QUESTION SAVED"}</div><div class="transitionSmall">Moving to the next question</div><div class="transitionSmall" style="margin-top:15px">Questions remaining</div><div class="transitionCount" id="transitionCount">${n}</div></div></div>`;
-  const timer=setInterval(()=>{n--;if(n<=0){clearInterval(timer);$("transitionRoot").innerHTML="";loadNextQuestion()}else $("transitionCount").textContent=n},1000);
-}
-async function loadNextQuestion(){
-  examState.index++;examState.response=null;examState.locked=false;examState.timeLeft=examState.questions[examState.index].allocatedTime;
-  const q=examState.questions[examState.index];
-  await update(ref(db,`examSessions/${examState.examId}/${currentUser.uid}`),{currentIndex:examState.index,currentSection:q.section,timeLeft:q.allocatedTime,currentResponse:"",status:"active",lastActivity:Date.now()});
-  renderExamQuestion();startQuestionTimer();
-}
 async function finishExam(){
-  const q=examState.questions[examState.index],response=examState.response,correct=response!==null&&q.displayedOriginalIndices[response]===q.correctIndex,marks=correct?q.marks:0;
-  examState.responses[examState.index]={answer:response===null?"":String.fromCharCode(65+response),correct,marksAwarded:marks,timeUsed:q.allocatedTime-examState.timeLeft,displayedOptions:q.displayedOptions,displayedOriginalIndices:q.displayedOriginalIndices,questionNo:q.qnNo,section:q.section};
-  const responses=examState.responses;
-  const section={};Object.values(responses).forEach(r=>{if(!section[r.section])section[r.section]={obtained:0,total:0};section[r.section].obtained+=Number(r.marksAwarded||0)});
-  examState.questions.forEach(q=>{if(!section[q.section])section[q.section]={obtained:0,total:0};section[q.section].total+=q.marks});
-  Object.keys(section).forEach(k=>{section[k].percentage=section[k].total?section[k].obtained/section[k].total*100:100;section[k].pass=section[k].percentage>=65});
-  const obtained=Object.values(responses).reduce((a,r)=>a+Number(r.marksAwarded||0),0),pct=examState.e.totalMarks?obtained/examState.e.totalMarks*100:0;
-  const passed=Object.values(section).every(s=>s.pass);
-  const result={studentUid:currentUser.uid,studentEmail:currentUser.email,examId:examState.examId,examName:examState.e.name,obtained,totalMarks:examState.e.totalMarks,percentage:pct,overallPass:passed,correct:Object.values(responses).filter(r=>r.correct).length,wrong:Object.values(responses).filter(r=>r.answer&&!r.correct).length,unanswered:examState.questions.length-Object.values(responses).filter(r=>r.answer).length,sectionResults:section,responses,completedAt:Date.now()};
-  await set(ref(db,`examResults/${examState.examId}/${currentUser.uid}`),result);
-  await update(ref(db,`examSessions/${examState.examId}/${currentUser.uid}`),{status:"submitted",completedAt:Date.now(),timeLeft:0,responses});
-  clearInterval(examState.timer);examState=null;renderStudentResult(result);
-}
-function renderStudentResult(r){
-  $("root").innerHTML=`<div class="app"><header class="topbar"><div class="brand"><div class="brandMark">E</div>ExamFlow</div><div class="topUser"><span>${esc(currentUser.email)}</span></div></header><main class="main"><div class="examLayout"><div class="pageTitle"><div><h1>Exam Completed</h1><p>${esc(r.examName)}</p></div><span class="badge ${r.overallPass?"badgeGreen":"badgeRed"}">${r.overallPass?"PASS":"FAIL"}</span></div><div class="card hero" style="text-align:center"><div class="resultBig">${r.obtained} / ${r.totalMarks}</div><div style="font-size:20px;font-weight:800;margin-top:4px">${r.percentage.toFixed(1)}%</div><p>You can see your marks and section results. Correct answers are not shown.</p></div><div class="grid grid4" style="margin-top:18px">${stat("✓","Correct",r.correct)}${stat("✕","Wrong",r.wrong)}${stat("—","Unanswered",r.unanswered)}${stat("📌","Sections",Object.keys(r.sectionResults).length)}</div><div class="card" style="margin-top:18px"><h3>Section-wise Result</h3>${Object.entries(r.sectionResults).map(([k,s])=>`<div class="sectionCard" style="margin-top:10px"><div class="between"><b>${esc(k)}</b><span class="badge ${s.pass?"badgeGreen":"badgeRed"}">${s.pass?"PASS":"FAIL"}</span></div><div style="margin-top:7px">${s.obtained} / ${s.total} marks · ${s.percentage.toFixed(1)}%</div><div class="progress" style="margin-top:9px"><div class="progressFill" style="width:${Math.min(100,s.percentage)}%"></div></div></div>`).join("")}</div><button class="btn btnPrimary" onclick="go('results')" style="margin-top:18px">Back to Results</button></div></main></div>`;
-}
-async function studentResults(){
-  const s=await get(ref(db,`examResults`));const all=s.exists()?s.val():{},rows=[];Object.entries(all).forEach(([eid,v])=>{if(v[currentUser.uid])rows.push(v[currentUser.uid])});
-  $("main").innerHTML=`<div class="pageTitle"><div><h1>My Results</h1><p>Marks and section-wise results from completed exams.</p></div></div><div class="card"><div class="tableWrap"><table class="table"><thead><tr><th>Exam</th><th>Marks</th><th>Percentage</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td><b>${esc(r.examName)}</b></td><td>${r.obtained}/${r.totalMarks}</td><td>${Number(r.percentage).toFixed(1)}%</td><td><span class="badge ${r.overallPass?"badgeGreen":"badgeRed"}">${r.overallPass?"PASS":"FAIL"}</span></td><td>${fmtDate(r.completedAt)}</td></tr>`).join("")||`<tr><td colspan="5">No completed exams.</td></tr>`}</tbody></table></div></div>`;
-}
-
-/* ---------- ADMIN RESULTS / STUDENTS ---------- */
-async function adminStudents(){
-  const s=await get(ref(db,"users")),u=s.exists()?s.val():{},arr=Object.entries(u).filter(([id,x])=>x.profile?.role==="student"||x.profile?.email&&x.profile.email!==ADMIN_EMAIL_FALLBACK);
-  $("main").innerHTML=`<div class="pageTitle"><div><h1>Students</h1><p>Firebase Authentication accounts with student role.</p></div></div><div class="card"><div class="tableWrap"><table class="table"><thead><tr><th>Student</th><th>User ID</th><th>Created</th></tr></thead><tbody>${arr.map(([id,x])=>`<tr><td><b>${esc(x.profile.email)}</b></td><td>${esc(id)}</td><td>${fmtDate(x.profile.createdAt)}</td></tr>`).join("")||`<tr><td colspan="3">No students.</td></tr>`}</tbody></table></div></div>`;
-}
-async function adminResults(){
-  const [es,rs]=await Promise.all([exams(),get(ref(db,"examResults"))]);const ea=examArr(es),all=rs.exists()?rs.val():{};
-  $("main").innerHTML=`<div class="pageTitle"><div><h1>Results & Reports</h1><p>View completed results and download summary PDFs.</p></div></div><div class="grid grid2">${ea.map(e=>{const rows=Object.values(all[e.id]||{});return `<div class="card"><div class="between"><h3>${esc(e.name)}</h3><span class="badge badgeBlue">${rows.length} results</span></div><div class="small" style="margin-top:7px">${e.questions.length} questions · ${e.totalMarks} marks</div><div class="row" style="margin-top:15px"><button class="btn btnSoft btnSmall" onclick="viewExamResults('${e.id}')">View Results</button><button class="btn btnPrimary btnSmall" onclick="downloadExamPDF('${e.id}')">Download PDF</button></div></div>`}).join("")||`<div class="empty">No results yet.</div>`}</div>`;
-}
-async function viewExamResults(examId){
-  const [e,rs]=[(await exams())[examId],(await get(ref(db,`examResults/${examId}`))).val()||{}];const rows=Object.values(rs);
-  $("main").innerHTML=`<div class="pageTitle"><div><button class="btn btnGhost btnSmall" onclick="go('results')">← Results</button><h1 style="margin-top:12px">${esc(e.name)}</h1><p>Student-wise final results.</p></div><button class="btn btnPrimary" onclick="downloadExamPDF('${examId}')">Download Summary PDF</button></div><div class="card"><div class="tableWrap"><table class="table"><thead><tr><th>Student</th><th>Marks</th><th>%</th><th>Status</th><th>Completed</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.studentName||r.studentEmail)}</b></td><td>${r.obtained}/${r.totalMarks}</td><td>${Number(r.percentage).toFixed(1)}%</td><td><span class="badge ${r.overallPass?"badgeGreen":"badgeRed"}">${r.overallPass?"PASS":"FAIL"}</span></td><td>${fmtDate(r.completedAt)}</td></tr>`).join("")||`<tr><td colspan="5">No submitted students.</td></tr>`}</tbody></table></div></div>`;
-}
-window.viewExamResults=viewExamResults;
-
-/* ---------- PDF ---------- */
-async function downloadExamPDF(examId){
-  if(!window.jspdf){const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";document.head.appendChild(s);await new Promise((res,rej)=>{s.onload=res;s.onerror=rej})}
-  const e=(await exams())[examId],snap=await get(ref(db,`examResults/${examId}`)),rows=Object.values(snap.exists()?snap.val():{});
-  const {jsPDF}=window.jspdf,doc=new jsPDF();let y=18;
-  const line=(text,size=10,bold=false)=>{doc.setFontSize(size);doc.setFont("helvetica",bold?"bold":"normal");const parts=doc.splitTextToSize(String(text),175);if(y+parts.length*6>280){doc.addPage();y=18}doc.text(parts,18,y);y+=parts.length*6+2};
-  line("EXAMFLOW - EXAMINATION SUMMARY",18,true);line(e.name,14,true);line(`Generated: ${new Date().toLocaleString()}`);line(`Students completed: ${rows.length}`);line(`Total marks: ${e.totalMarks}`);y+=4;
-  const pass=rows.filter(r=>r.overallPass).length,fail=rows.length-pass;line(`Pass: ${pass}   Fail: ${fail}`,11,true);y+=4;line("STUDENT RESULTS",13,true);
-  rows.forEach((r,i)=>{line(`${i+1}. ${r.studentName||r.studentEmail} | ${r.obtained}/${r.totalMarks} | ${Number(r.percentage).toFixed(1)}% | ${r.overallPass?"PASS":"FAIL"}`,10);Object.entries(r.sectionResults||{}).forEach(([k,s])=>line(`   ${k}: ${s.obtained}/${s.total} (${s.percentage.toFixed(1)}%) - ${s.pass?"PASS":"FAIL"}`,9))});
-  y+=5;line("SECTION SUMMARY",13,true);
-  const summary={};rows.forEach(r=>Object.entries(r.sectionResults||{}).forEach(([k,s])=>{if(!summary[k])summary[k]={sum:0,n:0,pass:0,fail:0};summary[k].sum+=s.percentage;summary[k].n++;s.pass?summary[k].pass++:summary[k].fail++}));
-  Object.entries(summary).forEach(([k,s])=>line(`${k}: average ${ (s.sum/s.n).toFixed(1)}% | PASS ${s.pass} | FAIL ${s.fail}`,10));
-  doc.save((e.name||"exam").replace(/[^a-z0-9]+/gi,"_")+"_summary.pdf");
-}
-window.downloadExamPDF=downloadExamPDF;
-
-/* ---------- common ---------- */
-window.go=p=>{currentPage=p;renderPage()};
-onAuthStateChanged(auth,async user=>{
-  clearLive();currentUser=user;
-  if(!user){isAdmin=false;loginView();return}
-  await ensureUser();shell();await renderPage();
+let s=state.session,obtained=0,correct=0,wrong=0,unanswered=0,sections={};
+s.questions.forEach((q,i)=>{
+let r=s.responses[i],ok=r&&Number(r.selectedOriginal)===Number(q.correctIndex);
+let marks=ok?q.marks:0;if(r){if(ok)correct++;else wrong++}else unanswered++;
+obtained+=marks;if(!sections[q.section])sections[q.section]={marks:0,total:0,correct:0,wrong:0,unanswered:0};
+sections[q.section].marks+=marks;sections[q.section].total+=q.marks;if(r){ok?sections[q.section].correct++:sections[q.section].wrong++}else sections[q.section].unanswered++;
 });
+let sectionResults={};let overallPass=true;
+Object.entries(sections).forEach(([name,x])=>{let pct=x.total?x.marks/x.total*100:0;let pass=pct>=65;if(!pass)overallPass=false;sectionResults[name]={...x,percentage:pct,pass}});
+let result={studentId:state.studentId,studentName:state.student.name,examId:state.examId,examName:state.exam.name,obtained,totalMarks:state.exam.totalMarks,percentage:state.exam.totalMarks?obtained/state.exam.totalMarks*100:0,overallPass,correct,wrong,unanswered,sectionResults,responses:s.responses,completedAt:Date.now()};
+await set(ref(db,"examResults/"+state.examId+"/"+state.studentId),result);
+await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),{status:"completed",completedAt:Date.now()});
+state.result=result;showStudentResult();
+}
+function showStudentResult(){
+let r=state.result;
+show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div></div><div class="page"><div class="card result-hero"><div class="muted">Examination Completed</div><div class="result-score">${r.obtained} / ${r.totalMarks}</div><h2>${r.overallPass?"PASS":"FAIL"}</h2><p class="muted">${Number(r.percentage).toFixed(2)}% · Correct ${r.correct} · Wrong ${r.wrong} · Unanswered ${r.unanswered}</p></div><div class="card"><h2>Section Performance</h2><p class="muted">A section requires at least 65% to pass. Correct answers are not displayed to students.</p><div class="result-grid">${Object.entries(r.sectionResults).map(([n,x])=>`<div class="section-result"><b>${esc(n)}</b><h2>${x.marks}/${x.total}</h2><div>${x.percentage.toFixed(1)}%</div><br><span class="badge ${x.pass?"green":"red"}">${x.pass?"PASS":"FAIL"}</span></div>`).join("")}</div></div><div style="text-align:center;margin-top:20px"><button class="btn btn-light" onclick="landing()">Exit</button></div></div></div>`);
+}
+
+window.viewResult=async(eid,sid)=>{let s=await get(ref(db,"examResults/"+eid+"/"+sid));if(!s.exists())return;let r=s.val();let rows=Object.entries(r.sectionResults||{}).map(([n,x])=>`<tr><td>${esc(n)}</td><td>${x.marks}/${x.total}</td><td>${x.percentage.toFixed(1)}%</td><td>${x.correct}</td><td>${x.wrong}</td><td>${x.unanswered}</td><td>${x.pass?"PASS":"FAIL"}</td></tr>`).join("");$("app").insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><h2>${esc(r.studentName)} · Result</h2><button class="close" onclick="$('modal').remove()">✕</button></div><p><b>Score:</b> ${r.obtained}/${r.totalMarks} · ${r.percentage.toFixed(2)}% · <b>${r.overallPass?"PASS":"FAIL"}</b></p><div class="table-wrap"><table class="table"><thead><tr><th>Section</th><th>Marks</th><th>%</th><th>Correct</th><th>Wrong</th><th>Unanswered</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div><br><button class="btn btn-primary" onclick="downloadPDF('${eid}','${sid}')">Download PDF</button></div></div>`)};
+
+window.downloadPDF=async(eid,sid)=>{
+let s=await get(ref(db,"examResults/"+eid+"/"+sid));if(!s.exists())return;let r=s.val(),{jsPDF}=window.jspdf,doc=new jsPDF();doc.setFontSize(18);doc.text("Examination Result",20,20);doc.setFontSize(11);doc.text("Student: "+r.studentName,20,32);doc.text("Student ID: "+r.studentId,20,40);doc.text("Exam: "+r.examName,20,48);doc.text("Score: "+r.obtained+" / "+r.totalMarks,20,58);doc.text("Percentage: "+r.percentage.toFixed(2)+"%",20,66);doc.text("Result: "+(r.overallPass?"PASS":"FAIL"),20,74);let y=88;Object.entries(r.sectionResults||{}).forEach(([n,x])=>{doc.text(n+" : "+x.marks+"/"+x.total+" | "+x.percentage.toFixed(1)+"% | "+(x.pass?"PASS":"FAIL"),20,y);y+=9;if(y>280){doc.addPage();y=20}});doc.save("result_"+r.studentId+".pdf")
+};
+
+function watchAdmin(){
+if(state.role!=="admin")return;
+onValue(ref(db,"students"),s=>{if(window._cache)window._cache.students=s.exists()?s.val():{}});
+onValue(ref(db,"exams"),s=>{if(window._cache)window._cache.exams=s.exists()?s.val():{}});
+onValue(ref(db,"examSessions"),s=>{if(window._cache)window._cache.sessions=s.exists()?s.val():{}});
+onValue(ref(db,"examResults"),s=>{if(window._cache)window._cache.results=s.exists()?s.val():{}});
+}
+landing();
 </script>
 </body>
 </html>
