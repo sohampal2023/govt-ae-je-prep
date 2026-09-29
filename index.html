@@ -246,16 +246,6 @@ function cleanupExamEnvironment(){
 // ==========================================
 window.landing = async () => {
     cleanupExamEnvironment();
-    
-    // Fetch exams for the dropdown
-    let examsSnap = await get(ref(db, "exams"));
-    let exams = examsSnap.exists() ? examsSnap.val() : {};
-    let examOptions = Object.entries(exams)
-        .map(([id, e]) => `<option value="${id}">${esc(e.name)}</option>`)
-        .join("");
-        
-    if(!examOptions) examOptions = `<option value="" disabled>No exams currently available</option>`;
-
     show(`<div class="app">
     <div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">CBT Command Center</span></div></div>
     <div class="page"><div class="hero"><h1>Professional CBT System</h1><p>RRB/TCS style secure assessment engine with centralized command and control.</p></div>
@@ -263,17 +253,16 @@ window.landing = async () => {
       
       <div class="card">
         <h2>1. Candidate Registration</h2>
-        <p class="muted">Register for an upcoming exam. A 10-digit Roll No will be generated and emailed.</p>
-        <div class="field"><label>Select Examination</label><select id="regExamId"><option value="" disabled selected>-- Choose Exam --</option>${examOptions}</select></div>
+        <p class="muted">Submit your details. Your Roll Number and Exam Date will be emailed once the admin schedules your test.</p>
         <div class="field"><label>Full Name</label><input id="regName" placeholder="Name"></div>
         <div class="field"><label>Phone & Email</label><div style="display:flex;gap:10px"><input id="regPhone" placeholder="Phone"><input id="regEmail" placeholder="Email"></div></div>
         <div class="field"><label>Department</label><input id="regDept" placeholder="Department"></div>
-        <button class="btn btn-primary" style="width:100%" onclick="submitRegistration()">Register & Get Roll No</button>
+        <button class="btn btn-primary" style="width:100%" onclick="submitRegistration()">Submit Details</button>
       </div>
 
       <div class="card" style="border-color:var(--primary); box-shadow:var(--shadow-lg)">
         <h2>2. Exam Login</h2>
-        <p class="muted">After admin verifies your ID, use your Roll No and Secret ID to enter.</p>
+        <p class="muted">Use your emailed Roll No and the Secret ID provided at the center.</p>
         <div class="field"><label>Roll Number</label><input id="loginRoll" placeholder="e.g. 1234567890"></div>
         <div class="field"><label>Secret ID</label><input id="loginSecret" type="password" placeholder="e.g. 582914"></div>
         <button class="btn btn-primary" style="width:100%; background:var(--text)" onclick="studentLogin()">Secure Login</button>
@@ -281,39 +270,45 @@ window.landing = async () => {
 
       <div class="card">
         <h2>3. Administrator</h2>
-        <p class="muted">Verify IDs, generate Secret IDs, and control the live examination.</p>
+        <p class="muted">Schedule exams, verify IDs, and control the live examination.</p>
         <div class="field"><label>Admin PIN</label><input id="apin" type="password" placeholder="Enter admin PIN"></div>
         <button class="btn btn-light" style="width:100%" onclick="adminLogin()">Open Admin Panel</button>
       </div>
 
     </div></div></div>`);
 };
-
 window.submitRegistration = async () => {
     let name = $("regName").value.trim();
     let email = $("regEmail").value.trim();
-    let examId = $("regExamId").value;
     
-    if(!name || !email || !examId) return toast("Name, Email, and Exam selection are required.");
+    if(!name || !email) return toast("Name and Email are required.");
     
-    // Auto Generate 10-digit Roll Number
-    let generatedRoll = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-    
-    await set(ref(db, "verifications/" + generatedRoll), {
-        roll: generatedRoll, safeRoll: generatedRoll, name, phone: $("regPhone").value.trim(), email, dept: $("regDept").value.trim(), examId: examId,
-        status: 'pending', timestamp: Date.now()
-    });
-    
-    // Email Notification Trigger
-    let subject = encodeURIComponent(`Exam Registration Confirmed: ${generatedRoll}`);
-    let body = encodeURIComponent(`Hello ${name},\n\nYour exam registration is confirmed.\n\nRoll Number: ${generatedRoll}\nExam ID: ${examId}\n\nPlease present this information to the Invigilator on the exam date for verification.\n\nRegards,\nExamFlow Team`);
-    
-    alert("Registration successful!\n\nYour System Generated Roll No is: " + generatedRoll + "\n\nAn email draft will now open. Send it to yourself as proof for verification.");
-    
-    // Opens email client with pre-filled details for the student
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-    
-    $("regName").value = ""; $("regPhone").value = ""; $("regEmail").value = ""; $("regDept").value = ""; $("regExamId").value = "";
+    let btn = document.querySelector(".auth-grid .card:nth-child(1) button");
+    let originalText = btn.innerText;
+    btn.innerText = "Submitting...";
+    btn.disabled = true;
+
+    try {
+        // Generate 10-digit Roll Number silently
+        let generatedRoll = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+        
+        // Save to Firebase as 'unassigned' (no exam scheduled yet)
+        await set(ref(db, "verifications/" + generatedRoll), {
+            roll: generatedRoll, safeRoll: generatedRoll, name, phone: $("regPhone").value.trim(), email, dept: $("regDept").value.trim(),
+            status: 'unassigned', timestamp: Date.now()
+        });
+        
+        alert("Registration Submitted Successfully!\n\nYour details have been received. You will receive an automated email containing your Roll Number and Exam Date once the Administrator schedules your test.");
+        
+        // Clear form
+        $("regName").value = ""; $("regPhone").value = ""; $("regEmail").value = ""; $("regDept").value = "";
+    } catch (e) {
+        console.error(e);
+        toast("Failed to submit registration.");
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
 };
 
 window.studentLogin = async () => {
@@ -356,6 +351,7 @@ async function adminDashboard(){
     <div class="page"><div class="dashboard-head"><div><h1>Admin Dashboard</h1><div class="muted">Manage verifications, exams, and live execution.</div></div><div><button class="btn btn-primary" onclick="openExamModal()">+ Create Exam</button></div></div>
     <div class="tabs">
         <button class="tab active" id="tab-exams" onclick="adminExams()">Exams</button>
+        <button class="tab" id="tab-schedule" onclick="adminScheduling()">Schedule Candidates</button>
         <button class="tab" id="tab-idm" onclick="adminIDManagement()">ID Verification (Check-in)</button>
         <button class="tab" id="tab-monitor" onclick="adminMonitorSetup()">Live Command Center</button>
         <button class="tab" id="tab-results" onclick="adminResults()">Results</button>
@@ -363,6 +359,97 @@ async function adminDashboard(){
     <div id="adminContent"></div></div></div>`);
     adminExams();
 }
+   window.adminScheduling = () => {
+    setTab('tab-schedule'); window.currentAdminTab = 'schedule';
+    let verifications = window._cache.verifications || {};
+    let exams = window._cache.exams || {}; 
+    
+    let examOptions = Object.entries(exams).map(([id, e]) => `<option value="${id}">${esc(e.name)}</option>`).join("");
+    
+    // Only show candidates who are not scheduled yet ('unassigned')
+    let rows = Object.values(verifications).filter(v => v.status === 'unassigned').sort((a,b)=>b.timestamp-a.timestamp).map(v => `
+        <tr>
+            <td><b>${esc(v.name)}</b><br><small class="muted">${esc(v.email)}</small></td>
+            <td>${esc(v.dept)}</td>
+            <td>
+                <select id="exam-${v.safeRoll}" style="padding:6px;font-size:12px;width:160px;margin-bottom:4px">
+                    <option value="" disabled selected>-- Select Exam --</option>
+                    ${examOptions}
+                </select><br>
+                <input type="datetime-local" id="date-${v.safeRoll}" style="padding:6px;font-size:12px;width:160px">
+            </td>
+            <td>
+                <button class="btn btn-sm btn-success" onclick="scheduleAndEmail('${v.safeRoll}')">Schedule & Send Mail</button>
+            </td>
+        </tr>
+    `).join("");
+    
+    $("adminContent").innerHTML=`<div class="card"><h2>Schedule Candidates</h2><p class="muted">Assign an exam and date to registered students. This will officially assign their Roll No and dispatch the automated email.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Candidate</th><th>Dept</th><th>Assign Exam & Date</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No unassigned candidates.</div>`}</div></div>`;
+};
+
+window.scheduleAndEmail = async (safeRoll) => {
+    let examId = $(`exam-${safeRoll}`).value;
+    let dateVal = $(`date-${safeRoll}`).value;
+    
+    if(!examId || !dateVal) return toast("Please select an exam and date/time.");
+    
+    let v = window._cache.verifications[safeRoll];
+    let examName = window._cache.exams[examId].name;
+    let formattedDate = new Date(dateVal).toLocaleString();
+    
+    let btn = event.target;
+    let originalText = btn.innerText;
+    btn.innerText = "Sending...";
+    btn.disabled = true;
+
+    try {
+        // Send Email via Transactional API (Brevo used as example)
+        await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "api-key": "YOUR_API_KEY_HERE" // <--- Paste your Brevo/Email API key here
+            },
+            body: JSON.stringify({
+                sender: { email: "no-reply@your-institute.com", name: "ExamFlow System" },
+                to: [{ email: v.email, name: v.name }],
+                subject: "Exam Scheduled - Roll Number Enclosed",
+                htmlContent: `
+                    <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                        <div style="background: #0f172a; padding: 20px; color: #ffffff; text-align: center;"><h2 style="margin: 0;">Exam Scheduled</h2></div>
+                        <div style="padding: 30px; background: #ffffff; color: #334155;">
+                            <p>Hello <b>${v.name}</b>,</p>
+                            <p>Your examination has been scheduled. Please find your official Roll Number and exam details below:</p>
+                            
+                            <div style="background: #f8fafc; border-left: 4px solid #4f46e5; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+                                <p style="margin: 0 0 5px 0; font-size: 13px; color: #64748b; text-transform: uppercase;">System Generated Roll Number</p>
+                                <h3 style="margin: 0; color: #0f172a; font-size: 24px; letter-spacing: 2px;">${v.roll}</h3>
+                            </div>
+                            
+                            <p><b>Exam Name:</b> ${examName}<br><b>Reporting Date & Time:</b> ${formattedDate}</p>
+                            <p><b>Next Steps:</b><br>Please present this Roll Number and your photo ID to the Invigilator at the center to undergo verification and receive your Secret Login ID.</p>
+                        </div>
+                    </div>`
+            })
+        });
+        
+        // Update Firebase status so they move to the ID Verification tab
+        await update(ref(db, "verifications/" + safeRoll), { 
+            status: 'pending', 
+            examId: examId, 
+            examDate: dateVal 
+        });
+        
+        toast("Email dispatched and candidate scheduled!");
+        adminScheduling(); // Refresh UI
+    } catch (e) {
+        console.error(e);
+        toast("Failed to dispatch email. Check API key.");
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+};
 function setTab(id) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); $(id).classList.add('active'); }
 
 window.adminExams = () => {
@@ -377,24 +464,25 @@ window.adminIDManagement = () => {
     let verifications = window._cache.verifications || {};
     let exams = window._cache.exams || {}; 
     
-    let rows = Object.values(verifications).sort((a,b)=>b.timestamp-a.timestamp).map(v => {
+    // Only show candidates who HAVE been scheduled ('pending' or 'approved')
+    let rows = Object.values(verifications).filter(v => v.status !== 'unassigned').sort((a,b)=>b.timestamp-a.timestamp).map(v => {
         let examName = exams[v.examId] ? exams[v.examId].name : v.examId;
+        let scheduledDate = v.examDate ? new Date(v.examDate).toLocaleString() : "N/A";
         return `
         <tr>
             <td><b>${esc(v.roll)}</b></td>
             <td>${esc(v.name)}<br><span class="badge blue" style="margin-top:4px">${esc(examName)}</span></td>
-            <td>${esc(v.phone)}<br><small class="muted">${esc(v.email)}</small></td>
-            <td>${esc(v.dept)}</td>
+            <td>${esc(v.phone)}<br><small class="muted">${scheduledDate}</small></td>
             <td>
                 ${v.status === 'pending' 
-                    ? `<button class="btn btn-sm btn-primary" onclick="verifyCandidate('${v.safeRoll}')">Tally Data & Verify ID</button>` 
+                    ? `<button class="btn btn-sm btn-primary" onclick="verifyCandidate('${v.safeRoll}')">Tally & Issue Secret ID</button>` 
                     : `<span class="badge purple">Verified · ID: ${v.secretId}</span>`}
             </td>
         </tr>
     `}).join("");
-    $("adminContent").innerHTML=`<div class="card"><h2>ID Management & Check-in</h2><p class="muted">Tally the candidate's physical ID and Email with the records below. If matched, click Verify to issue the Secret ID.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Roll No</th><th>Candidate & Exam</th><th>Contact Data</th><th>Dept</th><th>Action / Status</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No registrations yet.</div>`}</div></div>`;
+    
+    $("adminContent").innerHTML=`<div class="card"><h2>ID Management & Check-in</h2><p class="muted">Tally the candidate's physical ID with the scheduled records below. Click Verify to issue the Secret ID.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Roll No</th><th>Candidate & Exam</th><th>Contact & Date</th><th>Action / Status</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No scheduled candidates pending check-in.</div>`}</div></div>`;
 };
-
 window.verifyCandidate = async (safeRoll) => {
     if(!confirm("Are you sure the candidate's details match their physical ID?")) return;
 
@@ -792,7 +880,7 @@ window.createExam=async()=>{ try{ let id=$("ei").value.trim().toUpperCase(),name
 window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
 window.deleteExam=async id=>{if(!confirm("Delete this examination?"))return;await set(ref(db,"exams/"+id),null); toast("Exam deleted"); adminExams(); };
 
-Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminIDManagement, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });
+Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, adminIDManagement, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });
 landing();
 </script>
 </body>
