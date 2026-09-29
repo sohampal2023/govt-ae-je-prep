@@ -415,36 +415,33 @@ window.scheduleAndEmail = async (safeRoll) => {
             examDate: dateVal 
         });
         
-        // 2. Auto-Calculate the Exam Pattern from the uploaded JSON
-        let patternMap = {};
-        let totalQ = 0, totalM = 0, totalSecs = 0;
-        
-        (exam.questions || []).forEach(q => {
-            let sec = q.section || "General";
-            if(!patternMap[sec]) patternMap[sec] = { q: 0, m: 0, t: 0 };
-            patternMap[sec].q += 1;
-            patternMap[sec].m += q.marks;
-            patternMap[sec].t += q.allocatedTime;
-            totalQ += 1;
-            totalM += q.marks;
-            totalSecs += q.allocatedTime;
-        });
-
-        // 3. Format the Pattern as a clean Text Table
+        // 2. Read the Pattern JSON that you manually uploaded
         let pad = (str, len) => str.toString().padEnd(len, ' ');
         let tableText = `---------------------------------------------------------\n`;
         tableText += `${pad("SECTION", 20)} | ${pad("QNS", 5)} | ${pad("MARKS", 7)} | ${pad("TIME(m)", 7)}\n`;
         tableText += `---------------------------------------------------------\n`;
         
-        Object.entries(patternMap).forEach(([sec, data]) => {
-            let sName = sec.length > 18 ? sec.substring(0, 15) + '...' : sec;
-            tableText += `${pad(sName, 20)} | ${pad(data.q, 5)} | ${pad(data.m, 7)} | ${pad((data.t/60).toFixed(1), 7)}\n`;
-        });
+        let totalQ = 0, totalM = 0, totalT = 0;
+
+        if (exam.pattern && Array.isArray(exam.pattern)) {
+            exam.pattern.forEach(p => {
+                let sName = p.section.length > 18 ? p.section.substring(0, 15) + '...' : p.section;
+                let qns = p.qns || 0;
+                let marks = p.marks || 0;
+                let time = p.time_mins || 0;
+                
+                tableText += `${pad(sName, 20)} | ${pad(qns, 5)} | ${pad(marks, 7)} | ${pad(time, 7)}\n`;
+                totalQ += Number(qns);
+                totalM += Number(marks);
+                totalT += Number(time);
+            });
+        }
+        
         tableText += `---------------------------------------------------------\n`;
-        tableText += `${pad("TOTAL", 20)} | ${pad(totalQ, 5)} | ${pad(totalM, 7)} | ${pad((totalSecs/60).toFixed(1), 7)}\n`;
+        tableText += `${pad("TOTAL", 20)} | ${pad(totalQ, 5)} | ${pad(totalM, 7)} | ${pad(totalT, 7)}\n`;
         tableText += `---------------------------------------------------------`;
 
-        // 4. Prepare the detailed "Big Mail" with the injected table
+        // 3. Prepare the detailed "Big Mail"
         let subject = `OFFICIAL NOTIFICATION: Exam Schedule & Roll Number Assignment`;
         let bodyText = `Dear ${v.name},
 
@@ -478,14 +475,14 @@ Best Regards,
 Examination Administration Team`;
 
         // =========================================================
-        // 5. YOUR GOOGLE SCRIPT URL
+        // 4. YOUR GOOGLE SCRIPT URL
         // =========================================================
         let scriptUrl = "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec"; 
 
-        // 6. Send the email automatically in the background
+        // 5. Send the email automatically in the background
         await fetch(scriptUrl, {
             method: "POST",
-            mode: "no-cors", // Bypasses CORS blocks
+            mode: "no-cors",
             headers: {
                 "Content-Type": "text/plain",
             },
@@ -505,8 +502,7 @@ Examination Administration Team`;
         btn.innerText = originalText;
         btn.disabled = false;
     }
-};};
-
+};
 // Helper function to copy the email text to clipboard
 window.copyEmailText = () => {
     let copyText = $("generatedEmailContent");
@@ -1004,9 +1000,91 @@ async function finishExam(){
 
 // Admin Utilities
 window.adminResults=()=>{ setTab('tab-results'); window.currentAdminTab = 'results'; let results=window._cache.results||{}; let exams=window._cache.exams||{},rows=[]; Object.entries(results).forEach(([eid,rs])=>Object.entries(rs||{}).forEach(([sid,r])=>rows.push(`<tr><td>${esc(sid.replace(/-/g,"/"))}</td><td>${esc(r.examName||exams[eid]?.name||eid)}</td><td>${r.obtained}/${r.totalMarks}</td><td>${Number(r.percentage||0).toFixed(1)}%</td><td><span class="badge ${r.overallPass?"green":"red"}">${r.overallPass?"PASS":"FAIL"}</span></td></tr>`))); $("adminContent").innerHTML=`<div class="card"><h2>Results</h2><div class="table-wrap">${rows.length?`<table class="table"><thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Percentage</th><th>Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`:`<div class="empty">No completed results.</div>`}</div></div>`; };
-window.openExamModal=()=>{ $("app").insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><h2>Create Examination</h2><button class="close" onclick="$('modal').remove()">✕</button></div><div class="form-grid"><div class="field full"><label>Exam Name</label><input id="en" placeholder="Example: Mock Test"></div><div class="field"><label>Exam ID</label><input id="ei" value="${genId()}"></div><div class="field"><label>Instructions</label><input id="ein" value="Read carefully. No going back."></div><div class="field full"><label>Questions JSON</label><textarea id="qjson" placeholder='[ {"q":"Ohm law is?","a":["V=IR","P=VI","I=V/R","All"],"correct":0,"marks":2,"time":30,"section":"Basics"} ]'></textarea></div></div><br><button class="btn btn-primary" onclick="createExam()">Create Exam</button></div></div>`) };
-window.createExam=async()=>{ try{ let id=$("ei").value.trim().toUpperCase(),name=$("en").value.trim(),questions=JSON.parse($("qjson").value); let clean=questions.map((q,i)=>{return { id:i+1,text:q.q,options:q.a,correctIndex:Number(q.correct),marks:Number(q.marks||1),allocatedTime:Number(q.time||30),section:q.section||"General"}}); let total=clean.reduce((a,q)=>a+q.marks,0); await set(ref(db,"exams/"+id),{id,name,instructions:$("ein").value,questions:clean,totalMarks:total,status:"draft",createdAt:Date.now()}); $("modal").remove();toast("Exam created");adminExams(); }catch(e){toast(e.message||"Could not create exam")} };
-window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
+window.openExamModal = () => {
+    $("app").insertAdjacentHTML("beforeend", `
+    <div class="modal" id="modal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h2>Create Examination</h2>
+                <button class="close" onclick="$('modal').remove()">✕</button>
+            </div>
+            <div class="form-grid">
+                <div class="field full"><label>Exam Name</label><input id="en" placeholder="Example: Mock Test"></div>
+                <div class="field"><label>Exam ID</label><input id="ei" value="${genId()}"></div>
+                <div class="field"><label>Instructions</label><input id="ein" value="Read carefully. No going back."></div>
+                
+                <div class="field full">
+                    <label>1. Exam Pattern JSON <span style="color:#ef4444">*</span></label>
+                    <textarea id="patternjson" placeholder='[\n {"section":"Aptitude", "qns":10, "marks":20, "time_mins":15},\n {"section":"Technical", "qns":20, "marks":40, "time_mins":30}\n]' style="min-height:90px; font-family:monospace; font-size:12px;"></textarea>
+                </div>
+
+                <div class="field full">
+                    <label>2. Questions JSON <span style="color:#ef4444">*</span></label>
+                    <textarea id="qjson" placeholder='[\n {"q":"Ohm law is?","a":["V=IR","P=VI","I=V/R","All"],"correct":0,"marks":2,"time":30,"section":"Technical"}\n]' style="min-height:120px; font-family:monospace; font-size:12px;"></textarea>
+                </div>
+            </div><br>
+            <button class="btn btn-primary" onclick="createExam()" style="width:100%">Save & Create Exam</button>
+        </div>
+    </div>`);
+};
+   window.createExam = async () => {
+    let btn = event.target;
+    let originalText = btn.innerText;
+    btn.innerText = "Validating & Saving...";
+    btn.disabled = true;
+
+    try {
+        let id = $("ei").value.trim().toUpperCase();
+        let name = $("en").value.trim();
+        
+        if(!id || !name) throw new Error("Exam ID and Name are required.");
+
+        // 1. Parse Pattern JSON
+        let patternRaw = $("patternjson").value.trim();
+        if(!patternRaw) throw new Error("Exam Pattern JSON is required.");
+        let examPattern = JSON.parse(patternRaw);
+
+        // 2. Parse Questions JSON
+        let questionsRaw = $("qjson").value.trim();
+        if(!questionsRaw) throw new Error("Questions JSON is required.");
+        let questions = JSON.parse(questionsRaw);
+        
+        let clean = questions.map((q, i) => {
+            return { 
+                id: i + 1, 
+                text: q.q, 
+                options: q.a, 
+                correctIndex: Number(q.correct), 
+                marks: Number(q.marks || 1), 
+                allocatedTime: Number(q.time || 30), 
+                section: q.section || "General" 
+            };
+        });
+        
+        let total = clean.reduce((a, q) => a + q.marks, 0);
+        
+        // 3. Save to Firebase
+        await set(ref(db, "exams/" + id), {
+            id, 
+            name, 
+            instructions: $("ein").value, 
+            pattern: examPattern, // <--- Saves your manually typed pattern
+            questions: clean, 
+            totalMarks: total, 
+            status: "draft", 
+            createdAt: Date.now()
+        });
+        
+        $("modal").remove();
+        toast("Exam created successfully!");
+        adminExams();
+        
+    } catch (e) {
+        toast(e.message || "Invalid JSON syntax. Please check your brackets and quotes.");
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+};window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
 window.deleteExam=async id=>{if(!confirm("Delete this examination?"))return;await set(ref(db,"exams/"+id),null); toast("Exam deleted"); adminExams(); };
 
 Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, adminIDManagement, searchVerifyCandidate, checkTally, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });</script>
