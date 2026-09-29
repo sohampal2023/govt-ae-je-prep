@@ -440,16 +440,9 @@ Best Regards,
 Examination Administration Team`;
 
         // =========================================================
-        // 3. PASTE YOUR GOOGLE SCRIPT URL HERE
+        // 3. YOUR GOOGLE SCRIPT URL
         // =========================================================
         let scriptUrl = "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec"; 
-        
-        if (scriptUrl === "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec") {
-            alert("SYSTEM PAUSED: You need to paste your Google Apps Script URL into the code to enable automatic background emails!");
-            btn.innerText = originalText;
-            btn.disabled = false;
-            return;
-        }
 
         // 4. Send the email automatically in the background
         await fetch(scriptUrl, {
