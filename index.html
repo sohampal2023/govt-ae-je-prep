@@ -244,55 +244,76 @@ function cleanupExamEnvironment(){
 // ==========================================
 // 1. LANDING PAGE & REGISTRATION
 // ==========================================
-function landing(){cleanupExamEnvironment();
-show(`<div class="app">
-<div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">CBT Command Center</span></div></div>
-<div class="page"><div class="hero"><h1>Professional CBT System</h1><p>RRB/TCS style secure assessment engine with centralized command and control.</p></div>
-<div class="auth-grid">
-  
-  <div class="card">
-    <h2>1. Candidate Registration</h2>
-    <p class="muted">Fill this out on exam day. A 10-digit Roll Number will be generated.</p>
-    <div class="field"><label>Full Name</label><input id="regName" placeholder="Name"></div>
-    <div class="field"><label>Phone & Email</label><div style="display:flex;gap:10px"><input id="regPhone" placeholder="Phone"><input id="regEmail" placeholder="Email"></div></div>
-    <div class="field"><label>Department</label><input id="regDept" placeholder="Department"></div>
-    <button class="btn btn-primary" style="width:100%" onclick="submitRegistration()">Submit Details & Get Roll No</button>
-  </div>
+window.landing = async () => {
+    cleanupExamEnvironment();
+    
+    // Fetch exams for the dropdown
+    let examsSnap = await get(ref(db, "exams"));
+    let exams = examsSnap.exists() ? examsSnap.val() : {};
+    let examOptions = Object.entries(exams)
+        .map(([id, e]) => `<option value="${id}">${esc(e.name)}</option>`)
+        .join("");
+        
+    if(!examOptions) examOptions = `<option value="" disabled>No exams currently available</option>`;
 
-  <div class="card" style="border-color:var(--primary); box-shadow:var(--shadow-lg)">
-    <h2>2. Exam Login</h2>
-    <p class="muted">After admin verifies your ID, use your Roll No and Secret ID to enter.</p>
-    <div class="field"><label>Roll Number</label><input id="loginRoll" placeholder="e.g. 1234567890"></div>
-    <div class="field"><label>Secret ID</label><input id="loginSecret" type="password" placeholder="e.g. 582914"></div>
-    <button class="btn btn-primary" style="width:100%; background:var(--text)" onclick="studentLogin()">Secure Login</button>
-  </div>
+    show(`<div class="app">
+    <div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">CBT Command Center</span></div></div>
+    <div class="page"><div class="hero"><h1>Professional CBT System</h1><p>RRB/TCS style secure assessment engine with centralized command and control.</p></div>
+    <div class="auth-grid">
+      
+      <div class="card">
+        <h2>1. Candidate Registration</h2>
+        <p class="muted">Register for an upcoming exam. A 10-digit Roll No will be generated and emailed.</p>
+        <div class="field"><label>Select Examination</label><select id="regExamId"><option value="" disabled selected>-- Choose Exam --</option>${examOptions}</select></div>
+        <div class="field"><label>Full Name</label><input id="regName" placeholder="Name"></div>
+        <div class="field"><label>Phone & Email</label><div style="display:flex;gap:10px"><input id="regPhone" placeholder="Phone"><input id="regEmail" placeholder="Email"></div></div>
+        <div class="field"><label>Department</label><input id="regDept" placeholder="Department"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="submitRegistration()">Register & Get Roll No</button>
+      </div>
 
-  <div class="card">
-    <h2>3. Administrator</h2>
-    <p class="muted">Verify IDs, generate Secret IDs, and control the live examination.</p>
-    <div class="field"><label>Admin PIN</label><input id="apin" type="password" placeholder="Enter admin PIN"></div>
-    <button class="btn btn-light" style="width:100%" onclick="adminLogin()">Open Admin Panel</button>
-  </div>
+      <div class="card" style="border-color:var(--primary); box-shadow:var(--shadow-lg)">
+        <h2>2. Exam Login</h2>
+        <p class="muted">After admin verifies your ID, use your Roll No and Secret ID to enter.</p>
+        <div class="field"><label>Roll Number</label><input id="loginRoll" placeholder="e.g. 1234567890"></div>
+        <div class="field"><label>Secret ID</label><input id="loginSecret" type="password" placeholder="e.g. 582914"></div>
+        <button class="btn btn-primary" style="width:100%; background:var(--text)" onclick="studentLogin()">Secure Login</button>
+      </div>
 
-</div></div></div>`);
-}
+      <div class="card">
+        <h2>3. Administrator</h2>
+        <p class="muted">Verify IDs, generate Secret IDs, and control the live examination.</p>
+        <div class="field"><label>Admin PIN</label><input id="apin" type="password" placeholder="Enter admin PIN"></div>
+        <button class="btn btn-light" style="width:100%" onclick="adminLogin()">Open Admin Panel</button>
+      </div>
+
+    </div></div></div>`);
+};
 
 window.submitRegistration = async () => {
     let name = $("regName").value.trim();
-    if(!name) return toast("Name is required.");
+    let email = $("regEmail").value.trim();
+    let examId = $("regExamId").value;
+    
+    if(!name || !email || !examId) return toast("Name, Email, and Exam selection are required.");
     
     // Auto Generate 10-digit Roll Number
     let generatedRoll = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-    let safeRoll = generatedRoll;
     
-    await set(ref(db, "verifications/" + safeRoll), {
-        roll: generatedRoll, safeRoll: safeRoll, name, phone: $("regPhone").value.trim(), email: $("regEmail").value.trim(), dept: $("regDept").value.trim(),
+    await set(ref(db, "verifications/" + generatedRoll), {
+        roll: generatedRoll, safeRoll: generatedRoll, name, phone: $("regPhone").value.trim(), email, dept: $("regDept").value.trim(), examId: examId,
         status: 'pending', timestamp: Date.now()
     });
     
-    alert("Registration successful!\n\nYour System Generated Roll No is: " + generatedRoll + "\n\nPlease note this down and proceed to the Invigilator desk for ID Verification.");
+    // Email Notification Trigger
+    let subject = encodeURIComponent(`Exam Registration Confirmed: ${generatedRoll}`);
+    let body = encodeURIComponent(`Hello ${name},\n\nYour exam registration is confirmed.\n\nRoll Number: ${generatedRoll}\nExam ID: ${examId}\n\nPlease present this information to the Invigilator on the exam date for verification.\n\nRegards,\nExamFlow Team`);
     
-    $("regName").value = ""; $("regPhone").value = ""; $("regEmail").value = ""; $("regDept").value = "";
+    alert("Registration successful!\n\nYour System Generated Roll No is: " + generatedRoll + "\n\nAn email draft will now open. Send it to yourself as proof for verification.");
+    
+    // Opens email client with pre-filled details for the student
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    
+    $("regName").value = ""; $("regPhone").value = ""; $("regEmail").value = ""; $("regDept").value = ""; $("regExamId").value = "";
 };
 
 window.studentLogin = async () => {
@@ -354,33 +375,42 @@ window.adminExams = () => {
 window.adminIDManagement = () => {
     setTab('tab-idm'); window.currentAdminTab = 'idm';
     let verifications = window._cache.verifications || {};
-    let rows = Object.values(verifications).sort((a,b)=>b.timestamp-a.timestamp).map(v => `
+    let exams = window._cache.exams || {}; 
+    
+    let rows = Object.values(verifications).sort((a,b)=>b.timestamp-a.timestamp).map(v => {
+        let examName = exams[v.examId] ? exams[v.examId].name : v.examId;
+        return `
         <tr>
             <td><b>${esc(v.roll)}</b></td>
-            <td>${esc(v.name)}</td>
-            <td>${esc(v.phone)} / ${esc(v.email)}</td>
+            <td>${esc(v.name)}<br><span class="badge blue" style="margin-top:4px">${esc(examName)}</span></td>
+            <td>${esc(v.phone)}<br><small class="muted">${esc(v.email)}</small></td>
             <td>${esc(v.dept)}</td>
             <td>
                 ${v.status === 'pending' 
-                    ? `<button class="btn btn-sm btn-primary" onclick="verifyCandidate('${v.safeRoll}')">Verify & Generate Secret ID</button>` 
+                    ? `<button class="btn btn-sm btn-primary" onclick="verifyCandidate('${v.safeRoll}')">Tally Data & Verify ID</button>` 
                     : `<span class="badge purple">Verified · ID: ${v.secretId}</span>`}
             </td>
         </tr>
-    `).join("");
-    $("adminContent").innerHTML=`<div class="card"><h2>ID Management & Check-in</h2><p class="muted">Verify candidate details in person, then click Verify to generate their Secret Login ID.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Roll No</th><th>Name</th><th>Contact</th><th>Dept</th><th>Action / Status</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No registrations yet.</div>`}</div></div>`;
+    `}).join("");
+    $("adminContent").innerHTML=`<div class="card"><h2>ID Management & Check-in</h2><p class="muted">Tally the candidate's physical ID and Email with the records below. If matched, click Verify to issue the Secret ID.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Roll No</th><th>Candidate & Exam</th><th>Contact Data</th><th>Dept</th><th>Action / Status</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No registrations yet.</div>`}</div></div>`;
 };
 
 window.verifyCandidate = async (safeRoll) => {
+    if(!confirm("Are you sure the candidate's details match their physical ID?")) return;
+
     let v = window._cache.verifications[safeRoll];
     let secretId = Math.floor(100000 + Math.random() * 900000).toString();
     
+    // Push the verified student into the active students database
     await set(ref(db, "students/" + safeRoll), {
-        roll: v.roll, safeRoll: safeRoll, name: v.name, phone: v.phone, email: v.email, department: v.dept, secretId, active: true, createdAt: Date.now()
+        roll: v.roll, safeRoll: safeRoll, name: v.name, phone: v.phone, email: v.email, department: v.dept, examId: v.examId, secretId, active: true, createdAt: Date.now()
     });
+    
+    // Mark as approved in verification lobby
     await update(ref(db, "verifications/" + safeRoll), { status: 'approved', secretId });
-    alert(`VERIFICATION COMPLETE!\n\nCandidate: ${v.name}\nRoll No: ${v.roll}\n\nSECRET ID: ${secretId}\n\nPlease verbally provide this Secret ID to the candidate for login.`);
+    
+    alert(`CANDIDATE VERIFIED!\n\nName: ${v.name}\nRoll No: ${v.roll}\n\nSECRET ID: ${secretId}\n\nPlease verbally give this Secret ID to the candidate so they can log in.`);
 };
-
 
 // ==========================================
 // 3. SYNCHRONIZED LIVE COMMAND CENTER
