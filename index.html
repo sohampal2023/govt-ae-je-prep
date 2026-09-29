@@ -115,7 +115,11 @@ if(!id)return toast("Enter your Student ID");
 try{
 let s=await get(ref(db,"students/"+id));
 if(!s.exists())return toast("Student ID not found");
-state.role="student";state.studentId=id;state.student=s.val();studentHome();
+if(s.val().active === false)return toast("This Student ID has been disabled");
+state.role="student";
+state.studentId=id;
+state.student=s.val();
+studentHome();
 }catch(e){console.error(e);toast("Database permission error. Check Firebase Rules.");}
 }
 
@@ -276,6 +280,32 @@ onValue(ref(db,"exams"),s=>{if(window._cache)window._cache.exams=s.exists()?s.va
 onValue(ref(db,"examSessions"),s=>{if(window._cache)window._cache.sessions=s.exists()?s.val():{}});
 onValue(ref(db,"examResults"),s=>{if(window._cache)window._cache.results=s.exists()?s.val():{}});
 }
+
+// Expose functions used by inline HTML onclick handlers.
+// Firebase is loaded as an ES module, so module-scoped functions
+// must be explicitly attached to window.
+Object.assign(window, {
+  studentLogin,
+  adminLogin,
+  adminDashboard,
+  adminStudents,
+  adminExams,
+  adminMonitor,
+  adminResults,
+  openStudentModal,
+  createStudent,
+  openExamModal,
+  createExam,
+  toggleExam,
+  deleteExam,
+  toggleStudent,
+  startExam,
+  chooseOption,
+  nextQuestion,
+  viewResult,
+  downloadPDF
+});
+
 landing();
 </script>
 </body>
