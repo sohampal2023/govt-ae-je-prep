@@ -58,7 +58,109 @@ display:flex;align-items:center;justify-content:space-between;padding:0 25px;pos
 .empty{text-align:center;padding:40px;color:var(--muted)}.toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:13px 17px;border-radius:11px;z-index:200;box-shadow:var(--shadow)}
 .file-note{padding:13px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;margin-top:10px}
 @media(max-width:900px){.auth-grid,.exam-layout{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.exam-side{position:static}.result-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.exam-choice-card>div:nth-child(2){grid-template-columns:1fr}.page>div[style*='grid-template-columns:repeat(3,1fr)']{grid-template-columns:1fr!important}}
 @media(max-width:600px){.topbar{padding:0 14px}.page{padding:20px 14px}.hero h1{font-size:31px}.stats{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.full{grid-column:auto}.question{font-size:18px}.exam-layout{padding:12px}.question-card{padding:18px}}
+
+.exam-choice-card{transition:transform .2s,box-shadow .2s;border:1px solid #e2e8f0}
+.exam-choice-card:hover{transform:translateY(-4px);box-shadow:0 20px 50px rgba(15,23,42,.10)}
+/* Premium visual layer */
+body{
+  background:
+    radial-gradient(circle at 10% 0%,rgba(37,99,235,.08),transparent 28%),
+    radial-gradient(circle at 90% 10%,rgba(124,58,237,.07),transparent 25%),
+    #f5f7fb;
+}
+.topbar{
+  backdrop-filter:blur(14px);
+  background:rgba(255,255,255,.88);
+  box-shadow:0 1px 0 rgba(15,23,42,.04),0 8px 30px rgba(15,23,42,.04);
+}
+.brand{letter-spacing:-.3px}.logo{box-shadow:0 8px 22px rgba(37,99,235,.25)}
+.page{max-width:1320px}
+.hero{
+  padding:58px 0 38px;
+  position:relative;
+}
+.hero h1{
+  font-size:clamp(32px,5vw,54px);
+  letter-spacing:-2px;
+  line-height:1.05;
+  background:linear-gradient(90deg,#172033,#2563eb,#7c3aed);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero p{max-width:650px;margin:14px auto;color:#64748b}
+.auth-grid{max-width:920px}
+.auth-grid .card{
+  position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s,border-color .2s;
+}
+.auth-grid .card:hover{transform:translateY(-4px);box-shadow:0 22px 55px rgba(15,23,42,.12);border-color:#bfdbfe}
+.auth-grid .card:before{
+  content:"";position:absolute;left:0;top:0;right:0;height:4px;
+  background:linear-gradient(90deg,#2563eb,#7c3aed);
+}
+.card{box-shadow:0 8px 28px rgba(15,23,42,.055)}
+.dashboard-head{
+  padding:22px 24px;background:rgba(255,255,255,.82);
+  border:1px solid var(--border);border-radius:20px;
+  box-shadow:0 10px 35px rgba(15,23,42,.05);
+}
+.stats .stat{
+  transition:transform .18s,box-shadow .18s;
+  border-color:#e7ebf1;
+}
+.stats .stat:hover{transform:translateY(-3px);box-shadow:0 16px 35px rgba(15,23,42,.08)}
+.stat:nth-child(1){border-top:3px solid #2563eb}
+.stat:nth-child(2){border-top:3px solid #7c3aed}
+.stat:nth-child(3){border-top:3px solid #16a34a}
+.stat:nth-child(4){border-top:3px solid #d97706}
+.btn{box-shadow:0 4px 12px rgba(15,23,42,.05)}
+.btn-primary{box-shadow:0 7px 18px rgba(37,99,235,.2)}
+.table-wrap{box-shadow:0 8px 25px rgba(15,23,42,.04)}
+.table tr:hover td{background:#f8fbff}
+.modal{backdrop-filter:blur(5px)}
+.modal-box{box-shadow:0 30px 90px rgba(15,23,42,.28)}
+.exam-shell{background:linear-gradient(180deg,#f8fafc,#eef3f9)}
+.exam-top{
+  box-shadow:0 6px 25px rgba(15,23,42,.06);
+  padding-left:max(18px,calc((100vw - 1320px)/2));
+  padding-right:max(18px,calc((100vw - 1320px)/2));
+}
+.exam-layout{max-width:1320px}
+.question-card{
+  min-height:570px;
+  box-shadow:0 18px 50px rgba(15,23,42,.08);
+}
+.q-meta span:first-child{
+  color:#1d4ed8;background:#eff6ff;padding:7px 10px;border-radius:8px;font-weight:800;
+}
+.option{
+  background:#fff;transition:.18s;
+}
+.option.selected{
+  box-shadow:0 8px 22px rgba(37,99,235,.12);
+}
+.exam-side{
+  box-shadow:0 14px 35px rgba(15,23,42,.07);
+}
+.timer{
+  box-shadow:0 6px 20px rgba(37,99,235,.12);
+  font-variant-numeric:tabular-nums;
+}
+.transition{
+  background:radial-gradient(circle at center,#1e293b,#0f172a 65%);
+}
+.result-score{
+  background:linear-gradient(90deg,#2563eb,#7c3aed);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+@media(max-width:600px){
+  .dashboard-head{align-items:flex-start;flex-direction:column}
+  .dashboard-head>div:last-child{width:100%}
+  .dashboard-head .btn{margin-bottom:6px}
+  .hero{padding-top:38px}
+}
+
 </style>
 </head>
 <body>
@@ -202,9 +304,41 @@ $("modal").remove();toast("Exam created");adminDashboard();
 async function studentHome(){
 let snap=await get(ref(db,"exams"));let exams=snap.exists()?snap.val():{};
 let available=Object.entries(exams).filter(([id,e])=>e.status==="published");
-let cards=available.map(([id,e])=>`<div class="card"><div style="display:flex;justify-content:space-between;gap:10px"><div><h3>${esc(e.name)}</h3><p class="muted">${e.questions?.length||0} Questions • ${e.totalMarks||0} Marks</p></div><span class="badge blue">${esc(id)}</span></div><button class="btn btn-primary" onclick="startExam('${id}')">Start Examination</button></div>`).join("");
-show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">${esc(state.student.name)} · ${esc(state.studentId)}</span><button class="btn btn-light btn-sm" onclick="landing()">Logout</button></div></div>
-<div class="page"><div class="hero"><h1>Welcome, ${esc(state.student.name)}</h1><p>Select your assigned examination.</p></div>${cards||`<div class="card empty">No published examinations are available for you.</div>`}</div></div>`);
+let cards=available.map(([id,e])=>`<div class="card exam-choice-card">
+  <div style="display:flex;justify-content:space-between;gap:15px;align-items:flex-start">
+    <div>
+      <span class="badge blue">AVAILABLE</span>
+      <h2 style="margin:12px 0 6px">${esc(e.name)}</h2>
+      <p class="muted">${esc(e.instructions||"Read all instructions before starting.")}</p>
+    </div>
+    <span class="badge blue">${esc(id)}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0">
+    <div class="file-note"><b>${e.questions?.length||0}</b><br><span class="small muted">Questions</span></div>
+    <div class="file-note"><b>${e.totalMarks||0}</b><br><span class="small muted">Total Marks</span></div>
+    <div class="file-note"><b>${Object.values(e.questions||{}).reduce((a,q)=>a+Number(q.allocatedTime||0),0)}s</b><br><span class="small muted">Total Time</span></div>
+  </div>
+  <button class="btn btn-primary" style="width:100%" onclick="startExam('${id}')">View Instructions & Start →</button>
+</div>`).join("");
+
+show(`<div class="app">
+<div class="topbar">
+  <div class="brand"><div class="logo">E</div><div>ExamFlow<div class="small muted">Student Portal</div></div></div>
+  <div class="top-actions"><span class="pill">${esc(state.student.name)} · ${esc(state.studentId)}</span><button class="btn btn-light btn-sm" onclick="landing()">Logout</button></div>
+</div>
+<div class="page">
+  <div class="hero" style="text-align:left;padding-bottom:25px">
+    <div class="badge blue">STUDENT DASHBOARD</div>
+    <h1 style="margin-top:14px">Ready for your examination?</h1>
+    <p style="margin-left:0">Choose an available examination below. Your Student ID is already verified.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:22px">
+    <div class="card"><div class="muted small">Student</div><h3 style="margin:7px 0">${esc(state.student.name)}</h3><div class="small muted">${esc(state.student.department||"")}</div></div>
+    <div class="card"><div class="muted small">Student ID</div><h3 style="margin:7px 0">${esc(state.studentId)}</h3><div class="small muted">Verified access</div></div>
+    <div class="card"><div class="muted small">Examinations</div><h3 style="margin:7px 0">${available.length}</h3><div class="small muted">Currently published</div></div>
+  </div>
+  <div style="display:grid;gap:18px">${cards||`<div class="card empty">No examination is currently published.</div>`}</div>
+</div></div>`);
 }
 
 window.startExam=async examId=>{
@@ -214,11 +348,49 @@ let existing=await get(ref(db,"examSessions/"+examId+"/"+state.studentId));
 if(existing.exists() && existing.val().status==="completed")return toast("You have already completed this examination.");
 let questions=exam.questions.map(q=>{let opts=q.options.map((text,i)=>({text,original:i}));opts=shuffle(opts);return {...q,displayed:opts}});
 state.exam=exam;state.examId=examId;
+state.pendingQuestions=questions;
+showExamInstructions();
+};
+
+
+function showExamInstructions(){
+let exam=state.exam,qs=state.pendingQuestions;
+let totalSeconds=qs.reduce((a,q)=>a+Number(q.allocatedTime||0),0);
+show(`<div class="app">
+<div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">${esc(state.studentId)}</span></div></div>
+<div class="page" style="max-width:1000px">
+<div class="hero" style="padding-bottom:20px"><div class="badge blue">EXAM INSTRUCTIONS</div><h1>${esc(exam.name)}</h1><p>${esc(exam.instructions||"Please read the instructions carefully before beginning.")}</p></div>
+<div class="card">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
+<div class="file-note"><b>${qs.length}</b><br><span class="small muted">Questions</span></div>
+<div class="file-note"><b>${exam.totalMarks}</b><br><span class="small muted">Total Marks</span></div>
+<div class="file-note"><b>${Math.floor(totalSeconds/60)}m ${totalSeconds%60}s</b><br><span class="small muted">Allocated Time</span></div>
+</div>
+<h2>Before you start</h2>
+<div style="display:grid;gap:11px;color:#475569;line-height:1.6">
+<div>✓ Each question has its own allocated timer.</div>
+<div>✓ When the timer reaches zero, the question is locked automatically.</div>
+<div>✓ You cannot return to a previous question after moving forward.</div>
+<div>✓ Your selected option is saved when you move to the next question.</div>
+<div>✓ Do not refresh or close the browser during the examination.</div>
+<div>✓ Your final result is calculated section-wise. Each section requires at least 65%.</div>
+</div>
+<div style="margin-top:28px;padding:15px;border-radius:13px;background:#fff7ed;color:#9a3412">
+<b>Important:</b> Once you click “Start Examination”, the first question timer begins immediately.
+</div>
+<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:25px">
+<button class="btn btn-light" onclick="studentHome()">Cancel</button>
+<button class="btn btn-primary" onclick="confirmStartExam()">I Understand · Start Examination</button>
+</div>
+</div></div></div>`);
+}
+async function confirmStartExam(){
+let questions=state.pendingQuestions;
 state.session={studentId:state.studentId,studentName:state.student.name,status:"live",currentIndex:0,totalQuestions:questions.length,
 startedAt:Date.now(),timeLeft:questions[0].allocatedTime,responses:{},questions};
-await set(ref(db,"examSessions/"+examId+"/"+state.studentId),state.session);
+await set(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session);
 renderExam();
-};
+}
 
 function renderExam(){
 clearInterval(state.timer);let s=state.session,q=s.questions[s.currentIndex],chosen=s.responses[s.currentIndex]?.selectedOriginal;
@@ -285,6 +457,7 @@ onValue(ref(db,"examResults"),s=>{if(window._cache)window._cache.results=s.exist
 // Firebase is loaded as an ES module, so module-scoped functions
 // must be explicitly attached to window.
 Object.assign(window, {
+  $,
   studentLogin,
   adminLogin,
   adminDashboard,
@@ -300,6 +473,7 @@ Object.assign(window, {
   deleteExam,
   toggleStudent,
   startExam,
+  confirmStartExam,
   chooseOption,
   nextQuestion,
   viewResult,
