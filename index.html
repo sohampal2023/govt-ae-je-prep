@@ -398,33 +398,86 @@ window.scheduleAndEmail = async (safeRoll) => {
     
     let btn = event.target;
     let originalText = btn.innerText;
-    btn.innerText = "Opening Email...";
+    btn.innerText = "Generating Mail...";
     btn.disabled = true;
 
     try {
-        // Update Firebase status so they move to the ID Verification tab
+        // 1. Update Firebase status
         await update(ref(db, "verifications/" + safeRoll), { 
             status: 'pending', 
             examId: examId, 
             examDate: dateVal 
         });
         
-        // Prepare the text for your personal email client
-        let subject = encodeURIComponent(`Exam Scheduled: Your Official Roll Number`);
-        let bodyText = `Hello ${v.name},\n\nYour examination has been officially scheduled. Please find your Roll Number and exam details below:\n\n`
-                     + `System Generated Roll Number: ${v.roll}\n`
-                     + `Exam Name: ${examName}\n`
-                     + `Reporting Date & Time: ${formattedDate}\n\n`
-                     + `Next Steps:\nPlease present this Roll Number and your photo ID to the Invigilator at the examination center to undergo verification and receive your Secret Login ID.\n\n`
-                     + `Regards,\nAdministrator`;
-                     
-        let body = encodeURIComponent(bodyText);
+        // 2. Generate the Detailed, Professional "Big Mail"
+        let subject = `OFFICIAL NOTIFICATION: Exam Schedule & Roll Number Assignment`;
+        let bodyText = `Dear ${v.name},
+
+This is an official communication from the Examination Authority regarding your recent registration.
+
+We are pleased to inform you that your application has been successfully processed and your examination has been scheduled. Please find your official Examination Credentials and Schedule below:
+
+---------------------------------------------------------
+CANDIDATE EXAMINATION DETAILS
+---------------------------------------------------------
+Candidate Name      : ${v.name}
+Department          : ${v.dept}
+Examination Name    : ${examName}
+Reporting Date/Time : ${formattedDate}
+
+SYSTEM GENERATED ROLL NUMBER: 
+>>  ${v.roll}  <<
+---------------------------------------------------------
+
+IMPORTANT INSTRUCTIONS FOR EXAM DAY:
+1. Please carry a valid, government-issued Photo ID card to the examination center.
+2. Present the above Roll Number to the Invigilator at the verification desk.
+3. Upon successful physical verification, the Invigilator will generate and hand over your 'Secret Login ID'.
+4. You will require BOTH your Roll Number and the Secret Login ID to access the examination portal.
+5. The examination is strictly proctored. You will be required to share your entire screen during the test.
+
+Please ensure you report to the examination center at least 30 minutes prior to the scheduled start time.
+
+If you have any queries, please contact the administration desk.
+
+Best Regards,
+Examination Administration Team
+ExamFlow Computer Based Testing System`;
+
+        // 3. Create the Email Dispatch Modal
+        let modalHtml = `
+        <div class="modal" id="emailModal">
+            <div class="modal-box">
+                <div class="modal-head">
+                    <h2>Dispatch Examination Mail</h2>
+                    <button class="close" onclick="$('emailModal').remove()">✕</button>
+                </div>
+                <p class="muted">The candidate has been scheduled successfully. Please send them the following email containing their Roll Number.</p>
+                
+                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:15px; margin:15px 0;">
+                    <div style="margin-bottom:10px; font-size:14px;"><b>To:</b> ${esc(v.email)}</div>
+                    <div style="margin-bottom:15px; font-size:14px;"><b>Subject:</b> ${subject}</div>
+                    <textarea id="generatedEmailContent" readonly style="width:100%; height:250px; font-family:monospace; font-size:13px; line-height:1.6; padding:10px; border:1px solid #e2e8f0; border-radius:6px;">${bodyText}</textarea>
+                </div>
+                
+                <div style="display:flex; gap:12px; justify-content:flex-end; flex-wrap: wrap;">
+                    <button class="btn btn-light" onclick="copyEmailText()">📋 Copy Email Text</button>
+                    <button class="btn btn-primary" style="background:#ea4335; border-color:#ea4335; box-shadow: 0 4px 12px rgba(234,67,53,0.3);" 
+                        onclick="window.open('https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(v.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}', '_blank')">
+                        ✉ Send via Gmail (Web)
+                    </button>
+                    <button class="btn btn-primary" 
+                        onclick="window.location.href='mailto:${encodeURIComponent(v.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}'">
+                        ✉ Open PC Mail App
+                    </button>
+                </div>
+            </div>
+        </div>`;
         
-        toast("Candidate scheduled! Opening your email app...");
-        adminScheduling(); // Refresh UI to remove them from this list
-        
-        // This triggers your personal email app (Gmail, Outlook, Apple Mail, etc.)
-        window.location.href = `mailto:${v.email}?subject=${subject}&body=${body}`;
+        // 4. Inject Modal and Refresh UI
+        $("app").insertAdjacentHTML("beforeend", modalHtml);
+        toast("Candidate scheduled! Please dispatch the email.");
+        adminScheduling(); 
         
     } catch (e) {
         console.error(e);
@@ -432,6 +485,14 @@ window.scheduleAndEmail = async (safeRoll) => {
         btn.innerText = originalText;
         btn.disabled = false;
     }
+};
+
+// Helper function to copy the email text to clipboard
+window.copyEmailText = () => {
+    let copyText = $("generatedEmailContent");
+    copyText.select();
+    document.execCommand("copy");
+    toast("Email text copied to clipboard!");
 };
 function setTab(id) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); $(id).classList.add('active'); }
 
@@ -863,8 +924,7 @@ window.createExam=async()=>{ try{ let id=$("ei").value.trim().toUpperCase(),name
 window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
 window.deleteExam=async id=>{if(!confirm("Delete this examination?"))return;await set(ref(db,"exams/"+id),null); toast("Exam deleted"); adminExams(); };
 
-Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, adminIDManagement, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });
-landing();
+Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, copyEmailText, adminIDManagement, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });landing();
 </script>
 </body>
 </html>
