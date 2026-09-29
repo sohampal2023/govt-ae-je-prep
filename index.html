@@ -315,7 +315,10 @@ function watchAdmin(){
     if(state.role!=="admin")return;
     onValue(ref(db,"verifications"), s => { window._cache.verifications = s.exists() ? s.val() : {}; if($("adminContent") && window.currentAdminTab === 'idm') adminIDManagement(); });
     onValue(ref(db,"exams"), s => { window._cache.exams = s.exists() ? s.val() : {}; });
-    onValue(ref(db,"examSessions"), s => { window._cache.sessions = s.exists() ? s.val() : {}; });
+    onValue(ref(db,"examSessions"), s => { 
+        window._cache.sessions = s.exists() ? s.val() : {}; 
+        if(window.currentAdminTab === 'monitor' && cmdState.eid && $("cmdGrid")) renderCmdGrid(); // Auto refresh monitor grid when status changes
+    });
     onValue(ref(db,"examControls"), s => { window._cache.controls = s.exists() ? s.val() : {}; });
     onValue(ref(db,"examResults"), s => { window._cache.results = s.exists() ? s.val() : {}; });
 }
@@ -366,7 +369,7 @@ window.adminIDManagement = () => {
 
 window.verifyCandidate = async (roll) => {
     let v = window._cache.verifications[roll];
-    let secretId = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit secret
+    let secretId = Math.floor(100000 + Math.random() * 900000).toString();
     
     // Register official student
     await set(ref(db, "students/" + roll), {
@@ -413,7 +416,7 @@ window.launchCommandCenter = (eid) => {
         </div>
         <div class="cmd-body">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <b style="font-size:18px">Candidate Screen Feeds</b>
+                <b style="font-size:18px">Active Candidate Screen Feeds</b>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <button class="btn btn-sm btn-light" onclick="cmdPrev()">Prev</button>
                     <span id="cmdPageLabel" style="font-weight:700; padding:0 10px">Page 1</span>
@@ -452,7 +455,9 @@ window.closeCommandCenter = () => {
 window.renderCmdGrid = () => {
     cmdState.listeners.forEach(unsub => unsub()); cmdState.listeners = [];
     let sessions = window._cache.sessions[cmdState.eid] || {};
-    let activeSids = Object.keys(sessions);
+    
+    // STRICT FILTER: Only show active sessions (Not completed)
+    let activeSids = Object.keys(sessions).filter(sid => sessions[sid].status !== "completed");
     
     let start = cmdState.page * 4;
     let batch = activeSids.slice(start, start + 4);
@@ -462,13 +467,17 @@ window.renderCmdGrid = () => {
     if($("cmdPageLabel")) $("cmdPageLabel").innerText = `Page ${cmdState.page + 1} / ${totalPages}`;
 
     let html = '';
-    if(batch.length === 0) { html = '<div class="empty" style="grid-column: 1/-1; color:#94a3b8">No candidates are currently active in this session.</div>'; }
+    if(batch.length === 0) { html = '<div class="empty" style="grid-column: 1/-1; color:#94a3b8">No candidates are currently active in this session. Completed exams are removed automatically.</div>'; }
     else {
         batch.forEach(sid => {
-            let sName = sessions[sid].studentName || sid;
+            let s = sessions[sid];
+            let sName = s.studentName || sid;
+            let badgeClass = s.status === 'live' ? 'purple' : (s.status === 'ready' ? 'success' : 'amber');
+            let statusTxt = s.status === 'live' ? 'Live' : (s.status === 'ready' ? 'Screen Shared' : 'Waiting');
+            
             html += `
             <div class="monitor-card">
-                <div class="mon-head"><div><b>${esc(sid)}</b> <span style="display:block; font-size:11px; color:#94a3b8">${esc(sName)}</span></div><span class="badge purple">Live</span></div>
+                <div class="mon-head"><div><b>${esc(sid)}</b> <span style="display:block; font-size:11px; color:#94a3b8">${esc(sName)}</span></div><span class="badge ${badgeClass}">${statusTxt}</span></div>
                 <div class="mon-screen"><img id="mon-img-${sid}" src="" alt="Waiting for screen feed..."/></div>
                 <div class="mon-foot"><button class="btn btn-sm btn-warning" onclick="sendWarning('${cmdState.eid}', '${sid}')">⚠ Send Warning</button></div>
             </div>`;
@@ -536,14 +545,15 @@ window.joinExamLobby = async (eid) => {
         else if (phase === 'started') {
             if ($("lobbyContainer")) {
                 showExamInstructions(true); // Admin started while student just got here
-            } else if ($("tcsStartBtn") && !$("tcsStartBtn").disabled) {
-                // We are in TCS UI, and admin clicked start
-                confirmStartExam(); // Auto start!
-            } else if ($("tcsStartBtn") && $("tcsStartBtn").disabled) {
+            } else if (state.screenStream) {
+                // EXAM START TRIGGER: Admin pressed start, and student is sharing screen. BOOM.
+                confirmStartExam();
+            } else if ($("tcsStartBtn")) {
                 // In TCS UI, but hasn't shared screen yet
                 toast("The exam has started! You MUST share your screen to begin.");
-                $("tcsStartBtn").innerHTML = "Exam Started! Share Screen to Begin.";
+                $("tcsStartBtn").innerText = "Exam Started! Share Screen to Begin.";
                 $("tcsStartBtn").classList.replace("btn-primary", "btn-danger");
+                state.examWasAlreadyStarted = true;
             }
         }
     });
@@ -597,6 +607,7 @@ function showExamInstructions(isExamStarted = false){
 
 window.toggleTcsStart = () => { let checked = $("tcsCheck").checked; $("tcsShareBtn").disabled = !checked; };
 
+// Replaces Camera with Screen Sharing BEFORE EXAM STARTS
 window.enableScreenShare = async () => {
     try {
         let stream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" } });
@@ -608,6 +619,20 @@ window.enableScreenShare = async () => {
         state.hiddenVideo = document.createElement("video");
         state.hiddenVideo.autoplay = true; state.hiddenVideo.muted = true; state.hiddenVideo.srcObject = stream;
         
+        // INSTANT CAPTURE START - Admin can view screens before exam starts
+        let canvas = document.createElement("canvas");
+        canvas.width = 640; canvas.height = 360;
+        let ctx = canvas.getContext("2d");
+        window.screenCaptureInterval = setInterval(() => {
+            if(state.hiddenVideo && state.hiddenVideo.readyState >= 2) {
+                ctx.drawImage(state.hiddenVideo, 0, 0, canvas.width, canvas.height);
+                set(ref(db, "screens/" + state.studentId), { img: canvas.toDataURL("image/jpeg", 0.25), t: Date.now() });
+            }
+        }, 3000); // 3 seconds interval to allow admin to review
+
+        // Notify Admin we are ready
+        await update(ref(db, "examSessions/"+state.examId+"/"+state.studentId), { status: "ready" });
+
         $("tcsShareBtn").classList.replace("btn-light", "btn-success");
         $("tcsShareBtn").innerText = "✔ Screen Shared";
         $("tcsStartBtn").style.display = "inline-flex";
@@ -634,17 +659,9 @@ window.beginSecureExam=async()=>{
   let questions=state.pendingQuestions;
   state.session={studentId:state.studentId,studentName:state.student.name,status:"live",currentIndex:0,totalQuestions:questions.length,
   startedAt:Date.now(),timeLeft:questions[0].allocatedTime,responses:{},questions};
-  await set(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session);
+  await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session);
   
-  let canvas = document.createElement("canvas");
-  canvas.width = 640; canvas.height = 360;
-  let ctx = canvas.getContext("2d");
-  window.screenCaptureInterval = setInterval(() => {
-      if(state.hiddenVideo && state.hiddenVideo.readyState >= 2 && state.session.status === "live") {
-          ctx.drawImage(state.hiddenVideo, 0, 0, canvas.width, canvas.height);
-          set(ref(db, "screens/" + state.studentId), { img: canvas.toDataURL("image/jpeg", 0.25), t: Date.now() });
-      }
-  }, 4000); // 4 seconds interval
+  // Note: screenCaptureInterval is already running successfully from the pre-check!
 
   onValue(ref(db, `examSessions/${state.examId}/${state.studentId}/warning`), snap => {
       if(!snap.exists()) return; let w = snap.val();
@@ -725,7 +742,7 @@ let end=Date.now()+state.session.timeLeft*1000;
 state.timer=setInterval(()=>{state.session.timeLeft=Math.max(0,Math.ceil((end-Date.now())/1000));let t=$("timer");if(t)t.textContent=fmt(state.session.timeLeft);if(t&&state.session.timeLeft<=10)t.classList.add("critical");if(state.session.timeLeft<=0){clearInterval(state.timer);timeUp()}},250);
 }
 window.chooseOption=original=>{ let q=state.session.questions[state.session.currentIndex]; state.session.responses[state.session.currentIndex]={selectedOriginal:original,questionId:q.id,section:q.section,marks:q.marks,timeUsed:q.allocatedTime-state.session.timeLeft}; document.querySelectorAll(".cbt-option").forEach(x=>x.classList.remove("selected")); let idx=q.displayed.findIndex(x=>x.original===original);if($("cbtopt"+idx))$("cbtopt"+idx).classList.add("selected"); };
-async function saveSession(){await set(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session)}
+async function saveSession(){await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session)}
 window.nextQuestion=async()=>{clearInterval(state.timer);await saveSession();if(state.session.currentIndex===state.session.totalQuestions-1){finishExam();return}state.session.currentIndex++;state.session.timeLeft=state.session.questions[state.session.currentIndex].allocatedTime;await saveSession();renderExam()};
 async function timeUp(){await saveSession();show(`<div class="modal"><div class="modal-box" style="text-align:center"><h1>TIME UP</h1><p>Question locked.</p></div></div>`); setTimeout(async()=>{if(state.session.currentIndex===state.session.totalQuestions-1){finishExam();return}state.session.currentIndex++;state.session.timeLeft=state.session.questions[state.session.currentIndex].allocatedTime;await saveSession();renderExam()},2000)}
 
@@ -736,7 +753,9 @@ s.questions.forEach((q,i)=>{ let r=s.responses[i],ok=r&&Number(r.selectedOrigina
 let sectionResults={};let overallPass=true;
 Object.entries(sections).forEach(([name,x])=>{let pct=x.total?x.marks/x.total*100:0;let pass=pct>=65;if(!pass)overallPass=false;sectionResults[name]={...x,percentage:pct,pass}});
 let result={studentId:state.studentId,studentName:state.student.name,examId:state.examId,examName:state.exam.name,obtained,totalMarks:state.exam.totalMarks,percentage:state.exam.totalMarks?obtained/state.exam.totalMarks*100:0,overallPass,correct,wrong,unanswered,sectionResults,responses:s.responses,completedAt:Date.now()};
-await set(ref(db,"examResults/"+state.examId+"/"+state.studentId),result); await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),{status:"completed",completedAt:Date.now()});
+await set(ref(db,"examResults/"+state.examId+"/"+state.studentId),result); 
+await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),{status:"completed",completedAt:Date.now()});
+await set(ref(db, "screens/" + state.studentId), null); // Delete screen from DB to save space and trigger admin auto-remove
 state.result=result; show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div></div><div class="page"><div class="card result-hero"><div class="muted">Examination Completed</div><div class="result-score">${result.obtained} / ${result.totalMarks}</div><h2>${result.overallPass?"PASS":"FAIL"}</h2></div><div style="text-align:center;margin-top:20px"><button class="btn btn-light" onclick="landing()">Exit</button></div></div></div>`);
 }
 
