@@ -161,6 +161,94 @@ body{
   .hero{padding-top:38px}
 }
 
+
+/* ===== PROFESSIONAL CBT / PROCTORING UI ===== */
+:root{
+  --cbt-navy:#10243e;--cbt-blue:#1769aa;--cbt-blue2:#0f5b96;
+  --cbt-green:#198754;--cbt-orange:#f59e0b;--cbt-red:#c62828;
+  --cbt-bg:#edf1f5;--cbt-line:#cfd6df
+}
+.cbt-body{background:var(--cbt-bg);min-height:100vh;color:#1f2937}
+.cbt-header{
+  height:64px;background:var(--cbt-navy);color:#fff;display:flex;align-items:center;
+  justify-content:space-between;padding:0 22px;box-shadow:0 2px 8px rgba(0,0,0,.2)
+}
+.cbt-brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:17px}
+.cbt-emblem{height:38px;width:38px;border-radius:6px;background:#fff;color:var(--cbt-navy);
+display:grid;place-items:center;font-weight:900;font-size:17px}
+.cbt-user{display:flex;align-items:center;gap:14px;font-size:13px}
+.cbt-userbox{text-align:right;line-height:1.35}
+.cbt-userbox b{display:block;font-size:14px}
+.cbt-avatar{height:38px;width:38px;border-radius:5px;background:#dbeafe;color:#163e67;display:grid;place-items:center;font-weight:900}
+.cbt-strip{height:44px;background:#fff;border-bottom:1px solid var(--cbt-line);display:flex;align-items:center;
+justify-content:space-between;padding:0 22px;font-size:13px}
+.cbt-main{display:grid;grid-template-columns:minmax(0,1fr) 315px;gap:14px;max-width:1450px;margin:0 auto;padding:14px}
+.cbt-question-panel,.cbt-right-panel{background:#fff;border:1px solid var(--cbt-line);box-shadow:0 2px 7px rgba(15,23,42,.06)}
+.cbt-question-panel{min-height:calc(100vh - 150px);display:flex;flex-direction:column}
+.cbt-question-head{padding:13px 18px;border-bottom:1px solid var(--cbt-line);background:#f8fafc;
+display:flex;justify-content:space-between;align-items:center}
+.cbt-q-number{font-weight:800;color:#162f4c}
+.cbt-marks{font-size:12px;color:#64748b}
+.cbt-question-content{padding:24px 25px;flex:1}
+.cbt-question-text{font-size:18px;line-height:1.65;font-weight:650;color:#172033;margin-bottom:23px}
+.cbt-options{display:grid;gap:10px;max-width:900px}
+.cbt-option{
+  display:flex;align-items:flex-start;gap:12px;border:1px solid #d7dde5;border-radius:4px;
+  padding:13px 15px;background:#fff;cursor:pointer;transition:.12s
+}
+.cbt-option:hover{border-color:#8bb9dd;background:#f7fbff}
+.cbt-option.selected{border:2px solid var(--cbt-blue);background:#eef7ff;padding:12px 14px}
+.cbt-radio{height:19px;width:19px;min-width:19px;border:2px solid #9ca8b5;border-radius:50%;margin-top:1px;display:grid;place-items:center}
+.cbt-option.selected .cbt-radio{border-color:var(--cbt-blue)}
+.cbt-option.selected .cbt-radio:after{content:"";height:9px;width:9px;border-radius:50%;background:var(--cbt-blue)}
+.cbt-option-letter{font-weight:800;color:#425466;min-width:24px}
+.cbt-footer{border-top:1px solid var(--cbt-line);padding:13px 18px;background:#f8fafc;
+display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cbt-action{border-radius:4px;padding:10px 17px;font-weight:750;font-size:13px;border:1px solid #aeb8c4}
+.cbt-save{background:#fff;color:#334155}.cbt-next{background:#1769aa;color:#fff;border-color:#1769aa}
+.cbt-submit{background:#198754;color:#fff;border-color:#198754}
+.cbt-right-panel{min-height:calc(100vh - 150px)}
+.cbt-profile{padding:16px;border-bottom:1px solid var(--cbt-line);display:flex;gap:12px;align-items:center}
+.cbt-profile .photo{height:60px;width:60px;background:#e5edf5;border:1px solid #c7d1dc;border-radius:4px;display:grid;place-items:center;
+font-size:22px;font-weight:900;color:#31506d}
+.cbt-profile b{display:block}.cbt-profile small{color:#64748b}
+.cbt-timerbox{padding:13px 16px;border-bottom:1px solid var(--cbt-line);background:#fbfcfd}
+.cbt-timerlabel{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#64748b;font-weight:800}
+.cbt-timer{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;color:#172033;margin-top:3px}
+.cbt-timer.warning{color:#b45309}.cbt-timer.critical{color:#b91c1c}
+.cbt-navtitle{padding:13px 16px 7px;font-weight:800;font-size:13px}
+.cbt-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px 16px;border-bottom:1px solid var(--cbt-line);font-size:11px;color:#64748b}
+.legend-item{display:flex;align-items:center;gap:6px}.legend-dot{height:15px;width:15px;border:1px solid #bbc5d0;border-radius:3px;background:#fff}
+.legend-dot.answered{background:#198754;border-color:#198754}.legend-dot.current{background:#1769aa;border-color:#1769aa}.legend-dot.review{background:#f59e0b;border-color:#f59e0b}
+.cbt-grid{padding:13px 16px;display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.cbt-qbtn{height:34px;border:1px solid #bcc6d2;background:#fff;border-radius:3px;font-weight:700;font-size:12px;color:#34465a}
+.cbt-qbtn.current{background:#1769aa;color:#fff;border-color:#1769aa}.cbt-qbtn.answered{background:#198754;color:#fff;border-color:#198754}
+.cbt-qbtn.review{background:#f59e0b;color:#fff;border-color:#f59e0b}
+.cbt-security{margin:0 16px 16px;border:1px solid #d7dde5;background:#f8fafc;padding:11px;border-radius:4px;font-size:11px;line-height:1.5;color:#64748b}
+.cbt-security strong{color:#334155}.security-ok{color:#198754;font-weight:800}
+.cbt-fullscreen{border:1px solid #d7dde5;background:#fff;padding:8px 10px;border-radius:4px;font-size:12px;font-weight:700;color:#334155}
+.cbt-precheck{min-height:100vh;background:#eef2f6;display:grid;place-items:center;padding:24px}
+.cbt-precheck-box{width:min(920px,100%);background:#fff;border:1px solid #cfd6df;box-shadow:0 8px 35px rgba(15,23,42,.12);border-radius:5px;overflow:hidden}
+.cbt-precheck-head{background:var(--cbt-navy);color:#fff;padding:22px 26px}
+.cbt-precheck-head h1{margin:0;font-size:24px}.cbt-precheck-head p{margin:7px 0 0;color:#cbd5e1;font-size:13px}
+.cbt-precheck-body{padding:25px}.pre-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.pre-video{background:#111827;border-radius:4px;min-height:245px;display:grid;place-items:center;overflow:hidden;position:relative}
+.pre-video video{width:100%;height:100%;object-fit:cover;min-height:245px}
+.camera-off{color:#cbd5e1;text-align:center;font-size:13px}
+.pre-checks{border:1px solid #d7dde5;border-radius:4px;overflow:hidden}
+.pre-check{padding:13px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.pre-check:last-child{border-bottom:0}.check-status{font-weight:800}.check-pass{color:#198754}.check-warn{color:#b45309}.check-fail{color:#b91c1c}
+.pre-instructions{margin-top:18px;background:#f8fafc;border:1px solid #dbe2e9;padding:15px;font-size:12px;line-height:1.7}
+.pre-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}
+.proctor-warning{position:fixed;top:75px;left:50%;transform:translateX(-50%);z-index:500;background:#7f1d1d;color:#fff;
+padding:13px 18px;border-radius:4px;box-shadow:0 8px 25px rgba(0,0,0,.25);font-size:13px;font-weight:700;max-width:90%;text-align:center}
+.proctor-warning .count{opacity:.8;font-weight:500}
+.proctor-modal{position:fixed;inset:0;background:rgba(3,12,24,.78);z-index:600;display:grid;place-items:center;padding:20px}
+.proctor-modal-box{background:#fff;width:min(540px,100%);padding:25px;border-radius:5px;text-align:center}
+.cbt-confirm{border:1px solid #d7dde5;background:#fff;padding:14px;border-radius:4px;text-align:left;margin:15px 0;font-size:13px;line-height:1.65}
+@media(max-width:900px){.cbt-main{grid-template-columns:1fr}.cbt-right-panel{min-height:auto}.pre-grid{grid-template-columns:1fr}.cbt-question-panel{min-height:600px}}
+@media(max-width:600px){.cbt-header{padding:0 10px}.cbt-userbox{display:none}.cbt-main{padding:7px}.cbt-question-content{padding:17px}.cbt-footer{flex-wrap:wrap}.cbt-grid{grid-template-columns:repeat(5,1fr)}}
+
 </style>
 </head>
 <body>
@@ -193,7 +281,11 @@ function show(html){$("app").innerHTML=html}
 function genId(){return "EX"+Math.random().toString(36).slice(2,7).toUpperCase()+Date.now().toString().slice(-4)}
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-function landing(){
+function cleanupExamEnvironment(){
+  try{if(state.preStream)state.preStream.getTracks().forEach(t=>t.stop())}catch(e){}
+  clearInterval(state.timer);
+}
+function landing(){cleanupExamEnvironment();
 show(`<div class="app">
 <div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">Online Examination</span></div></div>
 <div class="page"><div class="hero"><h1>Online Examination Portal</h1><p>Secure, timed and structured computer-based examination system.</p></div>
@@ -354,55 +446,197 @@ showExamInstructions();
 
 
 function showExamInstructions(){
-let exam=state.exam,qs=state.pendingQuestions;
-let totalSeconds=qs.reduce((a,q)=>a+Number(q.allocatedTime||0),0);
-show(`<div class="app">
-<div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">${esc(state.studentId)}</span></div></div>
-<div class="page" style="max-width:1000px">
-<div class="hero" style="padding-bottom:20px"><div class="badge blue">EXAM INSTRUCTIONS</div><h1>${esc(exam.name)}</h1><p>${esc(exam.instructions||"Please read the instructions carefully before beginning.")}</p></div>
-<div class="card">
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
-<div class="file-note"><b>${qs.length}</b><br><span class="small muted">Questions</span></div>
-<div class="file-note"><b>${exam.totalMarks}</b><br><span class="small muted">Total Marks</span></div>
-<div class="file-note"><b>${Math.floor(totalSeconds/60)}m ${totalSeconds%60}s</b><br><span class="small muted">Allocated Time</span></div>
+let exam=state.exam,qs=state.pendingQuestions,totalSeconds=qs.reduce((a,q)=>a+Number(q.allocatedTime||0),0);
+show(`<div class="cbt-precheck"><div class="cbt-precheck-box">
+<div class="cbt-precheck-head"><h1>Candidate Verification & System Check</h1><p>${esc(exam.name)} · Candidate ID: ${esc(state.studentId)}</p></div>
+<div class="cbt-precheck-body">
+<div class="pre-grid">
+<div><div class="pre-video"><video id="preCamera" autoplay muted playsinline></video><div id="cameraPlaceholder" class="camera-off">Camera preview will appear here after permission.</div></div>
+<button class="btn btn-light" style="width:100%;margin-top:8px" onclick="enableProctorCamera()">Enable Camera Check</button></div>
+<div class="pre-checks">
+<div class="pre-check"><span>Candidate ID</span><span class="check-status check-pass">VERIFIED</span></div>
+<div class="pre-check"><span>Examination</span><span class="check-status check-pass">VALID</span></div>
+<div class="pre-check"><span>Browser Focus</span><span class="check-status check-pass">READY</span></div>
+<div class="pre-check"><span>Fullscreen</span><span class="check-status check-warn">REQUIRED</span></div>
+<div class="pre-check"><span>Camera Check</span><span id="cameraCheck" class="check-status check-warn">OPTIONAL</span></div>
 </div>
-<h2>Before you start</h2>
-<div style="display:grid;gap:11px;color:#475569;line-height:1.6">
-<div>✓ Each question has its own allocated timer.</div>
-<div>✓ When the timer reaches zero, the question is locked automatically.</div>
-<div>✓ You cannot return to a previous question after moving forward.</div>
-<div>✓ Your selected option is saved when you move to the next question.</div>
-<div>✓ Do not refresh or close the browser during the examination.</div>
-<div>✓ Your final result is calculated section-wise. Each section requires at least 65%.</div>
 </div>
-<div style="margin-top:28px;padding:15px;border-radius:13px;background:#fff7ed;color:#9a3412">
-<b>Important:</b> Once you click “Start Examination”, the first question timer begins immediately.
+<div class="pre-instructions">
+<b>Examination Security Rules</b><br>
+1. The examination is conducted in a controlled browser session.<br>
+2. Full-screen mode is required when the examination starts.<br>
+3. Leaving the examination window or changing focus is recorded as a security warning.<br>
+4. Copy, paste, print, context-menu and common browser shortcuts are disabled during the test.<br>
+5. Questions are sequential. After moving forward, you cannot return to an earlier question.<br>
+6. Each question has its own time limit. When it expires, the question is automatically locked.<br>
+7. Camera checking is optional in this browser-only prototype and is not recorded or uploaded.
 </div>
-<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:25px">
-<button class="btn btn-light" onclick="studentHome()">Cancel</button>
-<button class="btn btn-primary" onclick="confirmStartExam()">I Understand · Start Examination</button>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px">
+<div class="small muted"><b>${qs.length}</b> Questions &nbsp; | &nbsp; <b>${exam.totalMarks}</b> Marks &nbsp; | &nbsp; <b>${Math.floor(totalSeconds/60)}m ${totalSeconds%60}s</b></div>
+<button class="btn btn-primary" onclick="beginSecureExam()">Start Secure Examination →</button>
 </div>
 </div></div></div>`);
-}
-async function confirmStartExam(){
-let questions=state.pendingQuestions;
-state.session={studentId:state.studentId,studentName:state.student.name,status:"live",currentIndex:0,totalQuestions:questions.length,
-startedAt:Date.now(),timeLeft:questions[0].allocatedTime,responses:{},questions};
-await set(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session);
-renderExam();
+startCameraPreview();
 }
 
+async function confirmStartExam(){ await beginSecureExam(); }
+
 function renderExam(){
-clearInterval(state.timer);let s=state.session,q=s.questions[s.currentIndex],chosen=s.responses[s.currentIndex]?.selectedOriginal;
-show(`<div class="exam-shell"><div class="exam-top"><div><b>${esc(state.exam.name)}</b><div class="small muted">${esc(state.student.name)} · ${esc(state.studentId)}</div></div><div class="timer" id="timer">${fmt(s.timeLeft)}</div></div>
-<div class="exam-layout"><main class="question-card"><div class="q-meta"><span>Question ${s.currentIndex+1} of ${s.totalQuestions}</span><span>${esc(q.section)} · ${q.marks} marks</span></div>
-<div class="progress"><span style="width:${((s.currentIndex+1)/s.totalQuestions)*100}%"></span></div>
-<div class="question">${esc(q.text)}</div><div class="options">${q.displayed.map((o,i)=>`<label class="option ${chosen===o.original?"selected":""}" id="op${i}"><input type="radio" name="opt" ${chosen===o.original?"checked":""} onchange="chooseOption(${o.original})"><span><b>${String.fromCharCode(65+i)}.</b> ${esc(o.text)}</span></label>`).join("")}</div>
-<div style="display:flex;justify-content:flex-end;margin-top:25px"><button class="btn btn-primary" onclick="nextQuestion()">${s.currentIndex===s.totalQuestions-1?"Submit Examination":"Save & Next →"}</button></div>
-<div class="notice">Once you move to the next question, you cannot return to this question. If the timer reaches zero, the question will automatically lock.</div>
-</main><aside class="exam-side"><h3>Exam Progress</h3><div class="side-row"><span>Current</span><b>${s.currentIndex+1}</b></div><div class="side-row"><span>Remaining</span><b>${s.totalQuestions-s.currentIndex-1}</b></div><div class="side-row"><span>Total Marks</span><b>${state.exam.totalMarks}</b></div><div class="notice">Do not close or refresh this page during the examination.</div></aside></div></div>`);
+clearInterval(state.timer);
+let s=state.session,q=s.questions[s.currentIndex],chosen=s.responses[s.currentIndex]?.selectedOriginal;
+let answeredCount=Object.keys(s.responses||{}).length;
+show(`<div class="cbt-body">
+<header class="cbt-header">
+  <div class="cbt-brand"><div class="cbt-emblem">CBT</div><div>${esc(state.exam.name)}</div></div>
+  <div class="cbt-user">
+    <div class="cbt-userbox"><b>${esc(state.student.name)}</b>${esc(state.studentId)}</div>
+    <div class="cbt-avatar">${esc((state.student.name||"S").slice(0,1).toUpperCase())}</div>
+  </div>
+</header>
+<div class="cbt-strip">
+  <span><b>Examination Mode:</b> Computer Based Test</span>
+  <span><button class="cbt-fullscreen" onclick="requestExamFullscreen()">⛶ Full Screen</button></span>
+</div>
+<div class="cbt-main">
+<main class="cbt-question-panel">
+  <div class="cbt-question-head">
+    <div class="cbt-q-number">Question No. ${s.currentIndex+1}</div>
+    <div class="cbt-marks">Section: <b>${esc(q.section)}</b> &nbsp; | &nbsp; Marks: <b>${q.marks}</b></div>
+  </div>
+  <div class="cbt-question-content">
+    <div class="cbt-question-text">${esc(q.text)}</div>
+    <div class="cbt-options">
+      ${q.displayed.map((o,i)=>`
+        <div class="cbt-option ${chosen===o.original?"selected":""}" id="cbtopt${i}" onclick="chooseOption(${o.original})">
+          <div class="cbt-radio"></div>
+          <div class="cbt-option-letter">${String.fromCharCode(65+i)}</div>
+          <div>${esc(o.text)}</div>
+        </div>`).join("")}
+    </div>
+    <div class="cbt-confirm">
+      <b>Navigation rule:</b> Once you click <b>Save & Next</b>, this question will be closed and you cannot return to it.
+    </div>
+  </div>
+  <div class="cbt-footer">
+    <div class="small muted">Answered: ${answeredCount} / ${s.totalQuestions}</div>
+    <div style="display:flex;gap:8px">
+      <button class="cbt-action cbt-save" onclick="clearCurrentAnswer()">Clear Response</button>
+      <button class="cbt-action ${s.currentIndex===s.totalQuestions-1?"cbt-submit":"cbt-next"}" onclick="nextQuestion()">${s.currentIndex===s.totalQuestions-1?"Submit Test":"Save & Next"}</button>
+    </div>
+  </div>
+</main>
+<aside class="cbt-right-panel">
+  <div class="cbt-profile">
+    <div class="photo">${esc((state.student.name||"S").slice(0,1).toUpperCase())}</div>
+    <div><b>${esc(state.student.name)}</b><small>Candidate ID: ${esc(state.studentId)}</small></div>
+  </div>
+  <div class="cbt-timerbox"><div class="cbt-timerlabel">Time Remaining</div><div class="cbt-timer" id="timer">${fmt(s.timeLeft)}</div></div>
+  <div class="cbt-navtitle">Question Palette</div>
+  <div class="cbt-legend">
+    <div class="legend-item"><span class="legend-dot answered"></span> Answered</div>
+    <div class="legend-item"><span class="legend-dot current"></span> Current</div>
+    <div class="legend-item"><span class="legend-dot"></span> Not Answered</div>
+    <div class="legend-item"><span class="legend-dot review"></span> Review</div>
+  </div>
+  <div class="cbt-grid">${s.questions.map((x,i)=>{
+    let cls=i===s.currentIndex?"current":(s.responses[i]?"answered":"");
+    return `<button class="cbt-qbtn ${cls}" disabled>${i+1}</button>`;
+  }).join("")}</div>
+  <div class="cbt-security">
+    <strong>Security Monitor</strong><br>
+    <span class="security-ok">● Active</span> &nbsp; Full-screen and focus monitoring enabled.<br>
+    Camera: ${state.proctor?.camera?"Connected":"Not connected"}<br>
+    Warnings: ${state.proctor?.violations||0}
+  </div>
+</aside>
+</div></div>`);
 startTimer();
 }
+
+window.clearCurrentAnswer=()=>{
+  delete state.session.responses[state.session.currentIndex];
+  document.querySelectorAll(".cbt-option").forEach(x=>x.classList.remove("selected"));
+  toast("Response cleared");
+};
+
+window.requestExamFullscreen=async()=>{
+  try{await document.documentElement.requestFullscreen();}catch(e){toast("Full-screen permission was not granted");}
+};
+
+function showProctorWarning(message){
+  state.proctor=state.proctor||{violations:0,camera:false};
+  state.proctor.violations=(state.proctor.violations||0)+1;
+  let old=document.querySelector(".proctor-warning");if(old)old.remove();
+  let d=document.createElement("div");d.className="proctor-warning";
+  d.innerHTML=`⚠ ${esc(message)} <span class="count">Warning ${state.proctor.violations}/3</span>`;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),3500);
+  if(state.proctor.violations>=3)showSecurityLock();
+}
+function showSecurityLock(){
+  let old=document.querySelector(".proctor-modal");if(old)return;
+  let d=document.createElement("div");d.className="proctor-modal";
+  d.innerHTML=`<div class="proctor-modal-box"><h2>Security Warning</h2>
+  <p>The examination window lost focus multiple times. Please return to the examination screen and confirm that you are ready to continue.</p>
+  <button class="btn btn-primary" onclick="resumeAfterSecurity()">I am ready to continue</button></div>`;
+  document.body.appendChild(d);
+}
+window.resumeAfterSecurity=()=>{document.querySelector(".proctor-modal")?.remove();state.proctor.violations=0;requestExamFullscreen()};
+
+function installProctoring(){
+  state.proctor=state.proctor||{violations:0,camera:false};
+  if(state.proctor.listenersInstalled)return;
+  state.proctor.listenersInstalled=true;
+
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden && state.role==="student" && state.session?.status==="live")showProctorWarning("You left the examination window.");
+  });
+  window.addEventListener("blur",()=>{
+    if(state.role==="student" && state.session?.status==="live")showProctorWarning("Examination window lost focus.");
+  });
+  document.addEventListener("contextmenu",e=>{if(state.role==="student"&&state.session?.status==="live")e.preventDefault()});
+  document.addEventListener("copy",e=>{if(state.role==="student"&&state.session?.status==="live")e.preventDefault()});
+  document.addEventListener("cut",e=>{if(state.role==="student"&&state.session?.status==="live")e.preventDefault()});
+  document.addEventListener("paste",e=>{if(state.role==="student"&&state.session?.status==="live")e.preventDefault()});
+  document.addEventListener("keydown",e=>{
+    if(state.role!=="student"||state.session?.status!=="live")return;
+    if((e.ctrlKey||e.metaKey)&&["c","x","v","u","s","p"].includes(e.key.toLowerCase())){e.preventDefault();showProctorWarning("This keyboard action is disabled during the examination.");}
+    if(e.key==="F12"||e.key==="PrintScreen"){e.preventDefault();showProctorWarning("This action is disabled during the examination.");}
+  });
+  window.addEventListener("beforeunload",e=>{
+    if(state.role==="student"&&state.session?.status==="live"){e.preventDefault();e.returnValue="Your examination is in progress.";}
+  });
+}
+installProctoring();
+
+async function startCameraPreview(){
+  let video=document.getElementById("preCamera");
+  if(!video)return;
+  try{
+    let stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    video.srcObject=stream;
+    state.preStream=stream;
+    state.preCameraOK=true;
+    let el=document.getElementById("cameraCheck");if(el){el.textContent="PASS";el.className="check-status check-pass";}
+  }catch(e){
+    state.preCameraOK=false;
+    let el=document.getElementById("cameraCheck");if(el){el.textContent="OPTIONAL";el.className="check-status check-warn";}
+  }
+}
+window.enableProctorCamera=async()=>{
+  await startCameraPreview();
+};
+window.beginSecureExam=async()=>{
+  if(state.preStream){state.preStream.getTracks().forEach(t=>t.stop());state.proctor.camera=!!state.preCameraOK}
+  try{await document.documentElement.requestFullscreen();}catch(e){}
+  state.proctor.violations=0;
+  let questions=state.pendingQuestions;
+  state.session={studentId:state.studentId,studentName:state.student.name,status:"live",currentIndex:0,totalQuestions:questions.length,
+  startedAt:Date.now(),timeLeft:questions[0].allocatedTime,responses:{},questions};
+  await set(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session);
+  renderExam();
+};
+
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0")}
 function startTimer(){
 let end=Date.now()+state.session.timeLeft*1000;
@@ -474,6 +708,11 @@ Object.assign(window, {
   toggleStudent,
   startExam,
   confirmStartExam,
+  beginSecureExam,
+  enableProctorCamera,
+  clearCurrentAnswer,
+  requestExamFullscreen,
+  resumeAfterSecurity,
   chooseOption,
   nextQuestion,
   viewResult,
