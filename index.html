@@ -398,7 +398,8 @@ window.scheduleAndEmail = async (safeRoll) => {
     if(!examId || !dateVal) return toast("Please select an exam and date/time.");
     
     let v = window._cache.verifications[safeRoll];
-    let examName = window._cache.exams[examId].name;
+    let exam = window._cache.exams[examId];
+    let examName = exam.name;
     let formattedDate = new Date(dateVal).toLocaleString();
     
     let btn = event.target;
@@ -414,7 +415,36 @@ window.scheduleAndEmail = async (safeRoll) => {
             examDate: dateVal 
         });
         
-        // 2. Prepare the detailed "Big Mail"
+        // 2. Auto-Calculate the Exam Pattern from the uploaded JSON
+        let patternMap = {};
+        let totalQ = 0, totalM = 0, totalSecs = 0;
+        
+        (exam.questions || []).forEach(q => {
+            let sec = q.section || "General";
+            if(!patternMap[sec]) patternMap[sec] = { q: 0, m: 0, t: 0 };
+            patternMap[sec].q += 1;
+            patternMap[sec].m += q.marks;
+            patternMap[sec].t += q.allocatedTime;
+            totalQ += 1;
+            totalM += q.marks;
+            totalSecs += q.allocatedTime;
+        });
+
+        // 3. Format the Pattern as a clean Text Table
+        let pad = (str, len) => str.toString().padEnd(len, ' ');
+        let tableText = `---------------------------------------------------------\n`;
+        tableText += `${pad("SECTION", 20)} | ${pad("QNS", 5)} | ${pad("MARKS", 7)} | ${pad("TIME(m)", 7)}\n`;
+        tableText += `---------------------------------------------------------\n`;
+        
+        Object.entries(patternMap).forEach(([sec, data]) => {
+            let sName = sec.length > 18 ? sec.substring(0, 15) + '...' : sec;
+            tableText += `${pad(sName, 20)} | ${pad(data.q, 5)} | ${pad(data.m, 7)} | ${pad((data.t/60).toFixed(1), 7)}\n`;
+        });
+        tableText += `---------------------------------------------------------\n`;
+        tableText += `${pad("TOTAL", 20)} | ${pad(totalQ, 5)} | ${pad(totalM, 7)} | ${pad((totalSecs/60).toFixed(1), 7)}\n`;
+        tableText += `---------------------------------------------------------`;
+
+        // 4. Prepare the detailed "Big Mail" with the injected table
         let subject = `OFFICIAL NOTIFICATION: Exam Schedule & Roll Number Assignment`;
         let bodyText = `Dear ${v.name},
 
@@ -434,6 +464,9 @@ SYSTEM GENERATED ROLL NUMBER:
 >>  ${v.roll}  <<
 ---------------------------------------------------------
 
+EXAMINATION PATTERN SUMMARY:
+${tableText}
+
 IMPORTANT INSTRUCTIONS FOR EXAM DAY:
 1. Please carry this mail print out during entry.
 2. Present the above Roll Number to the Invigilator at the verification desk.
@@ -445,11 +478,11 @@ Best Regards,
 Examination Administration Team`;
 
         // =========================================================
-        // 3. YOUR GOOGLE SCRIPT URL
+        // 5. YOUR GOOGLE SCRIPT URL
         // =========================================================
         let scriptUrl = "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec"; 
 
-        // 4. Send the email automatically in the background
+        // 6. Send the email automatically in the background
         await fetch(scriptUrl, {
             method: "POST",
             mode: "no-cors", // Bypasses CORS blocks
@@ -472,7 +505,7 @@ Examination Administration Team`;
         btn.innerText = originalText;
         btn.disabled = false;
     }
-};
+};};
 
 // Helper function to copy the email text to clipboard
 window.copyEmailText = () => {
