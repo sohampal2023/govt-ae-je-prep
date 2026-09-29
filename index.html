@@ -279,11 +279,12 @@ show(`<div class="app">
 }
 
 window.submitRegistration = async () => {
-    let roll = $("regRoll").value.trim().toUpperCase();
+    let originalRoll = $("regRoll").value.trim().toUpperCase();
+    let safeRoll = originalRoll.replace(/[\/\.#$\[\]]/g, "-"); // Fix Firebase path corruption
     let name = $("regName").value.trim();
-    if(!roll || !name) return toast("Roll No and Name are required.");
-    await set(ref(db, "verifications/" + roll), {
-        roll, name, phone: $("regPhone").value.trim(), email: $("regEmail").value.trim(), dept: $("regDept").value.trim(),
+    if(!safeRoll || !name) return toast("Roll No and Name are required.");
+    await set(ref(db, "verifications/" + safeRoll), {
+        roll: originalRoll, safeRoll: safeRoll, name, phone: $("regPhone").value.trim(), email: $("regEmail").value.trim(), dept: $("regDept").value.trim(),
         status: 'pending', timestamp: Date.now()
     });
     toast("Registration submitted. Please proceed to the Invigilator desk for ID Verification.");
@@ -291,18 +292,19 @@ window.submitRegistration = async () => {
 };
 
 window.studentLogin = async () => {
-    let roll = $("loginRoll").value.trim().toUpperCase();
+    let originalRoll = $("loginRoll").value.trim().toUpperCase();
+    let safeRoll = originalRoll.replace(/[\/\.#$\[\]]/g, "-");
     let secret = $("loginSecret").value.trim();
-    if(!roll || !secret) return toast("Enter Roll Number and Secret ID.");
+    if(!safeRoll || !secret) return toast("Enter Roll Number and Secret ID.");
     
-    let s = await get(ref(db, "students/" + roll));
+    let s = await get(ref(db, "students/" + safeRoll));
     if(!s.exists()) return toast("Invalid Roll Number. Have you been verified?");
     let studentData = s.val();
     
     if(studentData.secretId !== secret) return toast("Invalid Secret ID.");
     if(studentData.active === false) return toast("This account is disabled.");
     
-    state.role = "student"; state.studentId = roll; state.student = studentData;
+    state.role = "student"; state.studentId = safeRoll; state.student = studentData; // studentId is now safe format
     studentHome();
 };
 
@@ -324,7 +326,7 @@ function watchAdmin(){
 }
 
 async function adminDashboard(){
-    watchAdmin(); // Attach listeners
+    watchAdmin(); 
     show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow <span class="pill">ADMIN</span></div><div class="top-actions"><button class="btn btn-light btn-sm" onclick="landing()">Logout</button></div></div>
     <div class="page"><div class="dashboard-head"><div><h1>Admin Dashboard</h1><div class="muted">Manage verifications, exams, and live execution.</div></div><div><button class="btn btn-primary" onclick="openExamModal()">+ Create Exam</button></div></div>
     <div class="tabs">
@@ -336,10 +338,7 @@ async function adminDashboard(){
     <div id="adminContent"></div></div></div>`);
     adminExams();
 }
-function setTab(id) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    $(id).classList.add('active');
-}
+function setTab(id) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); $(id).classList.add('active'); }
 
 window.adminExams = () => {
     setTab('tab-exams'); window.currentAdminTab = 'exams';
@@ -359,7 +358,7 @@ window.adminIDManagement = () => {
             <td>${esc(v.dept)}</td>
             <td>
                 ${v.status === 'pending' 
-                    ? `<button class="btn btn-sm btn-primary" onclick="verifyCandidate('${v.roll}')">Verify & Generate Secret ID</button>` 
+                    ? `<button class="btn btn-sm btn-primary" onclick="verifyCandidate('${v.safeRoll}')">Verify & Generate Secret ID</button>` 
                     : `<span class="badge purple">Verified · ID: ${v.secretId}</span>`}
             </td>
         </tr>
@@ -367,18 +366,15 @@ window.adminIDManagement = () => {
     $("adminContent").innerHTML=`<div class="card"><h2>ID Management & Check-in</h2><p class="muted">Verify candidate details in person, then click Verify to generate their Secret Login ID.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Roll No</th><th>Name</th><th>Contact</th><th>Dept</th><th>Action / Status</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No registrations yet.</div>`}</div></div>`;
 };
 
-window.verifyCandidate = async (roll) => {
-    let v = window._cache.verifications[roll];
+window.verifyCandidate = async (safeRoll) => {
+    let v = window._cache.verifications[safeRoll];
     let secretId = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Register official student
-    await set(ref(db, "students/" + roll), {
-        roll, name: v.name, phone: v.phone, email: v.email, department: v.dept, secretId, active: true, createdAt: Date.now()
+    await set(ref(db, "students/" + safeRoll), {
+        roll: v.roll, safeRoll: safeRoll, name: v.name, phone: v.phone, email: v.email, department: v.dept, secretId, active: true, createdAt: Date.now()
     });
-    // Mark verification approved
-    await update(ref(db, "verifications/" + roll), { status: 'approved', secretId });
-    
-    alert(`VERIFICATION COMPLETE!\n\nCandidate: ${v.name}\nRoll No: ${roll}\n\nSECRET ID: ${secretId}\n\nPlease verbally provide this Secret ID to the candidate for login.`);
+    await update(ref(db, "verifications/" + safeRoll), { status: 'approved', secretId });
+    alert(`VERIFICATION COMPLETE!\n\nCandidate: ${v.name}\nRoll No: ${v.roll}\n\nSECRET ID: ${secretId}\n\nPlease verbally provide this Secret ID to the candidate for login.`);
 };
 
 
@@ -398,8 +394,7 @@ window.launchCommandCenter = (eid) => {
     cmdState.eid = eid;
     try { document.documentElement.requestFullscreen(); } catch(e){}
     
-    let d = document.createElement("div");
-    d.className = "cmd-center"; d.id = "cmdCenter";
+    let d = document.createElement("div"); d.className = "cmd-center"; d.id = "cmdCenter";
     d.innerHTML = `
         <div class="cmd-header">
             <h2><div class="logo" style="width:32px;height:32px;font-size:14px">SAM</div> Command Center: ${esc(window._cache.exams[eid].name)}</h2>
@@ -429,7 +424,6 @@ window.launchCommandCenter = (eid) => {
     `;
     document.body.appendChild(d);
     
-    // Listen to global exam phase to update UI badges
     onValue(ref(db, "examControls/" + eid), snap => {
         let phase = snap.exists() ? snap.val().phase : 'lobby';
         $("cmdPhaseLobby").className = "cmd-badge " + (phase === 'lobby' ? "active" : "");
@@ -456,7 +450,7 @@ window.renderCmdGrid = () => {
     cmdState.listeners.forEach(unsub => unsub()); cmdState.listeners = [];
     let sessions = window._cache.sessions[cmdState.eid] || {};
     
-    // STRICT FILTER: Only show active sessions (Not completed)
+    // STRICT FILTER: Only show candidates who have NOT completed
     let activeSids = Object.keys(sessions).filter(sid => sessions[sid].status !== "completed");
     
     let start = cmdState.page * 4;
@@ -472,13 +466,14 @@ window.renderCmdGrid = () => {
         batch.forEach(sid => {
             let s = sessions[sid];
             let sName = s.studentName || sid;
+            let displayRoll = s.studentId ? s.studentId.replace(/-/g, "/") : sid; // roughly restore slash for UI
             let badgeClass = s.status === 'live' ? 'purple' : (s.status === 'ready' ? 'success' : 'amber');
             let statusTxt = s.status === 'live' ? 'Live' : (s.status === 'ready' ? 'Screen Shared' : 'Waiting');
             
             html += `
             <div class="monitor-card">
-                <div class="mon-head"><div><b>${esc(sid)}</b> <span style="display:block; font-size:11px; color:#94a3b8">${esc(sName)}</span></div><span class="badge ${badgeClass}">${statusTxt}</span></div>
-                <div class="mon-screen"><img id="mon-img-${sid}" src="" alt="Waiting for screen feed..."/></div>
+                <div class="mon-head"><div><b>${esc(displayRoll)}</b> <span style="display:block; font-size:11px; color:#94a3b8">${esc(sName)}</span></div><span class="badge ${badgeClass}">${statusTxt}</span></div>
+                <div class="mon-screen"><img id="mon-img-${sid}" src="" alt="Awaiting screen data..."/></div>
                 <div class="mon-foot"><button class="btn btn-sm btn-warning" onclick="sendWarning('${cmdState.eid}', '${sid}')">⚠ Send Warning</button></div>
             </div>`;
         });
@@ -513,7 +508,7 @@ async function studentHome(){
     let available = Object.entries(exams).filter(([id,e])=>e.status==="published");
     let cards = available.map(([id,e])=>`<div class="card exam-choice-card"><div style="display:flex;justify-content:space-between;gap:15px;align-items:flex-start"><div><span class="badge blue">AVAILABLE</span><h2 style="margin:12px 0 6px">${esc(e.name)}</h2></div><span class="badge blue">${esc(id)}</span></div><button class="btn btn-primary" style="width:100%; margin-top:20px" onclick="joinExamLobby('${id}')">Join Examination Lobby →</button></div>`).join("");
     
-    show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div><div>ExamFlow<div class="small muted">Student Portal</div></div></div><div class="top-actions"><span class="pill">${esc(state.student.name)} · Roll: ${esc(state.studentId)}</span><button class="btn btn-light btn-sm" onclick="landing()">Logout</button></div></div>
+    show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div><div>ExamFlow<div class="small muted">Student Portal</div></div></div><div class="top-actions"><span class="pill">${esc(state.student.name)} · Roll: ${esc(state.student.roll)}</span><button class="btn btn-light btn-sm" onclick="landing()">Logout</button></div></div>
     <div class="page"><div class="hero" style="text-align:left;padding-bottom:25px"><div class="badge blue">CANDIDATE DASHBOARD</div><h1 style="margin-top:14px">Examination Center</h1><p style="margin-left:0">Select your examination below to enter the secure waiting lobby.</p></div>
     <div style="display:grid;gap:18px; max-width:800px">${cards||`<div class="card empty">No examination is currently published.</div>`}</div></div></div>`);
 }
@@ -527,10 +522,8 @@ window.joinExamLobby = async (eid) => {
     let qs = exam.questions.map(q=>{let opts=q.options.map((text,i)=>({text,original:i}));opts=shuffle(opts);return {...q,displayed:opts}});
     state.exam = exam; state.examId = eid; state.pendingQuestions = qs;
     
-    // Register session as waiting
     await set(ref(db, "examSessions/"+eid+"/"+state.studentId), { studentId: state.studentId, studentName: state.student.name, status: "waiting" });
 
-    // Enter Lobby and listen to Admin Global Phase
     show(`<div class="lobby-ui" id="lobbyContainer"><div class="lobby-box"><div class="spinner"></div><h2>Connecting to Secure Server...</h2><p>Please wait.</p></div></div>`);
     
     window.lobbyListener = onValue(ref(db, "examControls/" + eid), ctrlSnap => {
@@ -546,10 +539,8 @@ window.joinExamLobby = async (eid) => {
             if ($("lobbyContainer")) {
                 showExamInstructions(true); // Admin started while student just got here
             } else if (state.screenStream) {
-                // EXAM START TRIGGER: Admin pressed start, and student is sharing screen. BOOM.
-                confirmStartExam();
+                confirmStartExam(); // Start instantly since screen is shared
             } else if ($("tcsStartBtn")) {
-                // In TCS UI, but hasn't shared screen yet
                 toast("The exam has started! You MUST share your screen to begin.");
                 $("tcsStartBtn").innerText = "Exam Started! Share Screen to Begin.";
                 $("tcsStartBtn").classList.replace("btn-primary", "btn-danger");
@@ -560,10 +551,9 @@ window.joinExamLobby = async (eid) => {
 };
 
 function showExamInstructions(isExamStarted = false){
-    let exam = state.exam;
     show(`
     <div class="tcs-wrapper">
-        <div class="tcs-header"><h2>System Assessment Management (SAM)</h2><div>${esc(exam.name)}</div></div>
+        <div class="tcs-header"><h2>System Assessment Management (SAM)</h2><div>${esc(state.exam.name)}</div></div>
         <div class="tcs-main">
             <div class="tcs-panel">
                 <div class="tcs-panel-head">Candidate Profile</div>
@@ -571,7 +561,7 @@ function showExamInstructions(isExamStarted = false){
                     <div class="tcs-photo">PHOTO<br>UNAVAILABLE</div>
                     <table class="tcs-details-table">
                         <tr><td>Name</td><td>${esc(state.student.name)}</td></tr>
-                        <tr><td>Roll No</td><td>${esc(state.studentId)}</td></tr>
+                        <tr><td>Roll No</td><td>${esc(state.student.roll)}</td></tr>
                         <tr><td>Dept</td><td>${esc(state.student.department||"-")}</td></tr>
                         <tr><td>System Status</td><td><span class="badge green">Secured</span></td></tr>
                     </table>
@@ -607,7 +597,7 @@ function showExamInstructions(isExamStarted = false){
 
 window.toggleTcsStart = () => { let checked = $("tcsCheck").checked; $("tcsShareBtn").disabled = !checked; };
 
-// Replaces Camera with Screen Sharing BEFORE EXAM STARTS
+// Starts Screen Capture BEFORE EXAM STARTS to feed live monitor
 window.enableScreenShare = async () => {
     try {
         let stream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" } });
@@ -617,9 +607,15 @@ window.enableScreenShare = async () => {
         if(track.getSettings().displaySurface !== 'monitor') toast("WARNING: You did not share your 'Entire Screen'. Admin may flag your session.");
 
         state.hiddenVideo = document.createElement("video");
-        state.hiddenVideo.autoplay = true; state.hiddenVideo.muted = true; state.hiddenVideo.srcObject = stream;
+        state.hiddenVideo.autoplay = true; state.hiddenVideo.muted = true; state.hiddenVideo.playsInline = true;
+        state.hiddenVideo.srcObject = stream;
         
-        // INSTANT CAPTURE START - Admin can view screens before exam starts
+        // Ensure video is playing so canvas isn't black
+        state.hiddenVideo.onloadedmetadata = () => {
+            state.hiddenVideo.play().catch(e => console.error(e));
+        };
+        
+        // INSTANT CAPTURE START - Feeds admin monitor before exam starts
         let canvas = document.createElement("canvas");
         canvas.width = 640; canvas.height = 360;
         let ctx = canvas.getContext("2d");
@@ -628,18 +624,16 @@ window.enableScreenShare = async () => {
                 ctx.drawImage(state.hiddenVideo, 0, 0, canvas.width, canvas.height);
                 set(ref(db, "screens/" + state.studentId), { img: canvas.toDataURL("image/jpeg", 0.25), t: Date.now() });
             }
-        }, 3000); // 3 seconds interval to allow admin to review
+        }, 3000); 
 
-        // Notify Admin we are ready
         await update(ref(db, "examSessions/"+state.examId+"/"+state.studentId), { status: "ready" });
 
         $("tcsShareBtn").classList.replace("btn-light", "btn-success");
         $("tcsShareBtn").innerText = "✔ Screen Shared";
         $("tcsStartBtn").style.display = "inline-flex";
         
-        // If the admin already pressed start while student was sharing, start immediately
         if(state.examWasAlreadyStarted) {
-            confirmStartExam();
+            confirmStartExam(); // INSTANT START
         } else {
             $("tcsStartBtn").disabled = true;
             $("tcsStartBtn").innerText = "Waiting for Invigilator to start exam...";
@@ -649,7 +643,7 @@ window.enableScreenShare = async () => {
 
 window.confirmStartExam = async () => {
     if(!state.screenStream) return toast("Please complete screen sharing first.");
-    if(window.lobbyListener) { window.lobbyListener(); window.lobbyListener = null; } // detach listener
+    if(window.lobbyListener) { window.lobbyListener(); window.lobbyListener = null; } 
     await beginSecureExam();
 };
 
@@ -661,8 +655,6 @@ window.beginSecureExam=async()=>{
   startedAt:Date.now(),timeLeft:questions[0].allocatedTime,responses:{},questions};
   await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session);
   
-  // Note: screenCaptureInterval is already running successfully from the pre-check!
-
   onValue(ref(db, `examSessions/${state.examId}/${state.studentId}/warning`), snap => {
       if(!snap.exists()) return; let w = snap.val();
       if(w.t > state.session.startedAt && w.t !== state.lastWarningT) { state.lastWarningT = w.t; showProctorWarning("ADMINISTRATOR MESSAGE: " + w.msg, true); }
@@ -680,7 +672,7 @@ clearInterval(state.timer);
 let s=state.session,q=s.questions[s.currentIndex],chosen=s.responses[s.currentIndex]?.selectedOriginal;
 let answeredCount=Object.keys(s.responses||{}).length;
 show(`<div class="cbt-body">
-<header class="cbt-header"><div class="cbt-brand"><div class="cbt-emblem">SAM</div><div>${esc(state.exam.name)}</div></div><div class="cbt-user"><div class="cbt-userbox"><b>${esc(state.student.name)}</b>${esc(state.studentId)}</div><div class="cbt-avatar">${esc((state.student.name||"S").slice(0,1).toUpperCase())}</div></div></header>
+<header class="cbt-header"><div class="cbt-brand"><div class="cbt-emblem">SAM</div><div>${esc(state.exam.name)}</div></div><div class="cbt-user"><div class="cbt-userbox"><b>${esc(state.student.name)}</b>${esc(state.student.roll)}</div><div class="cbt-avatar">${esc((state.student.name||"S").slice(0,1).toUpperCase())}</div></div></header>
 <div class="cbt-strip"><span><b>Mode:</b> Secure Computer Based Test</span><span><button class="btn btn-sm btn-light" onclick="requestExamFullscreen()">⛶ Full Screen</button></span></div>
 <div class="cbt-main">
 <main class="cbt-question-panel">
@@ -691,7 +683,7 @@ show(`<div class="cbt-body">
   <div class="cbt-footer"><div class="small muted">Answered: ${answeredCount} / ${s.totalQuestions}</div><div style="display:flex;gap:8px"><button class="btn btn-light" onclick="clearCurrentAnswer()">Clear Response</button><button class="btn ${s.currentIndex===s.totalQuestions-1?"btn-success":"btn-primary"}" onclick="nextQuestion()">${s.currentIndex===s.totalQuestions-1?"Submit Test":"Save & Next"}</button></div></div>
 </main>
 <aside class="cbt-right-panel">
-  <div class="cbt-profile"><div class="cbt-avatar" style="background:#e2e8f0;color:#0f172a">${esc((state.student.name||"S").slice(0,1).toUpperCase())}</div><div><b>${esc(state.student.name)}</b><small>Roll: ${esc(state.studentId)}</small></div></div>
+  <div class="cbt-profile"><div class="cbt-avatar" style="background:#e2e8f0;color:#0f172a">${esc((state.student.name||"S").slice(0,1).toUpperCase())}</div><div><b>${esc(state.student.name)}</b><small>Roll: ${esc(state.student.roll)}</small></div></div>
   <div class="cbt-timerbox"><div class="small muted" style="margin-bottom:8px;font-weight:700">TIME REMAINING</div><div class="cbt-timer" id="timer">${fmt(s.timeLeft)}</div></div>
   <div style="padding:15px; font-weight:700; border-bottom:1px solid #e2e8f0">Question Palette</div>
   <div class="cbt-grid">${s.questions.map((x,i)=>{let cls=i===s.currentIndex?"current":(s.responses[i]?"answered":"");return `<button class="cbt-qbtn ${cls}" disabled>${i+1}</button>`;}).join("")}</div>
@@ -755,12 +747,12 @@ Object.entries(sections).forEach(([name,x])=>{let pct=x.total?x.marks/x.total*10
 let result={studentId:state.studentId,studentName:state.student.name,examId:state.examId,examName:state.exam.name,obtained,totalMarks:state.exam.totalMarks,percentage:state.exam.totalMarks?obtained/state.exam.totalMarks*100:0,overallPass,correct,wrong,unanswered,sectionResults,responses:s.responses,completedAt:Date.now()};
 await set(ref(db,"examResults/"+state.examId+"/"+state.studentId),result); 
 await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),{status:"completed",completedAt:Date.now()});
-await set(ref(db, "screens/" + state.studentId), null); // Delete screen from DB to save space and trigger admin auto-remove
+await set(ref(db, "screens/" + state.studentId), null); // Delete screen from DB to remove from Monitor instantly
 state.result=result; show(`<div class="app"><div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div></div><div class="page"><div class="card result-hero"><div class="muted">Examination Completed</div><div class="result-score">${result.obtained} / ${result.totalMarks}</div><h2>${result.overallPass?"PASS":"FAIL"}</h2></div><div style="text-align:center;margin-top:20px"><button class="btn btn-light" onclick="landing()">Exit</button></div></div></div>`);
 }
 
-// Admin Utilities (Modals & Results)
-window.adminResults=()=>{ setTab('tab-results'); window.currentAdminTab = 'results'; let results=window._cache.results||{}; let exams=window._cache.exams||{},rows=[]; Object.entries(results).forEach(([eid,rs])=>Object.entries(rs||{}).forEach(([sid,r])=>rows.push(`<tr><td>${esc(sid)}</td><td>${esc(r.examName||exams[eid]?.name||eid)}</td><td>${r.obtained}/${r.totalMarks}</td><td>${Number(r.percentage||0).toFixed(1)}%</td><td><span class="badge ${r.overallPass?"green":"red"}">${r.overallPass?"PASS":"FAIL"}</span></td></tr>`))); $("adminContent").innerHTML=`<div class="card"><h2>Results</h2><div class="table-wrap">${rows.length?`<table class="table"><thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Percentage</th><th>Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`:`<div class="empty">No completed results.</div>`}</div></div>`; };
+// Admin Utilities
+window.adminResults=()=>{ setTab('tab-results'); window.currentAdminTab = 'results'; let results=window._cache.results||{}; let exams=window._cache.exams||{},rows=[]; Object.entries(results).forEach(([eid,rs])=>Object.entries(rs||{}).forEach(([sid,r])=>rows.push(`<tr><td>${esc(sid.replace(/-/g,"/"))}</td><td>${esc(r.examName||exams[eid]?.name||eid)}</td><td>${r.obtained}/${r.totalMarks}</td><td>${Number(r.percentage||0).toFixed(1)}%</td><td><span class="badge ${r.overallPass?"green":"red"}">${r.overallPass?"PASS":"FAIL"}</span></td></tr>`))); $("adminContent").innerHTML=`<div class="card"><h2>Results</h2><div class="table-wrap">${rows.length?`<table class="table"><thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Percentage</th><th>Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`:`<div class="empty">No completed results.</div>`}</div></div>`; };
 window.openExamModal=()=>{ $("app").insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><h2>Create Examination</h2><button class="close" onclick="$('modal').remove()">✕</button></div><div class="form-grid"><div class="field full"><label>Exam Name</label><input id="en" placeholder="Example: Mock Test"></div><div class="field"><label>Exam ID</label><input id="ei" value="${genId()}"></div><div class="field"><label>Instructions</label><input id="ein" value="Read carefully. No going back."></div><div class="field full"><label>Questions JSON</label><textarea id="qjson" placeholder='[ {"q":"Ohm law is?","a":["V=IR","P=VI","I=V/R","All"],"correct":0,"marks":2,"time":30,"section":"Basics"} ]'></textarea></div></div><br><button class="btn btn-primary" onclick="createExam()">Create Exam</button></div></div>`) };
 window.createExam=async()=>{ try{ let id=$("ei").value.trim().toUpperCase(),name=$("en").value.trim(),questions=JSON.parse($("qjson").value); let clean=questions.map((q,i)=>{return { id:i+1,text:q.q,options:q.a,correctIndex:Number(q.correct),marks:Number(q.marks||1),allocatedTime:Number(q.time||30),section:q.section||"General"}}); let total=clean.reduce((a,q)=>a+q.marks,0); await set(ref(db,"exams/"+id),{id,name,instructions:$("ein").value,questions:clean,totalMarks:total,status:"draft",createdAt:Date.now()}); $("modal").remove();toast("Exam created");adminExams(); }catch(e){toast(e.message||"Could not create exam")} };
 window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
