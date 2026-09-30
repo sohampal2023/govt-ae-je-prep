@@ -3346,118 +3346,43 @@ function installProctoring() {
 
     state.proctor = state.proctor || {
         violations: 0,
-        listenersInstalled: true,
+        listenersInstalled: false,
         lastFocusEvent: 0
     };
 
     if (state.proctor.listenersInstalled) return;
-
     state.proctor.listenersInstalled = true;
 
-
     // ==========================================
-    // TAB SWITCH
+    // TAB SWITCH & FOCUS LOSS TRACKING REMOVED 
+    // Students can now freely Alt+Tab, switch tabs, 
+    // and exit fullscreen without cancellation.
     // ==========================================
-
-    document.addEventListener("visibilitychange", () => {
-
-        if (
-            state.role !== "student" ||
-            state.session?.status !== "live"
-        ) {
-            return;
-        }
-
-        if (document.visibilityState !== "hidden") {
-            return;
-        }
-
-        const now = Date.now();
-
-        // Prevent visibilitychange + blur from counting
-        // the same tab switch twice.
-        if (
-            now - (state.proctor.lastFocusEvent || 0)
-            < 1200
-        ) {
-            return;
-        }
-
-        state.proctor.lastFocusEvent = now;
-
-        registerExamViolation(
-            "Candidate switched away from the examination tab."
-        );
-    });
 
 
     // ==========================================
-    // WINDOW FOCUS LOSS
-    // ==========================================
-
-    window.addEventListener("blur", () => {
-
-        if (
-            state.role !== "student" ||
-            state.session?.status !== "live"
-        ) {
-            return;
-        }
-
-        // When tab becomes hidden, visibilitychange
-        // handles it.
-        if (document.visibilityState !== "visible") {
-            return;
-        }
-
-        const now = Date.now();
-
-        if (
-            now - (state.proctor.lastFocusEvent || 0)
-            < 1200
-        ) {
-            return;
-        }
-
-        state.proctor.lastFocusEvent = now;
-
-        registerExamViolation(
-            "Examination window lost focus."
-        );
-    });
-
-
-    // ==========================================
-    // OTHER SECURITY CONTROLS
+    // OTHER SECURITY CONTROLS (Kept to prevent copy/paste/F12)
     // ==========================================
 
     document.addEventListener("contextmenu", e => {
-
         if (
             state.role === "student" &&
             state.session?.status === "live"
         ) {
             e.preventDefault();
         }
-
     });
 
-
     ["copy", "cut", "paste"].forEach(ev => {
-
         document.addEventListener(ev, e => {
-
             if (
                 state.role === "student" &&
                 state.session?.status === "live"
             ) {
                 e.preventDefault();
             }
-
         });
-
     });
-
 
     document.addEventListener("keydown", e => {
 
@@ -3473,45 +3398,33 @@ function installProctoring() {
             ["c", "x", "v", "u", "s", "p"]
                 .includes(e.key.toLowerCase())
         ) {
-
             e.preventDefault();
-
             showProctorWarning(
                 "This keyboard action is disabled."
             );
-
             return;
         }
-
 
         if (
             e.key === "F12" ||
             e.key === "PrintScreen"
         ) {
-
             e.preventDefault();
-
             showProctorWarning(
                 "This action is disabled."
             );
         }
-
     });
 
-
     window.addEventListener("beforeunload", e => {
-
         if (
             state.role === "student" &&
             state.session?.status === "live"
         ) {
-
             e.preventDefault();
-
             e.returnValue =
                 "Your examination is in progress.";
         }
-
     });
 }
 installProctoring();
