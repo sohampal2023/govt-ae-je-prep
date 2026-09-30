@@ -2357,6 +2357,88 @@ async function sendWarning(reason) {
         warningReason
     );
 }
+   function showWarningNotification(title, reason) {
+
+    const existing = document.getElementById("examWarningOverlay");
+
+    if (existing) {
+        existing.remove();
+    }
+
+    const overlay = document.createElement("div");
+
+    overlay.id = "examWarningOverlay";
+
+    overlay.innerHTML = `
+        <div style="
+            position:fixed;
+            inset:0;
+            z-index:999999;
+            background:rgba(0,0,0,0.72);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-family:Arial,sans-serif;
+        ">
+
+            <div style="
+                width:420px;
+                max-width:90%;
+                background:white;
+                border-radius:16px;
+                padding:30px;
+                text-align:center;
+                box-shadow:0 20px 60px rgba(0,0,0,.3);
+            ">
+
+                <div style="
+                    font-size:24px;
+                    font-weight:700;
+                    color:#b91c1c;
+                    margin-bottom:12px;
+                ">
+                    ${escapeHtml(title)}
+                </div>
+
+                <div style="
+                    font-size:15px;
+                    color:#374151;
+                    line-height:1.6;
+                    margin-bottom:22px;
+                ">
+                    ${escapeHtml(reason)}
+                </div>
+
+                <div style="
+                    font-size:13px;
+                    color:#6b7280;
+                    margin-bottom:20px;
+                ">
+                    Maximum permitted warnings: 4
+                </div>
+
+                <button
+                    onclick="document.getElementById('examWarningOverlay').remove()"
+                    style="
+                        border:0;
+                        background:#111827;
+                        color:white;
+                        padding:11px 28px;
+                        border-radius:8px;
+                        cursor:pointer;
+                        font-weight:600;
+                    "
+                >
+                    Continue Examination
+                </button>
+
+            </div>
+
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+}
    function showExamCancellationScreen(warningCount, reason) {
     document.body.innerHTML = `
         <div style="
@@ -2976,6 +3058,95 @@ ${sc.title || "START EXAM CONFIRMATION"}
 
     return output.trim();
 };
+   let tabSwitchWarningCount = 0;
+let tabSwitchDetectionActive = false;
+let tabSwitchCooldown = false;
+
+function startTabSwitchDetection() {
+    if (tabSwitchDetectionActive) return;
+
+    tabSwitchDetectionActive = true;
+
+    document.addEventListener("visibilitychange", handleTabVisibilityChange);
+
+    window.addEventListener("blur", handleWindowBlur);
+}
+
+function stopTabSwitchDetection() {
+    tabSwitchDetectionActive = false;
+
+    document.removeEventListener("visibilitychange", handleTabVisibilityChange);
+    window.removeEventListener("blur", handleWindowBlur);
+}
+
+function handleTabVisibilityChange() {
+    if (!tabSwitchDetectionActive) return;
+
+    if (document.visibilityState === "hidden") {
+        registerTabSwitch("Candidate switched away from the examination tab.");
+    }
+}
+
+function handleWindowBlur() {
+    if (!tabSwitchDetectionActive) return;
+
+    if (document.visibilityState === "visible") {
+        registerTabSwitch("Candidate moved focus away from the examination window.");
+    }
+}
+   async function registerTabSwitch(reason) {
+    if (!state.examId || !state.studentId) return;
+
+    if (tabSwitchCooldown) return;
+
+    tabSwitchCooldown = true;
+
+    setTimeout(() => {
+        tabSwitchCooldown = false;
+    }, 1000);
+
+    const sessionRef = db.ref(
+        `examSessions/${state.examId}/${state.studentId}`
+    );
+
+    const snapshot = await sessionRef.once("value");
+    const session = snapshot.val() || {};
+
+    const currentWarnings = Number(session.warningCount || 0);
+    const newWarningCount = currentWarnings + 1;
+
+    await sessionRef.update({
+        warningCount: newWarningCount,
+        lastWarningReason: reason,
+        lastWarningAt: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    tabSwitchWarningCount = newWarningCount;
+
+    if (newWarningCount > 4) {
+
+        await sessionRef.update({
+            status: "cancelled",
+            examCancelled: true,
+            cancellationReason: reason,
+            cancelledAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        stopTabSwitchDetection();
+
+        showExamCancellationScreen(
+            newWarningCount,
+            reason
+        );
+
+        return;
+    }
+
+    showWarningNotification(
+        `Warning ${newWarningCount} of 4`,
+        reason
+    );
+}
 
 window.toggleTcsStart = () => { let checked = $("tcsCheck").checked; $("tcsShareBtn").disabled = !checked; };
 
@@ -3035,6 +3206,7 @@ window.beginSecureExam=async()=>{
   let questions=state.pendingQuestions;
   state.session={studentId:state.studentId,studentName:state.student.name,status:"live",currentIndex:0,totalQuestions:questions.length,
   startedAt:Date.now(),timeLeft:questions[0].allocatedTime,responses:{},questions};
+   startTabSwitchDetection();
   await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session);
   
   onValue(ref(db, `examSessions/${state.examId}/${state.studentId}/warning`), snap => {
@@ -3043,6 +3215,7 @@ window.beginSecureExam=async()=>{
   });
 
   renderExam();
+   
 };
 
 
