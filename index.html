@@ -3201,70 +3201,80 @@ function installProctoring() {
     if (state.proctor.listenersInstalled) return;
     state.proctor.listenersInstalled = true;
 
-    // --- FULLSCREEN EXIT DETECTION (Catches Escape key & exiting full-screen) ---
-    const onFullscreenChange = () => {
-        if (state.role !== "student" || state.session?.status !== "live") return;
-        const isFull = document.fullscreenElement || document.webkitFullscreenElement;
-        if (!isFull) {
-            registerExamViolation("Candidate exited full-screen mode.");
-        }
-    };
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
-
     // --- TAB SWITCH DETECTION ---
     document.addEventListener("visibilitychange", () => {
-        if (state.role !== "student" || state.session?.status !== "live") return;
-        if (document.hidden || document.visibilityState === "hidden") {
-            registerExamViolation("Candidate switched away from the examination tab.");
+        if (state.role === "student" && state.session?.status === "live") {
+            if (document.hidden || document.visibilityState === "hidden") {
+                registerExamViolation("Candidate switched away from the examination tab.");
+            }
         }
     });
 
     // --- ALT+TAB & WINDOW FOCUS LOSS ---
+    // This catches clicking outside the window, auxiliary displays, and Alt+Tab
     window.addEventListener("blur", () => {
-        if (state.role !== "student" || state.session?.status !== "live") return;
-        registerExamViolation("Candidate switched windows or navigated away (Alt+Tab / Focus lost).");
+        if (state.role === "student" && state.session?.status === "live") {
+            registerExamViolation("Examination window lost focus (Alt+Tab or clicked outside).");
+        }
     });
 
-    // --- CONTEXT MENU & CLIPBOARD BLOCK ---
+    // --- FULLSCREEN EXIT DETECTION ---
+    // Catches the Escape key and standard browser fullscreen exits
+    const fullscreenHandler = () => {
+        if (state.role === "student" && state.session?.status === "live") {
+            const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+            if (!isFull) {
+                registerExamViolation("Candidate exited full-screen mode.");
+            }
+        }
+    };
+    document.addEventListener("fullscreenchange", fullscreenHandler);
+    document.addEventListener("webkitfullscreenchange", fullscreenHandler);
+
+    // --- CONTEXT MENU BLOCK ---
     document.addEventListener("contextmenu", e => {
-        if (state.role === "student" && state.session?.status === "live") e.preventDefault();
+        if (state.role === "student" && state.session?.status === "live") {
+            e.preventDefault();
+            showProctorWarning("Right-click is disabled during the examination.");
+        }
     });
 
+    // --- CLIPBOARD BLOCK ---
     ["copy", "cut", "paste"].forEach(ev => {
         document.addEventListener(ev, e => {
-            if (state.role === "student" && state.session?.status === "live") e.preventDefault();
+            if (state.role === "student" && state.session?.status === "live") {
+                e.preventDefault();
+                showProctorWarning(`Clipboard action (${ev}) is disabled.`);
+            }
         });
     });
 
-    // --- KEY SHORTCUTS & SYSTEM KEYS ---
+    // --- KEYBOARD SHORTCUTS TRAP ---
     document.addEventListener("keydown", e => {
         if (state.role !== "student" || state.session?.status !== "live") return;
 
-        // Catch Alt key immediately (Alt+Tab / Alt+F4 intent)
+        // Trap Alt key (Alt+Tab / Alt+F4 intent)
         if (e.altKey) {
             e.preventDefault();
             registerExamViolation("Alt key press detected.");
             return;
         }
 
-        // Block Ctrl/Meta key combinations
-        if (e.ctrlKey || e.metaKey) {
+        // Block developer tools and printing
+        if (e.key === "F12" || e.key === "PrintScreen") {
             e.preventDefault();
-            showProctorWarning("Keyboard shortcuts are disabled.", false);
+            showProctorWarning("This system action is disabled.");
             return;
         }
 
-        // Block Escape, F12, and PrintScreen
-        if (e.key === "Escape") {
+        // Block Ctrl/Meta key combinations (Copy, Paste, Save, Print)
+        if ((e.ctrlKey || e.metaKey) && ["c", "v", "x", "p", "s", "u"].includes(e.key.toLowerCase())) {
             e.preventDefault();
-            registerExamViolation("Escape key pressed (attempted to leave full screen).");
-        } else if (e.key === "F12" || e.key === "PrintScreen") {
-            e.preventDefault();
-            showProctorWarning("This function key is disabled.", false);
+            showProctorWarning("Keyboard shortcuts are disabled.");
         }
     });
 
+    // --- PREVENT ACCIDENTAL CLOSE ---
     window.addEventListener("beforeunload", e => {
         if (state.role === "student" && state.session?.status === "live") {
             e.preventDefault();
@@ -3281,40 +3291,38 @@ async function registerExamViolation(reason) {
 
     state.proctor = state.proctor || { violations: 0, lastFocusEvent: 0 };
 
-    // Debounce window (1200ms) prevents blur + visibilitychange + keydown from multi-triggering on 1 action
+    // Debounce (1500ms) prevents blur + visibilitychange firing together and double-penalizing
     const now = Date.now();
-    if (now - (state.proctor.lastFocusEvent || 0) < 1200) {
+    if (now - (state.proctor.lastFocusEvent || 0) < 1500) {
         return;
     }
     state.proctor.lastFocusEvent = now;
 
     // Single source of truth for increments
-    state.proctor.violations = (state.proctor.violations || 0) + 1;
+    state.proctor.violations++;
     const count = state.proctor.violations;
 
-    // Instantly update the counter in the palette sidebar
-    if ($("violationCount")) {
-        $("violationCount").innerText = count;
+    // Instantly update the counter in the UI sidebar
+    const counterEl = document.getElementById("violationCount");
+    if (counterEl) {
+        counterEl.innerText = count;
     }
 
-    console.warn(`[EXAM PROCTOR] Violation #${count}: ${reason}`);
+    console.warn(`[SECURITY VIOLATION] ${count}: ${reason}`);
 
-    // FIRST VIOLATION: Show warning & security modal
+    // FIRST VIOLATION: Show warning & security lock modal
     if (count === 1) {
-        showProctorWarning(`Warning 1 of 2: ${reason}`, false);
-        showSecurityLock();
-
+        showProctorWarning(`Warning 1 of 2: ${reason}`);
+        showSecurityLock(); // Forces the user to click "I am ready to continue"
+        
         try {
-            await update(
-                ref(db, `examSessions/${state.examId}/${state.studentId}`),
-                {
-                    warningCount: 1,
-                    lastWarningReason: reason,
-                    lastWarningAt: Date.now()
-                }
-            );
-        } catch (err) {
-            console.error("Firebase sync error:", err);
+            await update(ref(db, `examSessions/${state.examId}/${state.studentId}`), {
+                warningCount: count,
+                lastWarningReason: reason,
+                lastWarningAt: Date.now()
+            });
+        } catch(e) {
+            console.error("Firebase sync error:", e);
         }
         return;
     }
@@ -3341,14 +3349,14 @@ function showProctorWarning(message, isAdmin = false) {
 
     if (state.session?.status !== "live") return;
 
-    // Display warning banner without modifying violations counter
+    // Display warning banner WITHOUT modifying the violation penalty counter
+    // This allows us to warn for right-clicks without instantly failing the student
     let d = document.createElement("div");
     d.className = "proctor-warning";
     d.innerHTML = `⚠ ${esc(message)}`;
     document.body.appendChild(d);
     setTimeout(() => d.remove(), 4500);
 }
-
 function showSecurityLock() {
 
     if (document.querySelector(".proctor-modal")) return;
