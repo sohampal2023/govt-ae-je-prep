@@ -2305,10 +2305,170 @@ window.toggleCmdLoop = () => {
     if(cmdState.loopInterval) { clearInterval(cmdState.loopInterval); cmdState.loopInterval = null; $("cmdLoopBtn").innerText = "Start Auto-Loop"; $("cmdLoopBtn").className = "btn btn-sm btn-light"; }
     else { cmdState.loopInterval = setInterval(() => { cmdState.page++; renderCmdGrid(); }, 8000); $("cmdLoopBtn").innerText = "Stop Auto-Loop"; $("cmdLoopBtn").className = "btn btn-sm btn-success"; }
 };
-window.sendWarning = (eid, sid) => {
-    let msg = prompt("Enter a warning message to send to candidate " + sid + ":");
-    if(msg) { set(ref(db, `examSessions/${eid}/${sid}/warning`), { msg, t: Date.now() }); toast("Warning sent securely."); }
-};
+async function sendWarning(reason) {
+    if (!state.examId || !state.studentId) return;
+
+    const examId = state.examId;
+    const studentId = state.studentId;
+
+    const sessionRef = db.ref(`examSessions/${examId}/${studentId}`);
+    const snapshot = await sessionRef.once("value");
+    const session = snapshot.val() || {};
+
+    const currentWarnings = Number(session.warningCount || 0);
+    const newWarningCount = currentWarnings + 1;
+
+    const warningReason = String(reason || "Examination rule violation");
+
+    if (newWarningCount > 4) {
+        await sessionRef.update({
+            warningCount: newWarningCount,
+            status: "cancelled",
+            examCancelled: true,
+            cancellationReason: warningReason,
+            cancelledAt: firebase.database.ServerValue.TIMESTAMP,
+            lastWarningReason: warningReason
+        });
+
+        if (state.studentId) {
+            await db.ref(`students/${state.studentId}`).update({
+                examStatus: "cancelled",
+                examCancellationReason: warningReason,
+                examCancelledAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+
+        showExamCancellationScreen(
+            newWarningCount,
+            warningReason
+        );
+
+        return;
+    }
+
+    await sessionRef.update({
+        warningCount: newWarningCount,
+        lastWarningReason: warningReason,
+        lastWarningAt: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    showWarningNotification(
+        `Warning ${newWarningCount} of 4`,
+        warningReason
+    );
+}
+   function showExamCancellationScreen(warningCount, reason) {
+    document.body.innerHTML = `
+        <div style="
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:#f3f4f6;
+            font-family:Arial, sans-serif;
+            padding:30px;
+        ">
+            <div style="
+                width:100%;
+                max-width:650px;
+                background:#ffffff;
+                border-radius:18px;
+                padding:40px;
+                box-shadow:0 15px 45px rgba(0,0,0,0.15);
+                text-align:center;
+            ">
+
+                <div style="
+                    width:80px;
+                    height:80px;
+                    margin:0 auto 22px;
+                    border-radius:50%;
+                    background:#fee2e2;
+                    color:#b91c1c;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    font-size:42px;
+                    font-weight:bold;
+                ">
+                    !
+                </div>
+
+                <h1 style="
+                    margin:0 0 12px;
+                    color:#991b1b;
+                    font-size:30px;
+                ">
+                    Examination Cancelled
+                </h1>
+
+                <p style="
+                    margin:0 0 28px;
+                    color:#4b5563;
+                    font-size:16px;
+                    line-height:1.6;
+                ">
+                    Your examination has been cancelled because the maximum
+                    permitted number of warnings was exceeded.
+                </p>
+
+                <div style="
+                    background:#fef2f2;
+                    border:1px solid #fecaca;
+                    border-radius:12px;
+                    padding:20px;
+                    text-align:left;
+                    margin-bottom:20px;
+                ">
+                    <div style="
+                        font-size:13px;
+                        color:#7f1d1d;
+                        font-weight:bold;
+                        margin-bottom:8px;
+                    ">
+                        CANCELLATION REASON
+                    </div>
+
+                    <div style="
+                        font-size:16px;
+                        color:#111827;
+                        line-height:1.6;
+                    ">
+                        ${escapeHtml(reason)}
+                    </div>
+                </div>
+
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    background:#f9fafb;
+                    border-radius:12px;
+                    padding:16px 20px;
+                    margin-bottom:25px;
+                ">
+                    <span style="color:#6b7280;">
+                        Total Warnings
+                    </span>
+
+                    <strong style="color:#991b1b;">
+                        ${warningCount}
+                    </strong>
+                </div>
+
+                <div style="
+                    font-size:14px;
+                    color:#6b7280;
+                    line-height:1.6;
+                ">
+                    Your examination session has been permanently closed.
+                    Please contact the examination authority if you believe
+                    this action was taken incorrectly.
+                </div>
+
+            </div>
+        </div>
+    `;
+}
 
 
 // ==========================================
