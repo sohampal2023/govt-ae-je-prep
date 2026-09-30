@@ -1272,10 +1272,117 @@ window.copyEmailText = () => {
 function setTab(id) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); $(id).classList.add('active'); }
 
 window.adminExams = () => {
-    setTab('tab-exams'); window.currentAdminTab = 'exams';
+    setTab('tab-exams');
+    window.currentAdminTab = 'exams';
+
     let exams = window._cache.exams || {};
-    let rows = Object.entries(exams).map(([id,e])=>`<tr><td><b>${esc(id)}</b></td><td>${esc(e.name)}</td><td>${e.questions?.length||0}</td><td><span class="badge ${e.status==="published"?"green":"amber"}">${esc(e.status||"draft")}</span></td><td><button class="btn btn-sm btn-light" onclick="toggleExam('${id}')">${e.status==="published"?"Unpublish":"Publish"}</button> <button class="btn btn-sm btn-danger" onclick="deleteExam('${id}')">Delete</button></td></tr>`).join("");
-    $("adminContent").innerHTML=`<div class="card"><h2>Examinations</h2><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Exam ID</th><th>Name</th><th>Questions</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No exams created yet.</div>`}</div></div>`;
+
+    let rows = Object.entries(exams).map(([id, e]) => {
+
+        let qCount = Array.isArray(e.questions) ? e.questions.length : 0;
+
+        return `
+        <tr>
+            <td>
+                <b>${esc(id)}</b>
+            </td>
+
+            <td>
+                <b>${esc(e.name || "Untitled Examination")}</b>
+                ${e.description ? `<br><small class="muted">${esc(e.description)}</small>` : ""}
+            </td>
+
+            <td>
+                <span class="badge">${qCount}</span>
+            </td>
+
+            <td>
+                <span class="badge ${e.status === "published" ? "green" : "amber"}">
+                    ${esc(e.status || "draft")}
+                </span>
+            </td>
+
+            <td>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+
+                    <button
+                        class="btn btn-sm btn-primary"
+                        onclick="openExamModal('${id}')">
+                        ✎ Edit
+                    </button>
+
+                    <button
+                        class="btn btn-sm btn-light"
+                        onclick="toggleExam('${id}')">
+                        ${e.status === "published" ? "Unpublish" : "Publish"}
+                    </button>
+
+                    <button
+                        class="btn btn-sm btn-danger"
+                        onclick="deleteExam('${id}')">
+                        Delete
+                    </button>
+
+                </div>
+            </td>
+        </tr>`;
+    }).join("");
+
+    $("adminContent").innerHTML = `
+        <div class="card">
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:15px;
+                margin-bottom:18px;
+                flex-wrap:wrap;
+            ">
+                <div>
+                    <h2 style="margin:0">Examinations</h2>
+                    <p class="muted" style="margin:5px 0 0">
+                        Create, edit, publish and manage uploaded examinations.
+                    </p>
+                </div>
+
+                <button
+                    class="btn btn-primary"
+                    onclick="openExamModal()">
+                    + Create Examination
+                </button>
+            </div>
+
+            <div class="table-wrap">
+
+                ${rows ? `
+                    <table class="table">
+
+                        <thead>
+                            <tr>
+                                <th>Exam ID</th>
+                                <th>Examination</th>
+                                <th>Questions</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            ${rows}
+                        </tbody>
+
+                    </table>
+                ` : `
+                    <div class="empty">
+                        No examinations created yet.
+                    </div>
+                `}
+
+            </div>
+
+        </div>
+    `;
 };
 
 window.adminIDManagement = () => {
@@ -2888,320 +2995,433 @@ async function finishExam(){
 
 // Admin Utilities
 window.adminResults=()=>{ setTab('tab-results'); window.currentAdminTab = 'results'; let results=window._cache.results||{}; let exams=window._cache.exams||{},rows=[]; Object.entries(results).forEach(([eid,rs])=>Object.entries(rs||{}).forEach(([sid,r])=>rows.push(`<tr><td>${esc(sid.replace(/-/g,"/"))}</td><td>${esc(r.examName||exams[eid]?.name||eid)}</td><td>${r.obtained}/${r.totalMarks}</td><td>${Number(r.percentage||0).toFixed(1)}%</td><td><span class="badge ${r.overallPass?"green":"red"}">${r.overallPass?"PASS":"FAIL"}</span></td></tr>`))); $("adminContent").innerHTML=`<div class="card"><h2>Results</h2><div class="table-wrap">${rows.length?`<table class="table"><thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Percentage</th><th>Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`:`<div class="empty">No completed results.</div>`}</div></div>`; };
-window.openExamModal = () => {
+window.openExamModal = (examId = null) => {
+
+    let exams = window._cache.exams || {};
+    let exam = examId ? exams[examId] : null;
+
+    window.editingExamId = examId;
+
+    const isEdit = !!exam;
+
+    // -----------------------------------------
+    // Existing Instruction JSON
+    // -----------------------------------------
+
+    let instructionJSON = "";
+
+    if (exam) {
+
+        if (exam.instructionJson) {
+
+            instructionJSON = JSON.stringify(
+                exam.instructionJson,
+                null,
+                2
+            );
+
+        } else if (exam.instructions) {
+
+            try {
+
+                instructionJSON = JSON.stringify(
+                    JSON.parse(exam.instructions),
+                    null,
+                    2
+                );
+
+            } catch (err) {
+
+                // Old plain-text instructions
+                instructionJSON = JSON.stringify({
+                    title: "Examination Instructions",
+                    sections: [
+                        {
+                            title: "Instructions",
+                            english: [String(exam.instructions)]
+                        }
+                    ]
+                }, null, 2);
+            }
+
+        }
+
+    }
+
+    // -----------------------------------------
+    // Pattern JSON
+    // -----------------------------------------
+
+    let patternJSON = "";
+
+    if (exam && exam.pattern) {
+
+        patternJSON = JSON.stringify(
+            exam.pattern,
+            null,
+            2
+        );
+
+    }
+
+    // -----------------------------------------
+    // Questions JSON
+    // -----------------------------------------
+
+    let questionsJSON = "";
+
+    if (exam && Array.isArray(exam.questions)) {
+
+        questionsJSON = JSON.stringify(
+            exam.questions,
+            null,
+            2
+        );
+
+    }
+
+    // -----------------------------------------
+    // Open Modal
+    // -----------------------------------------
 
     $("app").insertAdjacentHTML("beforeend", `
-    <div class="modal" id="modal">
 
-        <div class="modal-box">
+        <div class="modal" id="modal">
 
-            <div class="modal-head">
-                <div>
-                    <h2>Create Examination</h2>
-                    <p class="muted small">
-                        Configure the examination using structured JSON.
-                    </p>
+            <div class="modal-box"
+                 style="
+                    width:min(1100px,96vw);
+                    max-height:94vh;
+                    overflow-y:auto;
+                 ">
+
+                <div class="modal-head">
+
+                    <div>
+                        <h2 style="margin:0">
+                            ${isEdit
+                                ? "Edit Examination"
+                                : "Create Examination"}
+                        </h2>
+
+                        <div class="muted" style="margin-top:4px">
+                            ${isEdit
+                                ? "Modify examination details, instructions, pattern or questions."
+                                : "Create a new examination using structured JSON."}
+                        </div>
+                    </div>
+
+                    <button
+                        class="close"
+                        onclick="$('modal').remove()">
+                        ✕
+                    </button>
+
                 </div>
 
-                <button class="close" onclick="$('modal').remove()">✕</button>
-            </div>
 
-            <div class="form-grid">
+                <div class="form-grid">
 
-                <div class="field full">
-                    <label>Exam Name</label>
-                    <input
-                        id="en"
-                        placeholder="Example: Electrical Engineering Mock Examination">
-                </div>
+                    <!-- EXAM NAME -->
 
-                <div class="field">
-                    <label>Exam ID</label>
-                    <input id="ei" value="${genId()}">
-                </div>
+                    <div class="field full">
 
-                <div class="field">
-                    <label>Short Description</label>
-                    <input
-                        id="ein"
-                        placeholder="Short examination description">
-                </div>
+                        <label>
+                            Examination Name
+                        </label>
+
+                        <input
+                            id="en"
+                            value="${esc(exam?.name || "")}"
+                            placeholder="Example: Electrical Engineering Mock Test">
+
+                    </div>
 
 
-                <!-- INSTRUCTION JSON -->
+                    <!-- EXAM ID -->
 
-                <div class="field full">
+                    <div class="field">
 
-                    <label>
-                        Official Instruction JSON
-                        <span style="color:#ef4444">*</span>
-                    </label>
+                        <label>
+                            Exam ID
+                        </label>
 
-                    <textarea
-                        id="instructionjson"
-                        spellcheck="false"
-                        style="
-                            min-height:320px;
-                            font-family:Consolas,monospace;
-                            font-size:12px;
-                            line-height:1.55;
-                            resize:vertical;
-                        "
-                        placeholder='{
+                        <input
+                            id="ei"
+                            value="${esc(exam?.id || genId())}"
+                            ${isEdit ? "readonly" : ""}
+                            style="${isEdit
+                                ? "background:#f1f5f9;cursor:not-allowed;"
+                                : ""}"
+                            placeholder="EXAM-001">
+
+                        ${isEdit ? `
+                            <small class="muted">
+                                Exam ID cannot be changed after creation.
+                            </small>
+                        ` : ""}
+
+                    </div>
+
+
+                    <!-- DESCRIPTION -->
+
+                    <div class="field">
+
+                        <label>
+                            Short Description
+                        </label>
+
+                        <input
+                            id="edesc"
+                            value="${esc(exam?.description || "")}"
+                            placeholder="Technical mock examination">
+
+                    </div>
+
+
+                    <!-- INSTRUCTION JSON -->
+
+                    <div class="field full">
+
+                        <label>
+                            1. Official Examination Instruction JSON
+                            <span style="color:#ef4444">*</span>
+                        </label>
+
+                        <textarea
+                            id="instructionjson"
+                            spellcheck="false"
+                            style="
+                                min-height:260px;
+                                font-family:monospace;
+                                font-size:12px;
+                                line-height:1.5;
+                                resize:vertical;
+                            "
+                            placeholder='{
   "title": "EXAMINATION INSTRUCTIONS",
   "languages": ["English", "বাংলা"],
-
   "sections": [
     {
-      "number": 1,
       "title": "Examination Overview",
-      "title_bn": "পরীক্ষার সারসংক্ষেপ",
-      "english": "This is a bilingual technical mock examination.",
-      "bengali": "এটি একটি দ্বিভাষিক technical mock examination."
-    },
-
-    {
-      "number": 2,
-      "title": "Question Distribution",
-      "title_bn": "প্রশ্নের বিন্যাস",
-      "type": "table",
-      "columns": [
-        "Section",
-        "Questions",
-        "Marks"
+      "english": [
+        "Read all instructions carefully."
       ],
-      "rows": [
-        ["Aptitude", "Q1-Q5", "5"],
-        ["Reasoning", "Q6-Q10", "5"],
-        ["DC Motor", "Q11-Q20", "10"]
+      "bengali": [
+        "সমস্ত নির্দেশাবলী ভালোভাবে পড়ুন।"
       ]
-    },
-
-    {
-      "number": 3,
-      "title": "Negative Marking",
-      "title_bn": "নেগেটিভ মার্কিং",
-      "english": "0.25 marks will be deducted for every incorrect answer.",
-      "bengali": "প্রতিটি ভুল উত্তরের জন্য 0.25 নম্বর কাটা হবে।"
     }
-  ],
+  ]
+}'>${instructionJSON}</textarea>
 
-  "start_confirmation": {
-    "enabled": true,
-    "title": "START EXAM CONFIRMATION",
-    "english": "By clicking START EXAM, you confirm that you have read and understood all examination instructions.",
-    "bengali": "START EXAM-এ click করার মাধ্যমে আপনি নিশ্চিত করছেন যে আপনি সমস্ত পরীক্ষার নির্দেশাবলী বুঝেছেন।"
+                        <small class="muted">
+                            This single JSON is used for the candidate
+                            instruction screen and examination email.
+                        </small>
+
+                    </div>
+
+
+                    <!-- PATTERN JSON -->
+
+                    <div class="field full">
+
+                        <label>
+                            2. Examination Pattern JSON
+                            <span style="color:#ef4444">*</span>
+                        </label>
+
+                        <textarea
+                            id="patternjson"
+                            spellcheck="false"
+                            style="
+                                min-height:180px;
+                                font-family:monospace;
+                                font-size:12px;
+                                line-height:1.5;
+                                resize:vertical;
+                            "
+                            placeholder='[
+  {
+    "section": "Aptitude",
+    "qns": 20,
+    "marks": 20,
+    "time_mins": 13
   }
-}'>
-                    </textarea>
+]'>${patternJSON}</textarea>
 
-                    <small class="muted">
-                        Paste the complete official instruction JSON.
-                        This exact JSON will be stored and used for the
-                        candidate instruction screen and candidate email.
-                    </small>
+                    </div>
+
+
+                    <!-- QUESTIONS JSON -->
+
+                    <div class="field full">
+
+                        <label>
+                            3. Questions JSON
+                            <span style="color:#ef4444">*</span>
+                        </label>
+
+                        <textarea
+                            id="qjson"
+                            spellcheck="false"
+                            style="
+                                min-height:420px;
+                                font-family:monospace;
+                                font-size:12px;
+                                line-height:1.5;
+                                resize:vertical;
+                            "
+                            placeholder='[
+  {
+    "q": "Ohm law is?",
+    "a": [
+      "V = IR",
+      "P = VI",
+      "I = V/R",
+      "All"
+    ],
+    "correct": 0,
+    "marks": 1,
+    "time": 30,
+    "section": "Technical"
+  }
+]'>${questionsJSON}</textarea>
+
+                        <small class="muted">
+                            You can edit questions, options, correct answer,
+                            marks, timing, section, bilingual fields and
+                            other stored question properties.
+                        </small>
+
+                    </div>
 
                 </div>
 
 
-                <!-- QUESTION PATTERN -->
+                <!-- WARNING -->
 
-                <div class="field full">
-
-                    <label>
-                        Exam Pattern JSON
-                        <span style="color:#ef4444">*</span>
-                    </label>
-
-                    <textarea
-                        id="patternjson"
-                        spellcheck="false"
-                        style="
-                            min-height:130px;
-                            font-family:Consolas,monospace;
-                            font-size:12px;
-                        "
-                        placeholder='[
-  {
-    "section":"Aptitude",
-    "qns":5,
-    "marks":5,
-    "time_mins":5
-  }
-]'></textarea>
-
-                </div>
+                ${isEdit ? `
+                    <div style="
+                        margin-top:18px;
+                        padding:14px;
+                        border-radius:10px;
+                        background:#fff7ed;
+                        border:1px solid #fed7aa;
+                        color:#9a3412;
+                        font-size:13px;
+                    ">
+                        <b>Important:</b>
+                        Editing an examination changes the data stored for
+                        this Exam ID. If candidates are already scheduled
+                        or the examination is currently running, verify
+                        carefully before saving.
+                    </div>
+                ` : ""}
 
 
-                <!-- QUESTIONS -->
+                <div style="
+                    display:flex;
+                    justify-content:flex-end;
+                    gap:10px;
+                    margin-top:20px;
+                ">
 
-                <div class="field full">
+                    <button
+                        class="btn btn-light"
+                        onclick="$('modal').remove()">
+                        Cancel
+                    </button>
 
-                    <label>
-                        Questions JSON
-                        <span style="color:#ef4444">*</span>
-                    </label>
+                    <button
+                        id="saveExamBtn"
+                        class="btn btn-primary"
+                        onclick="createExam()">
 
-                    <textarea
-                        id="qjson"
-                        spellcheck="false"
-                        style="
-                            min-height:220px;
-                            font-family:Consolas,monospace;
-                            font-size:12px;
-                        "
-                        placeholder='[
-  {
-    "q":"Ohm law is?",
-    "a":["V=IR","P=VI","I=V/R","All"],
-    "correct":0,
-    "marks":1,
-    "time":60,
-    "section":"Electrical"
-  }
-]'></textarea>
+                        ${isEdit
+                            ? "Save Examination Changes"
+                            : "Save & Create Examination"}
+
+                    </button>
 
                 </div>
 
             </div>
 
-            <br>
-
-            <button
-                class="btn btn-primary"
-                onclick="createExam()"
-                style="width:100%">
-
-                Validate JSON & Create Examination
-
-            </button>
-
         </div>
-
-    </div>
     `);
 };
   window.createExam = async () => {
 
-    let btn = event.target;
-    let originalText = btn.innerText;
+    const btn = $("saveExamBtn");
 
-    btn.innerText = "Validating JSON...";
+    if (!btn) return;
+
+    const originalText = btn.innerText;
+
+    btn.innerText = window.editingExamId
+        ? "Saving Changes..."
+        : "Validating & Creating...";
+
     btn.disabled = true;
 
     try {
 
-        let id =
-            $("ei").value.trim().toUpperCase();
+        // =========================================
+        // BASIC DATA
+        // =========================================
 
-        let name =
-            $("en").value.trim();
+        let id = $("ei").value.trim().toUpperCase();
+        let name = $("en").value.trim();
+        let description = $("edesc").value.trim();
 
-        let shortDescription =
-            $("ein").value.trim();
+        if (!id)
+            throw new Error("Exam ID is required.");
 
-
-        if(!id || !name){
-
-            throw new Error(
-                "Exam ID and Exam Name are required."
-            );
-
-        }
+        if (!name)
+            throw new Error("Examination Name is required.");
 
 
-        // =====================================================
-        // 1. INSTRUCTION JSON
-        // =====================================================
+        // =========================================
+        // INSTRUCTION JSON
+        // =========================================
 
         let instructionRaw =
             $("instructionjson").value.trim();
 
-        if(!instructionRaw){
-
+        if (!instructionRaw)
             throw new Error(
-                "Official Instruction JSON is required."
+                "Instruction JSON is required."
             );
 
-        }
-
-
-        let instructionData;
+        let instructionJSON;
 
         try {
 
-            instructionData =
+            instructionJSON =
                 JSON.parse(instructionRaw);
 
-        } catch(e){
+        } catch (e) {
 
             throw new Error(
-                "Instruction JSON is invalid. Check brackets, commas and quotation marks."
+                "Instruction JSON is invalid. Check brackets, commas and quotes."
             );
 
         }
 
 
-        if(
-            !instructionData ||
-            typeof instructionData !== "object"
-        ){
-
-            throw new Error(
-                "Instruction JSON must contain an object."
-            );
-
-        }
-
-
-        if(
-            !Array.isArray(
-                instructionData.sections
-            )
-        ){
-
-            throw new Error(
-                "Instruction JSON must contain a 'sections' array."
-            );
-
-        }
-
-
-        // Validate sections
-
-        instructionData.sections.forEach(
-            (section,index) => {
-
-                if(
-                    !section.title &&
-                    !section.title_bn
-                ){
-
-                    throw new Error(
-                        `Instruction section ${index + 1} has no title.`
-                    );
-
-                }
-
-            }
-        );
-
-
-        // =====================================================
-        // 2. EXAM PATTERN JSON
-        // =====================================================
+        // =========================================
+        // PATTERN JSON
+        // =========================================
 
         let patternRaw =
             $("patternjson").value.trim();
 
-        if(!patternRaw){
-
+        if (!patternRaw)
             throw new Error(
-                "Exam Pattern JSON is required."
+                "Examination Pattern JSON is required."
             );
-
-        }
-
 
         let examPattern;
 
@@ -3210,7 +3430,7 @@ window.openExamModal = () => {
             examPattern =
                 JSON.parse(patternRaw);
 
-        } catch(e){
+        } catch (e) {
 
             throw new Error(
                 "Exam Pattern JSON is invalid."
@@ -3219,30 +3439,26 @@ window.openExamModal = () => {
         }
 
 
-        if(!Array.isArray(examPattern)){
+        if (!Array.isArray(examPattern)) {
 
             throw new Error(
-                "Exam Pattern must be a JSON array."
+                "Exam Pattern JSON must be an array."
             );
 
         }
 
 
-        // =====================================================
-        // 3. QUESTIONS JSON
-        // =====================================================
+        // =========================================
+        // QUESTIONS JSON
+        // =========================================
 
         let questionsRaw =
             $("qjson").value.trim();
 
-        if(!questionsRaw){
-
+        if (!questionsRaw)
             throw new Error(
                 "Questions JSON is required."
             );
-
-        }
-
 
         let questions;
 
@@ -3251,7 +3467,7 @@ window.openExamModal = () => {
             questions =
                 JSON.parse(questionsRaw);
 
-        } catch(e){
+        } catch (e) {
 
             throw new Error(
                 "Questions JSON is invalid."
@@ -3260,7 +3476,7 @@ window.openExamModal = () => {
         }
 
 
-        if(!Array.isArray(questions)){
+        if (!Array.isArray(questions)) {
 
             throw new Error(
                 "Questions JSON must be an array."
@@ -3268,100 +3484,266 @@ window.openExamModal = () => {
 
         }
 
+        if (!questions.length) {
 
-        // =====================================================
-        // CLEAN QUESTIONS
-        // =====================================================
+            throw new Error(
+                "At least one question is required."
+            );
 
-        let clean =
-            questions.map((q,i) => {
+        }
 
-                if(!q.q){
 
-                    throw new Error(
-                        `Question ${i + 1} has no question text.`
+        // =========================================
+        // NORMALIZE QUESTIONS
+        // =========================================
+
+        let clean = questions.map((q, i) => {
+
+            // Support old format:
+            // q / a / correct / marks / time / section
+
+            // Also support stored format:
+            // text / options / correctIndex / allocatedTime
+
+            let questionText =
+                q.q !== undefined
+                    ? q.q
+                    : q.text;
+
+            let options =
+                q.a !== undefined
+                    ? q.a
+                    : q.options;
+
+            let correct =
+                q.correct !== undefined
+                    ? Number(q.correct)
+                    : Number(q.correctIndex);
+
+            let marks =
+                q.marks !== undefined
+                    ? Number(q.marks)
+                    : 1;
+
+            let time =
+                q.time !== undefined
+                    ? Number(q.time)
+                    : (
+                        q.allocatedTime !== undefined
+                            ? Number(q.allocatedTime)
+                            : 30
                     );
 
-                }
+            let section =
+                q.section || "General";
 
-                if(
-                    !Array.isArray(q.a) ||
-                    q.a.length < 2
-                ){
 
-                    throw new Error(
-                        `Question ${i + 1} must contain answer options.`
-                    );
+            if (
+                questionText === undefined ||
+                questionText === null ||
+                String(questionText).trim() === ""
+            ) {
 
-                }
+                throw new Error(
+                    `Question ${i + 1} has no question text.`
+                );
 
-                return {
+            }
 
-                    id:i + 1,
 
-                    text:q.q,
+            if (
+                !Array.isArray(options) ||
+                options.length < 2
+            ) {
 
-                    options:q.a,
+                throw new Error(
+                    `Question ${i + 1} must contain at least 2 options.`
+                );
 
-                    correctIndex:
-                        Number(q.correct),
+            }
 
-                    marks:
-                        Number(q.marks || 1),
 
-                    allocatedTime:
-                        Number(q.time || 30),
+            if (
+                !Number.isInteger(correct) ||
+                correct < 0 ||
+                correct >= options.length
+            ) {
 
-                    section:
-                        q.section || "General"
+                throw new Error(
+                    `Question ${i + 1} has an invalid correct answer index.`
+                );
 
-                };
+            }
 
-            });
 
+            if (!Number.isFinite(marks) || marks <= 0) {
+
+                throw new Error(
+                    `Question ${i + 1} has invalid marks.`
+                );
+
+            }
+
+
+            if (!Number.isFinite(time) || time <= 0) {
+
+                throw new Error(
+                    `Question ${i + 1} has invalid timing.`
+                );
+
+            }
+
+
+            // Preserve additional fields such as:
+            // Bengali question
+            // bilingual options
+            // explanation
+            // image
+            // difficulty
+            // tags
+            // etc.
+
+            return {
+
+                ...q,
+
+                id: i + 1,
+
+                text: questionText,
+
+                options: options,
+
+                correctIndex: correct,
+
+                marks: marks,
+
+                allocatedTime: time,
+
+                section: section
+
+            };
+
+        });
+
+
+        // =========================================
+        // TOTAL MARKS
+        // =========================================
 
         let totalMarks =
             clean.reduce(
-                (sum,q) =>
-                    sum + q.marks,
+                (sum, q) =>
+                    sum + Number(q.marks || 0),
                 0
             );
 
 
-        // =====================================================
-        // SAVE EVERYTHING
-        // =====================================================
+        // =========================================
+        // CREATE / UPDATE
+        // =========================================
+
+        let oldExam =
+            window._cache.exams?.[id];
+
+
+        // -----------------------------
+        // EDIT EXISTING EXAM
+        // -----------------------------
+
+        if (window.editingExamId) {
+
+            let oldId =
+                window.editingExamId;
+
+            if (oldId !== id) {
+
+                throw new Error(
+                    "Exam ID cannot be changed during editing."
+                );
+
+            }
+
+
+            await update(
+                ref(db, "exams/" + oldId),
+                {
+
+                    name: name,
+
+                    description: description,
+
+                    instructionJson:
+                        instructionJSON,
+
+                    // Compatibility with older functions
+                    instructionJsonRaw:
+                        JSON.stringify(
+                            instructionJSON
+                        ),
+
+                    instructions:
+                        JSON.stringify(
+                            instructionJSON
+                        ),
+
+                    pattern:
+                        examPattern,
+
+                    questions:
+                        clean,
+
+                    totalMarks:
+                        totalMarks,
+
+                    updatedAt:
+                        Date.now()
+
+                }
+            );
+
+
+            $("modal").remove();
+
+            window.editingExamId = null;
+
+            toast(
+                "Examination updated successfully."
+            );
+
+            adminExams();
+
+            return;
+        }
+
+
+        // -----------------------------
+        // CREATE NEW EXAM
+        // -----------------------------
 
         await set(
-            ref(db,"exams/" + id),
+            ref(db, "exams/" + id),
             {
 
-                id:id,
+                id: id,
 
-                name:name,
+                name: name,
 
                 description:
-                    shortDescription,
+                    description,
 
-                /*
-                 * Structured instruction system.
-                 */
                 instructionJson:
-                    instructionData,
+                    instructionJSON,
 
-                /*
-                 * Keep raw JSON too.
-                 * Useful for exact email reproduction/debugging.
-                 */
                 instructionJsonRaw:
-                    instructionRaw,
+                    JSON.stringify(
+                        instructionJSON
+                    ),
 
-                /*
-                 * Existing short field retained
-                 * for compatibility.
-                 */
+                // Compatibility
                 instructions:
-                    instructionRaw,
+                    JSON.stringify(
+                        instructionJSON
+                    ),
 
                 pattern:
                     examPattern,
@@ -3376,6 +3758,9 @@ window.openExamModal = () => {
                     "draft",
 
                 createdAt:
+                    Date.now(),
+
+                updatedAt:
                     Date.now()
 
             }
@@ -3384,20 +3769,25 @@ window.openExamModal = () => {
 
         $("modal").remove();
 
+        window.editingExamId = null;
+
         toast(
-            "Examination, instruction JSON and questions saved successfully."
+            "Examination created successfully."
         );
 
         adminExams();
 
 
-    } catch(e){
+    } catch (e) {
 
-        console.error(e);
+        console.error(
+            "Exam Save Error:",
+            e
+        );
 
         toast(
             e.message ||
-            "Invalid examination configuration."
+            "Unable to save examination."
         );
 
         btn.innerText =
