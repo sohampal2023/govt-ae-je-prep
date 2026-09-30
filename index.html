@@ -357,6 +357,7 @@ async function adminDashboard(){
     <div class="tabs">
         <button class="tab active" id="tab-exams" onclick="adminExams()">Exams</button>
         <button class="tab" id="tab-schedule" onclick="adminScheduling()">Schedule Candidates</button>
+        <button class="tab" id="tab-reschedule" onclick="adminRescheduling()">Reschedule Candidates</button>
         <button class="tab" id="tab-idm" onclick="adminIDManagement()">ID Verification (Check-in)</button>
         <button class="tab" id="tab-monitor" onclick="adminMonitorSetup()">Live Command Center</button>
         <button class="tab" id="tab-results" onclick="adminResults()">Results</button>
@@ -576,7 +577,138 @@ window.searchVerifyCandidate = () => {
         <button id="btnGenerateKey" class="btn btn-success" disabled onclick="verifyCandidate('${roll}')" style="width:100%; padding:14px; font-size:15px">All Details Verified - Generate Secret Key</button>
     </div>`;
 };
+window.adminRescheduling = () => {
+    setTab('tab-reschedule'); window.currentAdminTab = 'reschedule';
+    let verifications = window._cache.verifications || {};
+    let exams = window._cache.exams || {}; 
+    
+    let examOptions = Object.entries(exams).map(([id, e]) => `<option value="${id}">${esc(e.name)}</option>`).join("");
+    
+    // Filter for candidates who are already scheduled ('pending' or 'approved')
+    let rows = Object.values(verifications).filter(v => v.status === 'pending' || v.status === 'approved').sort((a,b)=>b.timestamp-a.timestamp).map(v => {
+        let currentExamName = exams[v.examId] ? exams[v.examId].name : "Unknown Exam";
+        let currentDate = v.examDate ? new Date(v.examDate).toLocaleString() : "Not set";
+        
+        return `
+        <tr>
+            <td><b>${esc(v.name)}</b><br><small class="muted">Roll: ${esc(v.roll)}</small></td>
+            <td><span class="badge blue" style="display:block;margin-bottom:4px;font-size:10px">${esc(currentExamName)}</span><small>${esc(currentDate)}</small></td>
+            <td>
+                <select id="re-exam-${v.safeRoll}" style="padding:6px;font-size:12px;width:160px;margin-bottom:4px">
+                    <option value="" disabled selected>-- Select New Exam --</option>
+                    ${examOptions}
+                </select><br>
+                <input type="datetime-local" id="re-date-${v.safeRoll}" style="padding:6px;font-size:12px;width:160px">
+            </td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="rescheduleAndEmail('${v.safeRoll}')">Reschedule & Mail</button>
+            </td>
+        </tr>
+        `;
+    }).join("");
+    
+    $("adminContent").innerHTML=`<div class="card"><h2>Reschedule Candidates</h2><p class="muted">Change the exam or date for already scheduled candidates. This will reset their verification status (Secret ID) and send an update email.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Candidate</th><th>Current Schedule</th><th>New Exam & Date</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No scheduled candidates available for rescheduling.</div>`}</div></div>`;
+};
 
+window.rescheduleAndEmail = async (safeRoll) => {
+    let examId = $(`re-exam-${safeRoll}`).value;
+    let dateVal = $(`re-date-${safeRoll}`).value;
+    
+    if(!examId || !dateVal) return toast("Please select a new exam and date/time.");
+    
+    let v = window._cache.verifications[safeRoll];
+    let exam = window._cache.exams[examId];
+    let examName = exam.name;
+    let formattedDate = new Date(dateVal).toLocaleString();
+    
+    let btn = event.target;
+    let originalText = btn.innerText;
+    btn.innerText = "Rescheduling...";
+    btn.disabled = true;
+
+    try {
+        // 1. Reset verification status to 'pending' and clear old Secret ID
+        await update(ref(db, "verifications/" + safeRoll), { 
+            status: 'pending', 
+            examId: examId, 
+            examDate: dateVal,
+            secretId: null
+        });
+
+        // 2. If they were already checked in (in 'students' node), deactivate them
+        let studentSnap = await get(ref(db, "students/" + safeRoll));
+        if (studentSnap.exists()) {
+            await update(ref(db, "students/" + safeRoll), { 
+                active: false, 
+                secretId: null, 
+                secretExpiry: null 
+            });
+        }
+        
+        // 3. Format exam pattern table for email
+        let pad = (str, len) => str.toString().padEnd(len, ' ');
+        let tableText = `---------------------------------------------------------\n`;
+        tableText += `${pad("SECTION", 20)} | ${pad("QNS", 5)} | ${pad("MARKS", 7)} | ${pad("TIME(m)", 7)}\n`;
+        tableText += `---------------------------------------------------------\n`;
+        
+        let totalQ = 0, totalM = 0, totalT = 0;
+        if (exam.pattern && Array.isArray(exam.pattern)) {
+            exam.pattern.forEach(p => {
+                let sName = p.section.length > 18 ? p.section.substring(0, 15) + '...' : p.section;
+                tableText += `${pad(sName, 20)} | ${pad(p.qns||0, 5)} | ${pad(p.marks||0, 7)} | ${pad(p.time_mins||0, 7)}\n`;
+                totalQ += Number(p.qns||0); totalM += Number(p.marks||0); totalT += Number(p.time_mins||0);
+            });
+        }
+        tableText += `---------------------------------------------------------\n`;
+        tableText += `${pad("TOTAL", 20)} | ${pad(totalQ, 5)} | ${pad(totalM, 7)} | ${pad(totalT, 7)}\n`;
+        tableText += `---------------------------------------------------------`;
+
+        // 4. Generate the URGENT Reschedule Email content
+        let subject = `URGENT: Examination Rescheduled - Updated Details Inside`;
+        let bodyText = `Dear ${v.name},
+
+This is an official communication regarding an update to your examination schedule. 
+Please note that your examination details have been **RESCHEDULED**. 
+
+Your previous exam slot is no longer valid. Please find your UPDATED schedule below:
+
+---------------------------------------------------------
+UPDATED EXAMINATION DETAILS
+---------------------------------------------------------
+Candidate Name    : ${v.name}
+Roll Number       : ${v.roll}
+New Examination   : ${examName}
+New Reporting Time: ${formattedDate}
+---------------------------------------------------------
+
+EXAMINATION PATTERN SUMMARY:
+${tableText}
+
+IMPORTANT NOTE:
+Any previous 'Secret Login ID' provided to you is now invalid. You must undergo physical verification again at the center on your new date to receive a new Secret ID.
+
+Best Regards,
+Examination Administration Team`;
+
+        let scriptUrl = "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec"; 
+
+        // 5. Trigger the Email Script
+        await fetch(scriptUrl, {
+            method: "POST", mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({ to: v.email, subject: subject, body: bodyText })
+        });
+
+        toast("Candidate rescheduled & Email sent successfully!");
+        adminRescheduling(); // Refresh UI
+        
+    } catch (e) {
+        console.error(e);
+        toast("Failed to reschedule candidate.");
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+};
 window.checkTally = () => {
     let allChecked = Array.from(document.querySelectorAll('.tally-chk')).every(c => c.checked);
     $("btnGenerateKey").disabled = !allChecked;
@@ -1087,8 +1219,7 @@ window.openExamModal = () => {
 };window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
 window.deleteExam=async id=>{if(!confirm("Delete this examination?"))return;await set(ref(db,"exams/"+id),null); toast("Exam deleted"); adminExams(); };
 
-Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, adminIDManagement, searchVerifyCandidate, checkTally, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });
-window.landing();
+Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, adminRescheduling, rescheduleAndEmail, adminIDManagement, searchVerifyCandidate, checkTally, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });window.landing();
 </script>
 </body>
 </html>
