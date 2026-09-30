@@ -3323,6 +3323,7 @@ function showProctorWarning(message, isAdmin = false) {
         listenersInstalled: false
     };
 
+    // Administrator message
     if (isAdmin) {
         let d = document.createElement("div");
         d.className = "proctor-warning admin-msg";
@@ -3333,8 +3334,8 @@ function showProctorWarning(message, isAdmin = false) {
         return;
     }
 
-    // Do not count additional events while security modal is open
-    if (document.querySelector(".proctor-modal")) return;
+    // Do not process anything after cancellation
+    if (state.session?.status !== "live") return;
 
     state.proctor.violations++;
 
@@ -3344,52 +3345,52 @@ function showProctorWarning(message, isAdmin = false) {
         $("violationCount").innerText = count;
     }
 
-    let d = document.createElement("div");
-    d.className = "proctor-warning";
+    console.log(
+        "TAB/WINDOW VIOLATION:",
+        count,
+        message
+    );
 
-    d.innerHTML = `
-        ⚠ ${esc(message)}
-        <span class="count">Warning ${count} of 4</span>
-    `;
+    // First violation = warning only
+    if (count === 1) {
 
-    document.body.appendChild(d);
+        let d = document.createElement("div");
 
-    setTimeout(() => d.remove(), 4500);
+        d.className = "proctor-warning";
 
-    // Terminate on 5th violation
-    if (count > 4) {
-        cancelExamForSecurityViolation(
-            "Candidate exceeded the maximum permitted tab/window focus violations."
-        );
+        d.innerHTML = `
+            ⚠ ${esc(message)}
+            <span class="count">Warning 1 of 2</span>
+        `;
+
+        document.body.appendChild(d);
+
+        setTimeout(() => d.remove(), 4500);
+
+        update(
+            ref(
+                db,
+                `examSessions/${state.examId}/${state.studentId}`
+            ),
+            {
+                warningCount: 1,
+                lastWarningReason: message,
+                lastWarningAt: Date.now()
+            }
+        ).catch(console.error);
+
         return;
     }
 
-    // Lock after 2nd and 4th violation
-    if (count === 2 || count === 4) {
-        setTimeout(() => {
-            if (
-                state.role === "student" &&
-                state.session?.status === "live"
-            ) {
-                showSecurityLock();
-            }
-        }, 300);
-    }
+    // SECOND VIOLATION = IMMEDIATE CANCELLATION
+    if (count >= 2) {
 
-    // Save warning count to Firebase
-    update(
-        ref(
-            db,
-            `examSessions/${state.examId}/${state.studentId}`
-        ),
-        {
-            warningCount: count,
-            lastWarningReason: message,
-            lastWarningAt: Date.now()
-        }
-    ).catch(err => {
-        console.error("Warning update failed:", err);
-    });
+        cancelExamForSecurityViolation(
+            "Exam cancelled because the candidate switched away from the examination window twice."
+        );
+
+        return;
+    }
 }
 
 function showSecurityLock() {
@@ -3497,18 +3498,146 @@ window.resumeAfterSecurity = async () => {
 
     await requestExamFullscreen();
 };
-function installProctoring(){
-  state.proctor=state.proctor||{violations:0}; if(state.proctor.listenersInstalled)return; state.proctor.listenersInstalled=true;
-  document.addEventListener("visibilitychange",()=>{ if(document.hidden && state.role==="student" && state.session?.status==="live")showProctorWarning("You left the examination window."); });
-  window.addEventListener("blur",()=>{ if(state.role==="student" && state.session?.status==="live")showProctorWarning("Examination window lost focus."); });
-  document.addEventListener("contextmenu",e=>{if(state.role==="student"&&state.session?.status==="live")e.preventDefault()});
-  ['copy','cut','paste'].forEach(ev => document.addEventListener(ev, e=>{if(state.role==="student"&&state.session?.status==="live")e.preventDefault()}));
-  document.addEventListener("keydown",e=>{
-    if(state.role!=="student"||state.session?.status!=="live")return;
-    if((e.ctrlKey||e.metaKey)&&["c","x","v","u","s","p"].includes(e.key.toLowerCase())){e.preventDefault();showProctorWarning("This keyboard action is disabled.");}
-    if(e.key==="F12"||e.key==="PrintScreen"){e.preventDefault();showProctorWarning("This action is disabled.");}
-  });
-  window.addEventListener("beforeunload",e=>{ if(state.role==="student"&&state.session?.status==="live"){e.preventDefault();e.returnValue="Your examination is in progress.";} });
+function installProctoring() {
+
+    state.proctor = state.proctor || {
+        violations: 0,
+        listenersInstalled: false,
+        lastFocusEvent: 0
+    };
+
+    if (state.proctor.listenersInstalled) return;
+
+    state.proctor.listenersInstalled = true;
+
+    // TAB / WINDOW SWITCH DETECTION
+    document.addEventListener("visibilitychange", () => {
+
+        if (
+            state.role !== "student" ||
+            state.session?.status !== "live"
+        ) return;
+
+        if (document.visibilityState !== "hidden") return;
+
+        const now = Date.now();
+
+        // Prevent duplicate detection with blur
+        if (now - (state.proctor.lastFocusEvent || 0) < 1200) {
+            return;
+        }
+
+        state.proctor.lastFocusEvent = now;
+
+        showProctorWarning(
+            "You left the examination window."
+        );
+    });
+
+    window.addEventListener("blur", () => {
+
+        if (
+            state.role !== "student" ||
+            state.session?.status !== "live"
+        ) return;
+
+        const now = Date.now();
+
+        // visibilitychange will normally handle tab switching.
+        // Only use blur when the document is still visible.
+        if (document.visibilityState !== "visible") {
+            return;
+        }
+
+        if (now - (state.proctor.lastFocusEvent || 0) < 1200) {
+            return;
+        }
+
+        state.proctor.lastFocusEvent = now;
+
+        showProctorWarning(
+            "Examination window lost focus."
+        );
+    });
+
+    // Disable context menu
+    document.addEventListener("contextmenu", e => {
+
+        if (
+            state.role === "student" &&
+            state.session?.status === "live"
+        ) {
+            e.preventDefault();
+        }
+
+    });
+
+    // Disable copy / cut / paste
+    ["copy", "cut", "paste"].forEach(ev => {
+
+        document.addEventListener(ev, e => {
+
+            if (
+                state.role === "student" &&
+                state.session?.status === "live"
+            ) {
+                e.preventDefault();
+            }
+
+        });
+
+    });
+
+    // Keyboard security
+    document.addEventListener("keydown", e => {
+
+        if (
+            state.role !== "student" ||
+            state.session?.status !== "live"
+        ) return;
+
+        if (
+            (e.ctrlKey || e.metaKey) &&
+            ["c", "x", "v", "u", "s", "p"]
+                .includes(e.key.toLowerCase())
+        ) {
+
+            e.preventDefault();
+
+            showProctorWarning(
+                "This keyboard action is disabled during the examination."
+            );
+
+            return;
+        }
+
+        if (
+            e.key === "F12" ||
+            e.key === "PrintScreen"
+        ) {
+
+            e.preventDefault();
+
+            showProctorWarning(
+                "This action is disabled during the examination."
+            );
+        }
+
+    });
+
+    // Prevent closing/reloading during exam
+    window.addEventListener("beforeunload", e => {
+
+        if (
+            state.role === "student" &&
+            state.session?.status === "live"
+        ) {
+            e.preventDefault();
+            e.returnValue =
+                "Your examination is in progress.";
+        }
+
+    });
 }
 installProctoring();
 
