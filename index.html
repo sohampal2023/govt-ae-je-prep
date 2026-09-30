@@ -3188,52 +3188,164 @@ window.requestExamFullscreen=async()=>{ try{await document.documentElement.reque
 let proctorWarningCount = 0;
 let proctorListenersInstalled = false;
 let securityModalOpen = false;
-   
-
-function showProctorWarning(message, isAdmin = false) {
-
+// ==========================================
+// 1. REVISED PROCTORING EVENT LISTENERS
+// ==========================================
+function installProctoring() {
     state.proctor = state.proctor || {
         violations: 0,
         listenersInstalled: false,
         lastFocusEvent: 0
     };
 
-    // Administrator message
-    if (isAdmin) {
-        let d = document.createElement("div");
+    if (state.proctor.listenersInstalled) return;
+    state.proctor.listenersInstalled = true;
 
-        d.className = "proctor-warning admin-msg";
-        d.innerHTML = `⚠ ${esc(message)}`;
+    // --- FULLSCREEN EXIT DETECTION (Catches Escape key & exiting full-screen) ---
+    const onFullscreenChange = () => {
+        if (state.role !== "student" || state.session?.status !== "live") return;
+        const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+        if (!isFull) {
+            registerExamViolation("Candidate exited full-screen mode.");
+        }
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
 
-        document.body.appendChild(d);
+    // --- TAB SWITCH DETECTION ---
+    document.addEventListener("visibilitychange", () => {
+        if (state.role !== "student" || state.session?.status !== "live") return;
+        if (document.hidden || document.visibilityState === "hidden") {
+            registerExamViolation("Candidate switched away from the examination tab.");
+        }
+    });
 
-        setTimeout(() => d.remove(), 4500);
+    // --- ALT+TAB & WINDOW FOCUS LOSS ---
+    window.addEventListener("blur", () => {
+        if (state.role !== "student" || state.session?.status !== "live") return;
+        registerExamViolation("Candidate switched windows or navigated away (Alt+Tab / Focus lost).");
+    });
+
+    // --- CONTEXT MENU & CLIPBOARD BLOCK ---
+    document.addEventListener("contextmenu", e => {
+        if (state.role === "student" && state.session?.status === "live") e.preventDefault();
+    });
+
+    ["copy", "cut", "paste"].forEach(ev => {
+        document.addEventListener(ev, e => {
+            if (state.role === "student" && state.session?.status === "live") e.preventDefault();
+        });
+    });
+
+    // --- KEY SHORTCUTS & SYSTEM KEYS ---
+    document.addEventListener("keydown", e => {
+        if (state.role !== "student" || state.session?.status !== "live") return;
+
+        // Catch Alt key immediately (Alt+Tab / Alt+F4 intent)
+        if (e.altKey) {
+            e.preventDefault();
+            registerExamViolation("Alt key press detected.");
+            return;
+        }
+
+        // Block Ctrl/Meta key combinations
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            showProctorWarning("Keyboard shortcuts are disabled.", false);
+            return;
+        }
+
+        // Block Escape, F12, and PrintScreen
+        if (e.key === "Escape") {
+            e.preventDefault();
+            registerExamViolation("Escape key pressed (attempted to leave full screen).");
+        } else if (e.key === "F12" || e.key === "PrintScreen") {
+            e.preventDefault();
+            showProctorWarning("This function key is disabled.", false);
+        }
+    });
+
+    window.addEventListener("beforeunload", e => {
+        if (state.role === "student" && state.session?.status === "live") {
+            e.preventDefault();
+            e.returnValue = "Your examination is in progress.";
+        }
+    });
+}
+
+// ==========================================
+// 2. UNIFIED VIOLATION & CANCELLATION HANDLER
+// ==========================================
+async function registerExamViolation(reason) {
+    if (!state.session || state.session.status !== "live") return;
+
+    state.proctor = state.proctor || { violations: 0, lastFocusEvent: 0 };
+
+    // Debounce window (1200ms) prevents blur + visibilitychange + keydown from multi-triggering on 1 action
+    const now = Date.now();
+    if (now - (state.proctor.lastFocusEvent || 0) < 1200) {
         return;
     }
+    state.proctor.lastFocusEvent = now;
 
-    // Do not process anything if exam is not live
-    if (state.session?.status !== "live") return;
+    // Single source of truth for increments
+    state.proctor.violations = (state.proctor.violations || 0) + 1;
+    const count = state.proctor.violations;
 
-    // IMPORTANT:
-    // Do NOT increment violations here.
-    // registerExamViolation() is responsible for counting.
-    const count = state.proctor.violations || 0;
-
+    // Instantly update the counter in the palette sidebar
     if ($("violationCount")) {
         $("violationCount").innerText = count;
     }
 
+    console.warn(`[EXAM PROCTOR] Violation #${count}: ${reason}`);
+
+    // FIRST VIOLATION: Show warning & security modal
+    if (count === 1) {
+        showProctorWarning(`Warning 1 of 2: ${reason}`, false);
+        showSecurityLock();
+
+        try {
+            await update(
+                ref(db, `examSessions/${state.examId}/${state.studentId}`),
+                {
+                    warningCount: 1,
+                    lastWarningReason: reason,
+                    lastWarningAt: Date.now()
+                }
+            );
+        } catch (err) {
+            console.error("Firebase sync error:", err);
+        }
+        return;
+    }
+
+    // SECOND VIOLATION: Immediate Exam Cancellation
+    if (count >= 2) {
+        cancelExamForSecurityViolation(reason);
+    }
+}
+
+// ==========================================
+// 3. UI-ONLY PROCTOR WARNING BANNER
+// ==========================================
+function showProctorWarning(message, isAdmin = false) {
+    // Admin direct notification
+    if (isAdmin) {
+        let d = document.createElement("div");
+        d.className = "proctor-warning admin-msg";
+        d.innerHTML = `⚠ ${esc(message)}`;
+        document.body.appendChild(d);
+        setTimeout(() => d.remove(), 4500);
+        return;
+    }
+
+    if (state.session?.status !== "live") return;
+
+    // Display warning banner without modifying violations counter
     let d = document.createElement("div");
-
     d.className = "proctor-warning";
-
-    d.innerHTML = `
-        ⚠ ${esc(message)}
-        <span class="count">Warning ${count} of 2</span>
-    `;
-
+    d.innerHTML = `⚠ ${esc(message)}`;
     document.body.appendChild(d);
-
     setTimeout(() => d.remove(), 4500);
 }
 
@@ -3342,222 +3454,7 @@ window.resumeAfterSecurity = async () => {
 
     await requestExamFullscreen();
 };
-function installProctoring() {
 
-    state.proctor = state.proctor || {
-        violations: 0,
-        listenersInstalled: false,
-        lastFocusEvent: 0
-    };
-
-    if (state.proctor.listenersInstalled) return;
-    state.proctor.listenersInstalled = true;
-
-    // ==========================================
-    // TAB SWITCH & FOCUS LOSS TRACKING REMOVED 
-    // Students can now freely Alt+Tab, switch tabs, 
-    // and exit fullscreen without cancellation.
-    // ==========================================
-
-
-    // ==========================================
-    // OTHER SECURITY CONTROLS (Kept to prevent copy/paste/F12)
-    // ==========================================
-
-    document.addEventListener("contextmenu", e => {
-        if (
-            state.role === "student" &&
-            state.session?.status === "live"
-        ) {
-            e.preventDefault();
-        }
-    });
-
-    ["copy", "cut", "paste"].forEach(ev => {
-        document.addEventListener(ev, e => {
-            if (
-                state.role === "student" &&
-                state.session?.status === "live"
-            ) {
-                e.preventDefault();
-            }
-        });
-    });
-
-    document.addEventListener("keydown", e => {
-
-        if (
-            state.role !== "student" ||
-            state.session?.status !== "live"
-        ) {
-            return;
-        }
-
-        if (
-            (e.ctrlKey || e.metaKey) &&
-            ["c", "x", "v", "u", "s", "p"]
-                .includes(e.key.toLowerCase())
-        ) {
-            e.preventDefault();
-            showProctorWarning(
-                "This keyboard action is disabled."
-            );
-            return;
-        }
-
-        if (
-            e.key === "F12" ||
-            e.key === "PrintScreen"
-        ) {
-            e.preventDefault();
-            showProctorWarning(
-                "This action is disabled."
-            );
-        }
-    });
-
-    window.addEventListener("beforeunload", e => {
-        if (
-            state.role === "student" &&
-            state.session?.status === "live"
-        ) {
-            e.preventDefault();
-            e.returnValue =
-                "Your examination is in progress.";
-        }
-    });
-}
-installProctoring();
-async function registerExamViolation(reason) {
-
-    // Ignore anything when exam is not live
-    if (
-        !state.session ||
-        state.session.status !== "live"
-    ) {
-        return;
-    }
-
-    state.proctor = state.proctor || {
-        violations: 0,
-        listenersInstalled: true,
-        lastFocusEvent: 0
-    };
-
-    // ONE actual event = ONE violation
-    state.proctor.violations++;
-
-    const count = state.proctor.violations;
-
-    // Update UI immediately
-    if ($("violationCount")) {
-        $("violationCount").innerText = count;
-    }
-
-    console.log(
-        "[EXAM SECURITY]",
-        "Violation:",
-        count,
-        reason
-    );
-
-    // ==========================================
-    // FIRST TAB SWITCH = WARNING ONLY
-    // ==========================================
-
-    if (count === 1) {
-
-        showProctorWarning(
-            reason,
-            false
-        );
-
-        try {
-
-            await update(
-                ref(
-                    db,
-                    `examSessions/${state.examId}/${state.studentId}`
-                ),
-                {
-                    warningCount: 1,
-                    lastWarningReason: reason,
-                    lastWarningAt: Date.now()
-                }
-            );
-
-        } catch(error) {
-
-            console.error(
-                "Failed to save warning:",
-                error
-            );
-        }
-
-        return;
-    }
-
-    // ==========================================
-    // SECOND TAB SWITCH = CANCEL EXAM
-    // ==========================================
-
-    if (count >= 2) {
-
-        // Change local status FIRST
-        // so additional events cannot trigger again.
-        state.session.status = "cancelled";
-
-        try {
-
-            await update(
-                ref(
-                    db,
-                    `examSessions/${state.examId}/${state.studentId}`
-                ),
-                {
-                    status: "cancelled",
-                    examCancelled: true,
-                    warningCount: count,
-                    cancellationReason:
-                        "Candidate switched away from the examination window twice.",
-                    cancelledAt: Date.now(),
-                    lastWarningReason: reason,
-                    lastWarningAt: Date.now()
-                }
-            );
-
-        } catch(error) {
-
-            console.error(
-                "Cancellation Firebase update failed:",
-                error
-            );
-        }
-
-        // Stop exam timer
-        if (state.timer) {
-            clearInterval(state.timer);
-            state.timer = null;
-        }
-
-        // Stop screen capture
-        if (window.screenCaptureInterval) {
-            clearInterval(window.screenCaptureInterval);
-            window.screenCaptureInterval = null;
-        }
-
-        // Remove security modal
-        document
-            .querySelector(".proctor-modal")
-            ?.remove();
-
-        // Show permanent cancellation screen
-        showExamCancellationScreen(
-            count,
-            "Candidate switched away from the examination window twice."
-        );
-    }
-}
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0")}
 function startTimer(){
 let end=Date.now()+state.session.timeLeft*1000;
