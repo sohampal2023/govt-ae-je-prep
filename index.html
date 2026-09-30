@@ -3194,77 +3194,47 @@ function showProctorWarning(message, isAdmin = false) {
 
     state.proctor = state.proctor || {
         violations: 0,
-        listenersInstalled: false
+        listenersInstalled: false,
+        lastFocusEvent: 0
     };
 
     // Administrator message
     if (isAdmin) {
         let d = document.createElement("div");
+
         d.className = "proctor-warning admin-msg";
         d.innerHTML = `⚠ ${esc(message)}`;
+
         document.body.appendChild(d);
 
         setTimeout(() => d.remove(), 4500);
         return;
     }
 
-    // Do not process anything after cancellation
+    // Do not process anything if exam is not live
     if (state.session?.status !== "live") return;
 
-    state.proctor.violations++;
-
-    const count = state.proctor.violations;
+    // IMPORTANT:
+    // Do NOT increment violations here.
+    // registerExamViolation() is responsible for counting.
+    const count = state.proctor.violations || 0;
 
     if ($("violationCount")) {
         $("violationCount").innerText = count;
     }
 
-    console.log(
-        "TAB/WINDOW VIOLATION:",
-        count,
-        message
-    );
+    let d = document.createElement("div");
 
-    // First violation = warning only
-    if (count === 1) {
+    d.className = "proctor-warning";
 
-        let d = document.createElement("div");
+    d.innerHTML = `
+        ⚠ ${esc(message)}
+        <span class="count">Warning ${count} of 2</span>
+    `;
 
-        d.className = "proctor-warning";
+    document.body.appendChild(d);
 
-        d.innerHTML = `
-            ⚠ ${esc(message)}
-            <span class="count">Warning 1 of 2</span>
-        `;
-
-        document.body.appendChild(d);
-
-        setTimeout(() => d.remove(), 4500);
-
-        update(
-            ref(
-                db,
-                `examSessions/${state.examId}/${state.studentId}`
-            ),
-            {
-                warningCount: 1,
-                lastWarningReason: message,
-                lastWarningAt: Date.now()
-            }
-        ).catch(console.error);
-
-        return;
-    }
-
-    // SECOND VIOLATION = IMMEDIATE CANCELLATION
-    if (count >= 2) {
-
-        cancelExamForSecurityViolation(
-            "Exam cancelled because the candidate switched away from the examination window twice."
-        );
-
-        return;
-    }
+    setTimeout(() => d.remove(), 4500);
 }
 
 function showSecurityLock() {
@@ -3376,7 +3346,7 @@ function installProctoring() {
 
     state.proctor = state.proctor || {
         violations: 0,
-        listenersInstalled: false,
+        listenersInstalled: true,
         lastFocusEvent: 0
     };
 
@@ -3547,7 +3517,7 @@ function installProctoring() {
 installProctoring();
 async function registerExamViolation(reason) {
 
-    // NEVER process another violation after cancellation
+    // Ignore anything when exam is not live
     if (
         !state.session ||
         state.session.status !== "live"
@@ -3556,19 +3526,20 @@ async function registerExamViolation(reason) {
     }
 
     state.proctor = state.proctor || {
-        violations: 0
+        violations: 0,
+        listenersInstalled: true,
+        lastFocusEvent: 0
     };
 
+    // ONE actual event = ONE violation
     state.proctor.violations++;
 
     const count = state.proctor.violations;
 
-
-    // Update screen immediately
+    // Update UI immediately
     if ($("violationCount")) {
         $("violationCount").innerText = count;
     }
-
 
     console.log(
         "[EXAM SECURITY]",
@@ -3577,9 +3548,8 @@ async function registerExamViolation(reason) {
         reason
     );
 
-
     // ==========================================
-    // FIRST SWITCH
+    // FIRST TAB SWITCH = WARNING ONLY
     // ==========================================
 
     if (count === 1) {
@@ -3589,31 +3559,39 @@ async function registerExamViolation(reason) {
             false
         );
 
-        await update(
-            ref(
-                db,
-                `examSessions/${state.examId}/${state.studentId}`
-            ),
-            {
-                warningCount: 1,
-                lastWarningReason: reason,
-                lastWarningAt: Date.now()
-            }
-        );
+        try {
+
+            await update(
+                ref(
+                    db,
+                    `examSessions/${state.examId}/${state.studentId}`
+                ),
+                {
+                    warningCount: 1,
+                    lastWarningReason: reason,
+                    lastWarningAt: Date.now()
+                }
+            );
+
+        } catch(error) {
+
+            console.error(
+                "Failed to save warning:",
+                error
+            );
+        }
 
         return;
     }
 
-
     // ==========================================
-    // SECOND SWITCH = CANCEL
+    // SECOND TAB SWITCH = CANCEL EXAM
     // ==========================================
 
     if (count >= 2) {
 
-        // Change LOCAL status FIRST.
-        // This prevents any additional event
-        // from being processed.
+        // Change local status FIRST
+        // so additional events cannot trigger again.
         state.session.status = "cancelled";
 
         try {
@@ -3643,13 +3621,11 @@ async function registerExamViolation(reason) {
             );
         }
 
-
-        // Stop timer
+        // Stop exam timer
         if (state.timer) {
             clearInterval(state.timer);
             state.timer = null;
         }
-
 
         // Stop screen capture
         if (window.screenCaptureInterval) {
@@ -3657,14 +3633,12 @@ async function registerExamViolation(reason) {
             window.screenCaptureInterval = null;
         }
 
-
-        // Remove security modal if any
+        // Remove security modal
         document
             .querySelector(".proctor-modal")
             ?.remove();
 
-
-        // PERMANENT CANCELLATION SCREEN
+        // Show permanent cancellation screen
         showExamCancellationScreen(
             count,
             "Candidate switched away from the examination window twice."
