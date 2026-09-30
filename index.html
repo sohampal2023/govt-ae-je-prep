@@ -364,6 +364,87 @@ window.landing = async () => {
     </div>
     `);
 };
+   window.adminPortalWelcome = () => {
+
+    show(`
+    <div class="app">
+
+        <div class="topbar">
+            <div class="brand">
+                <div class="logo">E</div>
+                <div>
+                    ExamFlow
+                    <div class="small muted">Administration Portal</div>
+                </div>
+            </div>
+
+            <div class="top-actions">
+                <button class="btn btn-light btn-sm" onclick="landing()">
+                    ← Main Portal
+                </button>
+            </div>
+        </div>
+
+        <div class="page">
+
+            <div style="
+                max-width:520px;
+                margin:70px auto;
+            ">
+
+                <div class="card">
+
+                    <div style="text-align:center;margin-bottom:25px">
+
+                        <div style="
+                            width:70px;
+                            height:70px;
+                            border-radius:20px;
+                            background:#0f172a;
+                            color:#fff;
+                            display:grid;
+                            place-items:center;
+                            margin:0 auto 18px;
+                            font-size:30px;
+                        ">🔐</div>
+
+                        <div class="badge purple">RESTRICTED ACCESS</div>
+
+                        <h1 style="margin:15px 0 8px">
+                            Administration Login
+                        </h1>
+
+                        <p class="muted">
+                            Authorised Examination Administration only.
+                        </p>
+
+                    </div>
+
+                    <div class="field">
+                        <label>Administrator PIN</label>
+                        <input
+                            id="apin"
+                            type="password"
+                            placeholder="Enter administrator PIN"
+                            autocomplete="off"
+                            onkeydown="if(event.key==='Enter') adminLogin()">
+                    </div>
+
+                    <button
+                        class="btn btn-primary"
+                        style="width:100%"
+                        onclick="adminLogin()">
+                        Access Administration Panel
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    `);
+};
    window.studentWelcome = () => {
 
     show(`
