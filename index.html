@@ -3112,46 +3112,6 @@ window.confirmStartExam = async () => {
     await beginSecureExam();
 };
 
-window.beginSecureExam = async () => {
-
-    try {
-        await document.documentElement.requestFullscreen();
-    } catch(e) {}
-
-    let questions = state.pendingQuestions;
-
-    state.session = {
-        studentId: state.studentId,
-        studentName: state.student.name,
-        status: "live",
-        currentIndex: 0,
-        totalQuestions: questions.length,
-        startedAt: Date.now(),
-        timeLeft: questions[0].allocatedTime,
-        responses: {},
-        questions
-    };
-
-    state.proctor = {
-        violations: 0,
-        listenersInstalled: false,
-        lastFocusEvent: 0
-    };
-
-    await update(
-        ref(
-            db,
-            "examSessions/" +
-            state.examId +
-            "/" +
-            state.studentId
-        ),
-        state.session
-    );
-
-    renderExam();
-};
-
 
 // ==========================================
 // 5. RENDER EXAM, SECURITY, RESULTS
@@ -3284,54 +3244,184 @@ function installProctoring() {
 }
 
 // ==========================================
-// 2. UNIFIED VIOLATION & CANCELLATION HANDLER
+// 1. ATTACH LISTENERS DIRECTLY UPON EXAM START
+// ==========================================
+window.beginSecureExam = async () => {
+    try {
+        await document.documentElement.requestFullscreen();
+    } catch(e) {}
+
+    let questions = state.pendingQuestions;
+
+    state.role = "student"; // Explicitly ensure role is set
+    state.session = {
+        studentId: state.studentId,
+        studentName: state.student.name,
+        status: "live",
+        currentIndex: 0,
+        totalQuestions: questions.length,
+        startedAt: Date.now(),
+        timeLeft: questions[0].allocatedTime,
+        responses: {},
+        questions
+    };
+
+    state.proctor = {
+        violations: 0,
+        isLocked: false
+    };
+
+    await update(
+        ref(db, "examSessions/" + state.examId + "/" + state.studentId),
+        state.session
+    );
+
+    // BIND THE LISTENERS DIRECTLY WHEN THE TEST BECOMES LIVE
+    bindActiveProctoring();
+
+    renderExam();
+};
+
+// ==========================================
+// 2. BULLETPROOF PROCTORING ENGINE
+// ==========================================
+function bindActiveProctoring() {
+    // Clean up any stale listeners first
+    if (window._proctorCleanup) {
+        window._proctorCleanup();
+    }
+
+    const trigger = (reason) => {
+        // Only run when exam is actively live
+        if (state.session && state.session.status === "live") {
+            registerExamViolation(reason);
+        }
+    };
+
+    const onVisibilityChange = () => {
+        if (document.hidden || document.visibilityState === "hidden") {
+            trigger("Tab switch detected (switched to another tab or minimized).");
+        }
+    };
+
+    const onBlur = () => {
+        trigger("Window focus lost (Alt+Tab, clicked taskbar, or another app opened).");
+    };
+
+    const onFullscreenChange = () => {
+        const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        if (!isFull) {
+            trigger("Full-screen mode exited (Escape pressed or window shrunk).");
+        }
+    };
+
+    const onKeyDown = (e) => {
+        // Block Alt immediately
+        if (e.altKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            trigger("Alt key pressed (application switch attempt).");
+            return;
+        }
+
+        // Block Escape
+        if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            trigger("Escape key pressed.");
+            return;
+        }
+
+        // Block Ctrl shortcuts (Ctrl+T, Ctrl+N, Ctrl+C, Ctrl+V, etc.)
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            showProctorWarning("Keyboard shortcuts are strictly prohibited.");
+            return;
+        }
+
+        if (e.key === "F12" || e.key === "PrintScreen") {
+            e.preventDefault();
+            e.stopPropagation();
+            showProctorWarning("Developer/Screen capture keys are disabled.");
+        }
+    };
+
+    const preventDefaultAction = (e) => e.preventDefault();
+
+    // Attach listeners with useCapture = true to intercept before anything else
+    document.addEventListener("visibilitychange", onVisibilityChange, true);
+    window.addEventListener("blur", onBlur, true);
+    document.addEventListener("fullscreenchange", onFullscreenChange, true);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange, true);
+    window.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("contextmenu", preventDefaultAction, true);
+    document.addEventListener("copy", preventDefaultAction, true);
+    document.addEventListener("paste", preventDefaultAction, true);
+    document.addEventListener("cut", preventDefaultAction, true);
+
+    // Save cleanup references
+    window._proctorCleanup = () => {
+        document.removeEventListener("visibilitychange", onVisibilityChange, true);
+        window.removeEventListener("blur", onBlur, true);
+        document.removeEventListener("fullscreenchange", onFullscreenChange, true);
+        document.removeEventListener("webkitfullscreenchange", onFullscreenChange, true);
+        window.removeEventListener("keydown", onKeyDown, true);
+        document.removeEventListener("contextmenu", preventDefaultAction, true);
+        document.removeEventListener("copy", preventDefaultAction, true);
+        document.removeEventListener("paste", preventDefaultAction, true);
+        document.removeEventListener("cut", preventDefaultAction, true);
+    };
+}
+
+// ==========================================
+// 3. RELIABLE PENALTY & CANCELLATION HANDLER
 // ==========================================
 async function registerExamViolation(reason) {
     if (!state.session || state.session.status !== "live") return;
+    if (state.proctor.isLocked) return; // Prevent cascading calls during modal display
 
-    state.proctor = state.proctor || { violations: 0, lastFocusEvent: 0 };
-
-    // Debounce (1500ms) prevents blur + visibilitychange firing together and double-penalizing
-    const now = Date.now();
-    if (now - (state.proctor.lastFocusEvent || 0) < 1500) {
-        return;
-    }
-    state.proctor.lastFocusEvent = now;
-
-    // Single source of truth for increments
-    state.proctor.violations++;
+    state.proctor.isLocked = true;
+    state.proctor.violations = (state.proctor.violations || 0) + 1;
     const count = state.proctor.violations;
 
-    // Instantly update the counter in the UI sidebar
+    // Immediately update sidebar UI
     const counterEl = document.getElementById("violationCount");
     if (counterEl) {
         counterEl.innerText = count;
     }
 
-    console.warn(`[SECURITY VIOLATION] ${count}: ${reason}`);
+    console.warn(`[SECURITY BREACH #${count}] ${reason}`);
 
-    // FIRST VIOLATION: Show warning & security lock modal
+    // FIRST STRIKE: Force security modal & re-entry
     if (count === 1) {
-        showProctorWarning(`Warning 1 of 2: ${reason}`);
-        showSecurityLock(); // Forces the user to click "I am ready to continue"
+        showSecurityLock(reason);
         
         try {
             await update(ref(db, `examSessions/${state.examId}/${state.studentId}`), {
-                warningCount: count,
+                warningCount: 1,
                 lastWarningReason: reason,
                 lastWarningAt: Date.now()
             });
-        } catch(e) {
-            console.error("Firebase sync error:", e);
+        } catch(err) {
+            console.error("Firebase update error:", err);
         }
         return;
     }
 
-    // SECOND VIOLATION: Immediate Exam Cancellation
+    // SECOND STRIKE: Immediate cancellation
     if (count >= 2) {
+        if (window._proctorCleanup) window._proctorCleanup();
         cancelExamForSecurityViolation(reason);
     }
 }
+
+// Ensure the security modal unfreezes the detector once acknowledged
+window.resumeAfterSecurity = async () => {
+    document.querySelector(".proctor-modal")?.remove();
+    state.proctor.isLocked = false;
+    await requestExamFullscreen();
+};
 
 // ==========================================
 // 3. UI-ONLY PROCTOR WARNING BANNER
