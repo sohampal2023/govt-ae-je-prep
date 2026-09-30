@@ -3281,12 +3281,8 @@ window.beginSecureExam = async () => {
 
     renderExam();
 };
-
 // ==========================================
-// 2. BULLETPROOF PROCTORING ENGINE
-// ==========================================
-// ==========================================
-// 2. BULLETPROOF PROCTORING ENGINE (ZERO-TOLERANCE KEYBOARD)
+// 2. ULTIMATE LOCKDOWN PROCTORING ENGINE
 // ==========================================
 function bindActiveProctoring() {
     // Clean up any stale listeners first
@@ -3294,44 +3290,54 @@ function bindActiveProctoring() {
         window._proctorCleanup();
     }
 
-    const trigger = (reason) => {
-        // Only run when exam is actively live
+    // Skips warnings and instantly kills the exam
+    const triggerInstantKill = (reason) => {
         if (state.session && state.session.status === "live") {
-            registerExamViolation(reason); // Normal 2-strike rule for blur/visibility
+            // Remove listeners immediately to prevent overlapping cancellation events
+            if (window._proctorCleanup) window._proctorCleanup();
+            cancelExamForSecurityViolation(reason);
         }
     };
 
+    // 1. Tab Switched
     const onVisibilityChange = () => {
         if (document.hidden || document.visibilityState === "hidden") {
-            trigger("Tab switch detected (switched to another tab or minimized).");
+            triggerInstantKill("Tab switch detected. You left the examination environment.");
         }
     };
 
+    // 2. Window Focus Lost (Alt+Tab, or clicking a background app)
     const onBlur = () => {
-        trigger("Window focus lost (Alt+Tab, clicked taskbar, or another app opened).");
+        triggerInstantKill("Window focus lost. You navigated away from the examination window.");
     };
 
+    // 3. Exiting Full Screen
     const onFullscreenChange = () => {
         const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
         if (!isFull) {
-            trigger("Full-screen mode exited (window shrunk).");
+            triggerInstantKill("Full-screen mode exited.");
         }
     };
 
-    // ZERO-TOLERANCE KEYBOARD TRIPWIRE
+    // 4. MOUSE BOUNDARY TRACKER (New)
+    // If the mouse cursor touches the URL bar, taskbar, or a second monitor.
+    const onMouseLeave = (e) => {
+        if (!state.session || state.session.status !== "live") return;
+        
+        // e.clientY <= 0 means they moved up to the browser tabs/URL search bar
+        // e.clientX <= 0 or >= window.innerWidth means they moved to another monitor
+        // e.clientY >= window.innerHeight means they moved to the Windows taskbar
+        triggerInstantKill("Mouse cursor left the secure examination boundary.");
+    };
+
+    // 5. ZERO-TOLERANCE KEYBOARD TRIPWIRE
     const onKeyDown = (e) => {
         if (!state.session || state.session.status !== "live") return;
         
         e.preventDefault();
         e.stopPropagation();
 
-        // Immediately clean up listeners to prevent double-firing
-        if (window._proctorCleanup) window._proctorCleanup();
-
-        // Skip the warning system completely and instantly cancel the exam
-        cancelExamForSecurityViolation(
-            `Keyboard input detected (Key: ${e.key}). Keyboard usage is strictly prohibited during this examination.`
-        );
+        triggerInstantKill(`Keyboard input detected (Key: ${e.key}). The keyboard is strictly prohibited.`);
     };
 
     const preventDefaultAction = (e) => {
@@ -3345,7 +3351,12 @@ function bindActiveProctoring() {
     window.addEventListener("blur", onBlur, true);
     document.addEventListener("fullscreenchange", onFullscreenChange, true);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange, true);
-    window.addEventListener("keydown", onKeyDown, true); // Instant Kill
+    
+    // Attach Mouse and Keyboard Tripwires
+    window.addEventListener("keydown", onKeyDown, true); 
+    document.addEventListener("mouseleave", onMouseLeave, true);
+    
+    // Disable right-click, copy, paste, and cut
     document.addEventListener("contextmenu", preventDefaultAction, true);
     document.addEventListener("copy", preventDefaultAction, true);
     document.addEventListener("paste", preventDefaultAction, true);
@@ -3358,6 +3369,7 @@ function bindActiveProctoring() {
         document.removeEventListener("fullscreenchange", onFullscreenChange, true);
         document.removeEventListener("webkitfullscreenchange", onFullscreenChange, true);
         window.removeEventListener("keydown", onKeyDown, true);
+        document.removeEventListener("mouseleave", onMouseLeave, true);
         document.removeEventListener("contextmenu", preventDefaultAction, true);
         document.removeEventListener("copy", preventDefaultAction, true);
         document.removeEventListener("paste", preventDefaultAction, true);
