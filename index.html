@@ -2439,118 +2439,7 @@ async function sendWarning(reason) {
 
     document.body.appendChild(overlay);
 }
-   function showExamCancellationScreen(warningCount, reason) {
-    document.body.innerHTML = `
-        <div style="
-            min-height:100vh;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            background:#f3f4f6;
-            font-family:Arial, sans-serif;
-            padding:30px;
-        ">
-            <div style="
-                width:100%;
-                max-width:650px;
-                background:#ffffff;
-                border-radius:18px;
-                padding:40px;
-                box-shadow:0 15px 45px rgba(0,0,0,0.15);
-                text-align:center;
-            ">
 
-                <div style="
-                    width:80px;
-                    height:80px;
-                    margin:0 auto 22px;
-                    border-radius:50%;
-                    background:#fee2e2;
-                    color:#b91c1c;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    font-size:42px;
-                    font-weight:bold;
-                ">
-                    !
-                </div>
-
-                <h1 style="
-                    margin:0 0 12px;
-                    color:#991b1b;
-                    font-size:30px;
-                ">
-                    Examination Cancelled
-                </h1>
-
-                <p style="
-                    margin:0 0 28px;
-                    color:#4b5563;
-                    font-size:16px;
-                    line-height:1.6;
-                ">
-                    Your examination has been cancelled because the maximum
-                    permitted number of warnings was exceeded.
-                </p>
-
-                <div style="
-                    background:#fef2f2;
-                    border:1px solid #fecaca;
-                    border-radius:12px;
-                    padding:20px;
-                    text-align:left;
-                    margin-bottom:20px;
-                ">
-                    <div style="
-                        font-size:13px;
-                        color:#7f1d1d;
-                        font-weight:bold;
-                        margin-bottom:8px;
-                    ">
-                        CANCELLATION REASON
-                    </div>
-
-                    <div style="
-                        font-size:16px;
-                        color:#111827;
-                        line-height:1.6;
-                    ">
-                        ${escapeHtml(reason)}
-                    </div>
-                </div>
-
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    background:#f9fafb;
-                    border-radius:12px;
-                    padding:16px 20px;
-                    margin-bottom:25px;
-                ">
-                    <span style="color:#6b7280;">
-                        Total Warnings
-                    </span>
-
-                    <strong style="color:#991b1b;">
-                        ${warningCount}
-                    </strong>
-                </div>
-
-                <div style="
-                    font-size:14px;
-                    color:#6b7280;
-                    line-height:1.6;
-                ">
-                    Your examination session has been permanently closed.
-                    Please contact the examination authority if you believe
-                    this action was taken incorrectly.
-                </div>
-
-            </div>
-        </div>
-    `;
-}
 
 
 // ==========================================
@@ -3282,36 +3171,110 @@ window.beginSecureExam = async () => {
     renderExam();
 };
 // ==========================================
-// 2. ULTIMATE LOCKDOWN PROCTORING ENGINE
+// 1. ESCAPE HELPER ALIAS & FIXED CANCELLATION SCREEN
 // ==========================================
-function bindActiveProctoring() {
-    // Clean up any stale listeners first
-    if (window._proctorCleanup) {
-        window._proctorCleanup();
+// Ensures neither esc nor escapeHtml ever throws a ReferenceError
+const escapeHtml = typeof esc === "function" ? esc : (s = "") => String(s).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
+
+function showExamCancellationScreen(warningCount, reason) {
+    // Release pointer lock and fullscreen upon termination
+    try { if (document.exitPointerLock) document.exitPointerLock(); } catch(e){}
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){}
+
+    const safeReason = escapeHtml(reason || "Security policy violation");
+
+    document.body.innerHTML = `
+        <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; background:#0f172a; font-family:'Plus Jakarta Sans',sans-serif; padding:30px;">
+            <div style="width:100%; max-width:620px; background:#ffffff; border-radius:24px; padding:45px; box-shadow:0 25px 60px rgba(0,0,0,0.4); text-align:center;">
+                <div style="width:76px; height:76px; margin:0 auto 20px; border-radius:50%; background:#fee2e2; color:#b91c1c; display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:900;">✕</div>
+                <h1 style="margin:0 0 10px; color:#991b1b; font-size:28px; font-weight:800; letter-spacing:-0.5px;">Examination Terminated</h1>
+                <p style="margin:0 0 24px; color:#64748b; font-size:15px; line-height:1.6;">Your session was permanently cancelled due to an immediate security violation.</p>
+                <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:14px; padding:20px; text-align:left; margin-bottom:24px;">
+                    <div style="font-size:12px; color:#991b1b; font-weight:800; letter-spacing:0.5px; margin-bottom:6px;">TERMINATION REASON</div>
+                    <div style="font-size:15px; color:#1e293b; font-weight:600; line-height:1.5;">${safeReason}</div>
+                </div>
+                <div style="font-size:13px; color:#94a3b8; line-height:1.6;">The violation details, timestamp, and active screen monitor telemetry have been locked and submitted to the Examination Administrator.</div>
+            </div>
+        </div>
+    `;
+}
+
+// ==========================================
+// 2. ATOMIC CANCELLATION HANDLER
+// ==========================================
+async function cancelExamForSecurityViolation(reason) {
+    if (state.session?.status === "cancelled") return;
+
+    // Instantly freeze session locally to reject all ongoing events
+    if (state.session) state.session.status = "cancelled";
+
+    if (window._proctorCleanup) window._proctorCleanup();
+    if (state.timer) { clearInterval(state.timer); state.timer = null; }
+    if (window.screenCaptureInterval) { clearInterval(window.screenCaptureInterval); window.screenCaptureInterval = null; }
+    if (state.screenStream) {
+        state.screenStream.getTracks().forEach(t => t.stop());
     }
 
-    // Skips warnings and instantly kills the exam
+    document.querySelectorAll(".proctor-modal, .modal, #examWarningOverlay").forEach(el => el.remove());
+
+    const warningCount = state.proctor?.violations || 1;
+
+    try {
+        await update(ref(db, `examSessions/${state.examId}/${state.studentId}`), {
+            status: "cancelled",
+            examCancelled: true,
+            cancellationReason: reason,
+            warningCount: warningCount,
+            cancelledAt: Date.now()
+        });
+        await update(ref(db, `students/${state.studentId}`), {
+            active: false,
+            examStatus: "cancelled"
+        });
+    } catch (error) {
+        console.error("Cancellation Firebase update failed:", error);
+    }
+
+    showExamCancellationScreen(warningCount, reason);
+}
+
+// ==========================================
+// 3. NEXT-LEVEL HARDENED PROCTORING ENGINE
+// ==========================================
+function bindActiveProctoring() {
+    if (window._proctorCleanup) window._proctorCleanup();
+
     const triggerInstantKill = (reason) => {
         if (state.session && state.session.status === "live") {
-            // Remove listeners immediately to prevent overlapping cancellation events
-            if (window._proctorCleanup) window._proctorCleanup();
             cancelExamForSecurityViolation(reason);
         }
     };
 
-    // 1. Tab Switched
+    // --- HARDWARE LOCKS ---
+    // 1. Keyboard Lock API: Traps system-level keys including Escape and Alt
+    if (navigator.keyboard && navigator.keyboard.lock) {
+        navigator.keyboard.lock(["Escape", "AltLeft", "AltRight", "Tab", "MetaLeft", "MetaRight"]).catch(() => {});
+    }
+
+    // 2. Pointer Lock API: Traps mouse cursor strictly inside document
+    const enforcePointerLock = () => {
+        if (state.session?.status === "live" && document.fullscreenElement && !document.pointerLockElement) {
+            document.body.requestPointerLock?.();
+        }
+    };
+    document.addEventListener("click", enforcePointerLock);
+
+    // --- DETECTION LISTENERS ---
     const onVisibilityChange = () => {
         if (document.hidden || document.visibilityState === "hidden") {
-            triggerInstantKill("Tab switch detected. You left the examination environment.");
+            triggerInstantKill("Tab switch detected. Examination window lost visibility.");
         }
     };
 
-    // 2. Window Focus Lost (Alt+Tab, or clicking a background app)
     const onBlur = () => {
-        triggerInstantKill("Window focus lost. You navigated away from the examination window.");
+        triggerInstantKill("Window focus lost (Alt+Tab, window switched, or background clicked).");
     };
 
-    // 3. Exiting Full Screen
     const onFullscreenChange = () => {
         const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
         if (!isFull) {
@@ -3319,63 +3282,59 @@ function bindActiveProctoring() {
         }
     };
 
-    // 4. MOUSE BOUNDARY TRACKER (New)
-    // If the mouse cursor touches the URL bar, taskbar, or a second monitor.
-    const onMouseLeave = (e) => {
-        if (!state.session || state.session.status !== "live") return;
-        
-        // e.clientY <= 0 means they moved up to the browser tabs/URL search bar
-        // e.clientX <= 0 or >= window.innerWidth means they moved to another monitor
-        // e.clientY >= window.innerHeight means they moved to the Windows taskbar
-        triggerInstantKill("Mouse cursor left the secure examination boundary.");
+    // Instant kill on cursor boundary escape
+    const onMouseLeave = () => {
+        triggerInstantKill("Cursor escaped examination viewport boundary.");
     };
 
-    // 5. ZERO-TOLERANCE KEYBOARD TRIPWIRE
+    // Instant kill on ANY physical keyboard interaction
     const onKeyDown = (e) => {
-        if (!state.session || state.session.status !== "live") return;
-        
         e.preventDefault();
         e.stopPropagation();
-
-        triggerInstantKill(`Keyboard input detected (Key: ${e.key}). The keyboard is strictly prohibited.`);
+        triggerInstantKill(`Hardware keyboard touch detected (Key: ${e.key || e.code}). Keyboard usage is completely barred.`);
     };
 
-    const preventDefaultAction = (e) => {
-        if (state.session && state.session.status === "live") {
-            e.preventDefault();
-        }
+    const blockEvent = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
     };
 
-    // Attach listeners with useCapture = true to intercept before anything else
+    // Attach with capture phase (true)
     document.addEventListener("visibilitychange", onVisibilityChange, true);
     window.addEventListener("blur", onBlur, true);
     document.addEventListener("fullscreenchange", onFullscreenChange, true);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange, true);
-    
-    // Attach Mouse and Keyboard Tripwires
-    window.addEventListener("keydown", onKeyDown, true); 
     document.addEventListener("mouseleave", onMouseLeave, true);
-    
-    // Disable right-click, copy, paste, and cut
-    document.addEventListener("contextmenu", preventDefaultAction, true);
-    document.addEventListener("copy", preventDefaultAction, true);
-    document.addEventListener("paste", preventDefaultAction, true);
-    document.addEventListener("cut", preventDefaultAction, true);
+    window.addEventListener("keydown", onKeyDown, true);
 
-    // Save cleanup references
+    document.addEventListener("contextmenu", blockEvent, true);
+    document.addEventListener("copy", blockEvent, true);
+    document.addEventListener("cut", blockEvent, true);
+    document.addEventListener("paste", blockEvent, true);
+    document.addEventListener("dragstart", blockEvent, true);
+    document.addEventListener("drop", blockEvent, true);
+
     window._proctorCleanup = () => {
+        if (navigator.keyboard && navigator.keyboard.unlock) {
+            navigator.keyboard.unlock();
+        }
+        document.removeEventListener("click", enforcePointerLock);
         document.removeEventListener("visibilitychange", onVisibilityChange, true);
         window.removeEventListener("blur", onBlur, true);
         document.removeEventListener("fullscreenchange", onFullscreenChange, true);
         document.removeEventListener("webkitfullscreenchange", onFullscreenChange, true);
-        window.removeEventListener("keydown", onKeyDown, true);
         document.removeEventListener("mouseleave", onMouseLeave, true);
-        document.removeEventListener("contextmenu", preventDefaultAction, true);
-        document.removeEventListener("copy", preventDefaultAction, true);
-        document.removeEventListener("paste", preventDefaultAction, true);
-        document.removeEventListener("cut", preventDefaultAction, true);
+        window.removeEventListener("keydown", onKeyDown, true);
+
+        document.removeEventListener("contextmenu", blockEvent, true);
+        document.removeEventListener("copy", blockEvent, true);
+        document.removeEventListener("cut", blockEvent, true);
+        document.removeEventListener("paste", blockEvent, true);
+        document.removeEventListener("dragstart", blockEvent, true);
+        document.removeEventListener("drop", blockEvent, true);
     };
 }
+
 
 // ==========================================
 // 3. RELIABLE PENALTY & CANCELLATION HANDLER
@@ -3490,56 +3449,6 @@ function showSecurityLock() {
     `;
 
     document.body.appendChild(d);
-}
-  async function cancelExamForSecurityViolation(reason) {
-
-    const warningCount = state.proctor?.violations || 5;
-
-    try {
-
-        await update(
-            ref(
-                db,
-                `examSessions/${state.examId}/${state.studentId}`
-            ),
-            {
-                status: "cancelled",
-                examCancelled: true,
-                cancellationReason: reason,
-                warningCount: warningCount,
-                cancelledAt: Date.now()
-            }
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Failed to save exam cancellation:",
-            error
-        );
-    }
-
-    state.session.status = "cancelled";
-
-    // Stop further proctoring events
-    state.proctor.listenersInstalled = false;
-
-    if (state.timer) {
-        clearInterval(state.timer);
-        state.timer = null;
-    }
-
-    if (window.screenCaptureInterval) {
-        clearInterval(window.screenCaptureInterval);
-        window.screenCaptureInterval = null;
-    }
-
-    document.querySelector(".proctor-modal")?.remove();
-
-    showExamCancellationScreen(
-        warningCount,
-        reason
-    );
 }
 window.resumeAfterSecurity = async () => {
 
