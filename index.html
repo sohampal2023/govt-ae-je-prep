@@ -3285,6 +3285,9 @@ window.beginSecureExam = async () => {
 // ==========================================
 // 2. BULLETPROOF PROCTORING ENGINE
 // ==========================================
+// ==========================================
+// 2. BULLETPROOF PROCTORING ENGINE (ZERO-TOLERANCE KEYBOARD)
+// ==========================================
 function bindActiveProctoring() {
     // Clean up any stale listeners first
     if (window._proctorCleanup) {
@@ -3294,7 +3297,7 @@ function bindActiveProctoring() {
     const trigger = (reason) => {
         // Only run when exam is actively live
         if (state.session && state.session.status === "live") {
-            registerExamViolation(reason);
+            registerExamViolation(reason); // Normal 2-strike rule for blur/visibility
         }
     };
 
@@ -3311,50 +3314,38 @@ function bindActiveProctoring() {
     const onFullscreenChange = () => {
         const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
         if (!isFull) {
-            trigger("Full-screen mode exited (Escape pressed or window shrunk).");
+            trigger("Full-screen mode exited (window shrunk).");
         }
     };
 
+    // ZERO-TOLERANCE KEYBOARD TRIPWIRE
     const onKeyDown = (e) => {
-        // Block Alt immediately
-        if (e.altKey) {
-            e.preventDefault();
-            e.stopPropagation();
-            trigger("Alt key pressed (application switch attempt).");
-            return;
-        }
+        if (!state.session || state.session.status !== "live") return;
+        
+        e.preventDefault();
+        e.stopPropagation();
 
-        // Block Escape
-        if (e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            trigger("Escape key pressed.");
-            return;
-        }
+        // Immediately clean up listeners to prevent double-firing
+        if (window._proctorCleanup) window._proctorCleanup();
 
-        // Block Ctrl shortcuts (Ctrl+T, Ctrl+N, Ctrl+C, Ctrl+V, etc.)
-        if (e.ctrlKey || e.metaKey) {
-            e.preventDefault();
-            e.stopPropagation();
-            showProctorWarning("Keyboard shortcuts are strictly prohibited.");
-            return;
-        }
-
-        if (e.key === "F12" || e.key === "PrintScreen") {
-            e.preventDefault();
-            e.stopPropagation();
-            showProctorWarning("Developer/Screen capture keys are disabled.");
-        }
+        // Skip the warning system completely and instantly cancel the exam
+        cancelExamForSecurityViolation(
+            `Keyboard input detected (Key: ${e.key}). Keyboard usage is strictly prohibited during this examination.`
+        );
     };
 
-    const preventDefaultAction = (e) => e.preventDefault();
+    const preventDefaultAction = (e) => {
+        if (state.session && state.session.status === "live") {
+            e.preventDefault();
+        }
+    };
 
     // Attach listeners with useCapture = true to intercept before anything else
     document.addEventListener("visibilitychange", onVisibilityChange, true);
     window.addEventListener("blur", onBlur, true);
     document.addEventListener("fullscreenchange", onFullscreenChange, true);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange, true);
-    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keydown", onKeyDown, true); // Instant Kill
     document.addEventListener("contextmenu", preventDefaultAction, true);
     document.addEventListener("copy", preventDefaultAction, true);
     document.addEventListener("paste", preventDefaultAction, true);
