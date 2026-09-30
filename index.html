@@ -3263,15 +3263,17 @@ window.beginSecureExam = async () => {
         questions
     };
 
-    startTabSwitchDetection();
+    state.proctor = {
+    violations: 0,
+    listenersInstalled: false
+};
+
+installProctoring();
 
     await update(
-        ref(
-            db,
-            `examSessions/${state.examId}/${state.studentId}`
-        ),
-        state.session
-    );
+    ref(db,"examSessions/"+state.examId+"/"+state.studentId),
+    state.session
+);
 
     renderExam();
 };
@@ -3317,81 +3319,82 @@ let securityModalOpen = false;
 function showProctorWarning(message, isAdmin = false) {
 
     state.proctor = state.proctor || {
-        violations: 0
+        violations: 0,
+        listenersInstalled: false
     };
 
-    if (!isAdmin) {
-        state.proctor.violations++;
-        proctorWarningCount = state.proctor.violations;
+    if (isAdmin) {
+        let d = document.createElement("div");
+        d.className = "proctor-warning admin-msg";
+        d.innerHTML = `⚠ ${esc(message)}`;
+        document.body.appendChild(d);
+
+        setTimeout(() => d.remove(), 4500);
+        return;
     }
 
-    let old = document.querySelector(".proctor-warning");
+    // Do not count additional events while security modal is open
+    if (document.querySelector(".proctor-modal")) return;
 
-    if (old) {
-        old.remove();
+    state.proctor.violations++;
+
+    const count = state.proctor.violations;
+
+    if ($("violationCount")) {
+        $("violationCount").innerText = count;
     }
 
     let d = document.createElement("div");
-
     d.className = "proctor-warning";
 
-    if (isAdmin) {
-        d.classList.add("admin-msg");
-    }
-
     d.innerHTML = `
-        ${esc(message)}
-        ${
-            !isAdmin
-                ? `<span class="count">
-                     Warning ${state.proctor.violations} of 4
-                   </span>`
-                : ""
-        }
+        ⚠ ${esc(message)}
+        <span class="count">Warning ${count} of 4</span>
     `;
 
     document.body.appendChild(d);
 
-    if ($("violationCount")) {
-        $("violationCount").innerText =
-            state.proctor.violations;
+    setTimeout(() => d.remove(), 4500);
+
+    // Terminate on 5th violation
+    if (count > 4) {
+        cancelExamForSecurityViolation(
+            "Candidate exceeded the maximum permitted tab/window focus violations."
+        );
+        return;
     }
 
-    setTimeout(() => {
-        d.remove();
-    }, 4500);
-
-    if (!isAdmin) {
-
-        if (state.proctor.violations > 4) {
-
-            cancelExamForSecurityViolation(
-                message
-            );
-
-            return;
-        }
-
-        if (
-            state.proctor.violations === 2 ||
-            state.proctor.violations === 4
-        ) {
-            showSecurityLock();
-        }
+    // Lock after 2nd and 4th violation
+    if (count === 2 || count === 4) {
+        setTimeout(() => {
+            if (
+                state.role === "student" &&
+                state.session?.status === "live"
+            ) {
+                showSecurityLock();
+            }
+        }, 300);
     }
+
+    // Save warning count to Firebase
+    update(
+        ref(
+            db,
+            `examSessions/${state.examId}/${state.studentId}`
+        ),
+        {
+            warningCount: count,
+            lastWarningReason: message,
+            lastWarningAt: Date.now()
+        }
+    ).catch(err => {
+        console.error("Warning update failed:", err);
+    });
 }
 
 function showSecurityLock() {
 
-    if (securityModalOpen) return;
-
-    securityModalOpen = true;
-
-    let old = document.querySelector(".proctor-modal");
-
-    if (old) {
-        old.remove();
-    }
+    if (document.querySelector(".proctor-modal")) return;
 
     let d = document.createElement("div");
 
@@ -3400,52 +3403,27 @@ function showSecurityLock() {
     d.innerHTML = `
         <div class="proctor-modal-box">
 
-            <div style="
-                width:64px;
-                height:64px;
-                border-radius:50%;
-                background:#fef3c7;
-                color:#d97706;
-                display:grid;
-                place-items:center;
-                margin:0 auto 18px;
-                font-size:28px;
-                font-weight:800;
-            ">
-                !
-            </div>
-
             <h2>Security Warning</h2>
 
-            <p style="
-                color:#64748b;
-                line-height:1.7;
-                margin:16px 0 24px;
-            ">
-                The examination window lost focus multiple times.
-                Please return to the examination screen and confirm
-                that you are ready to continue.
+            <p>
+                The examination window lost focus.
+                Please return to the examination screen
+                and confirm that you are ready to continue.
             </p>
 
             <div style="
-                background:#f8fafc;
-                border:1px solid #e2e8f0;
-                border-radius:10px;
+                margin:15px 0;
                 padding:12px;
-                margin-bottom:22px;
-                font-size:13px;
-                color:#475569;
+                background:#fef3c7;
+                border-radius:8px;
+                font-weight:700;
             ">
-                Security warnings:
-                <strong>
-                    ${state.proctor?.violations || 0} of 4
-                </strong>
+                Warning ${state.proctor?.violations || 0} of 4
             </div>
 
             <button
                 class="btn btn-primary"
                 onclick="resumeAfterSecurity()"
-                style="width:100%"
             >
                 I am ready to continue
             </button>
@@ -3455,15 +3433,11 @@ function showSecurityLock() {
 
     document.body.appendChild(d);
 }
-   async function cancelExamForSecurityViolation(reason) {
+  async function cancelExamForSecurityViolation(reason) {
 
-    if (!state.examId || !state.studentId) {
-        return;
-    }
+    const warningCount = state.proctor?.violations || 5;
 
     try {
-
-        stopTabSwitchDetection();
 
         await update(
             ref(
@@ -3474,42 +3448,54 @@ function showSecurityLock() {
                 status: "cancelled",
                 examCancelled: true,
                 cancellationReason: reason,
-                warningCount: state.proctor?.violations || 5,
+                warningCount: warningCount,
                 cancelledAt: Date.now()
             }
-        );
-
-        showExamCancellationScreen(
-            state.proctor?.violations || 5,
-            reason
         );
 
     } catch (error) {
 
         console.error(
-            "Exam cancellation error:",
+            "Failed to save exam cancellation:",
             error
         );
-
-        toast(
-            "Security action could not be recorded. Please contact the administrator."
-        );
     }
-}
-window.resumeAfterSecurity = async () => {
+
+    state.session.status = "cancelled";
+
+    // Stop further proctoring events
+    state.proctor.listenersInstalled = false;
+
+    if (state.timer) {
+        clearInterval(state.timer);
+        state.timer = null;
+    }
+
+    if (window.screenCaptureInterval) {
+        clearInterval(window.screenCaptureInterval);
+        window.screenCaptureInterval = null;
+    }
+
     document.querySelector(".proctor-modal")?.remove();
 
-    // IMPORTANT:
-    // Do NOT reset state.proctor.violations here.
-    // Warning count must remain cumulative throughout the exam.
+    showExamCancellationScreen(
+        warningCount,
+        reason
+    );
+}
+window.resumeAfterSecurity = async () => {
 
-    securityModalOpen = false;
+    document.querySelector(".proctor-modal")?.remove();
 
-    await requestExamFullscreen();
+    // NEVER reset violations here.
+    // The count must remain cumulative.
 
     if ($("violationCount")) {
-        $("violationCount").innerText = state.proctor?.violations || 0;
+        $("violationCount").innerText =
+            state.proctor?.violations || 0;
     }
+
+    await requestExamFullscreen();
 };
 function installProctoring(){
   state.proctor=state.proctor||{violations:0}; if(state.proctor.listenersInstalled)return; state.proctor.listenersInstalled=true;
