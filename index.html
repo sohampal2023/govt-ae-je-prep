@@ -3239,17 +3239,18 @@ async function cancelExamForSecurityViolation(reason) {
 }
 
 // ==========================================
-// 3. NEXT-LEVEL HARDENED PROCTORING ENGINE (FREE MOUSE)
+// 3. NEXT-LEVEL HARDENED PROCTORING ENGINE (1 MOUSE LEAVE ALLOWED)
 // ==========================================
 function bindActiveProctoring() {
     if (window._proctorCleanup) window._proctorCleanup();
 
-    // 1. ARMING DELAY: Prevent instant cancellation during UI/Fullscreen transitions
     let systemArmed = false;
     setTimeout(() => { 
         systemArmed = true; 
-        window.focus(); // Force focus back to the exam once the UI settles
-    }, 3000); // 3-second safety window
+        window.focus();
+    }, 3000); // 3-second safety window for fullscreen/UI transition
+
+    let mouseLeaveCount = 0; // Tracks boundary breaches (1 allowed)
 
     const triggerInstantKill = (reason) => {
         if (!systemArmed) {
@@ -3261,13 +3262,33 @@ function bindActiveProctoring() {
         }
     };
 
-    // --- HARDWARE LOCKS ---
-    // Traps system-level keys including Escape and Alt
-    if (navigator.keyboard && navigator.keyboard.lock) {
-        navigator.keyboard.lock(["Escape", "AltLeft", "AltRight", "Tab", "MetaLeft", "MetaRight"]).catch(() => {});
-    }
+    // --- MOUSE BOUNDARY DETECTION (1 FREE WARNING, 2ND TIME CANCELS) ---
+    const onMouseLeave = (e) => {
+        if (!systemArmed || !state.session || state.session.status !== "live") return;
 
-    // --- DETECTION LISTENERS ---
+        // Check if the cursor genuinely crossed the window edge
+        const leftScreen = (
+            e.clientY <= 0 || 
+            e.clientX <= 0 || 
+            e.clientX >= window.innerWidth || 
+            e.clientY >= window.innerHeight
+        );
+
+        if (leftScreen) {
+            mouseLeaveCount++;
+            
+            if (mouseLeaveCount === 1) {
+                // Strike 1: Show warning modal
+                showProctorWarning("WARNING (1 of 1): Your mouse cursor left the examination screen. Next occurrence will cancel the exam.");
+                showSecurityLock();
+            } else if (mouseLeaveCount >= 2) {
+                // Strike 2: Cancel immediately
+                triggerInstantKill("Exam cancelled: Mouse cursor left the examination window more than once.");
+            }
+        }
+    };
+
+    // --- ZERO-TOLERANCE DETECTION LISTENERS ---
     const onVisibilityChange = () => {
         if (document.hidden || document.visibilityState === "hidden") {
             triggerInstantKill("Tab switch detected. Examination window lost visibility.");
@@ -3275,7 +3296,6 @@ function bindActiveProctoring() {
     };
 
     const onBlur = () => {
-        // Double-check that the document physically lost focus
         if (!document.hasFocus()) {
             triggerInstantKill("Window focus lost (Alt+Tab, window switched, or background clicked).");
         }
@@ -3288,6 +3308,7 @@ function bindActiveProctoring() {
         }
     };
 
+    // Keyboard touch is still strictly zero-tolerance
     const onKeyDown = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -3299,11 +3320,17 @@ function bindActiveProctoring() {
         e.stopPropagation();
     };
 
-    // Attach with capture phase (true)
+    // Keyboard Hardware Lock
+    if (navigator.keyboard && navigator.keyboard.lock) {
+        navigator.keyboard.lock(["Escape", "AltLeft", "AltRight", "Tab", "MetaLeft", "MetaRight"]).catch(() => {});
+    }
+
+    // Attach with capture phase
     document.addEventListener("visibilitychange", onVisibilityChange, true);
     window.addEventListener("blur", onBlur, true);
     document.addEventListener("fullscreenchange", onFullscreenChange, true);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange, true);
+    document.addEventListener("mouseleave", onMouseLeave, true);
     window.addEventListener("keydown", onKeyDown, true);
 
     document.addEventListener("contextmenu", blockEvent, true);
@@ -3321,6 +3348,7 @@ function bindActiveProctoring() {
         window.removeEventListener("blur", onBlur, true);
         document.removeEventListener("fullscreenchange", onFullscreenChange, true);
         document.removeEventListener("webkitfullscreenchange", onFullscreenChange, true);
+        document.removeEventListener("mouseleave", onMouseLeave, true);
         window.removeEventListener("keydown", onKeyDown, true);
 
         document.removeEventListener("contextmenu", blockEvent, true);
