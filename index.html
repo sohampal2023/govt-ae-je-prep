@@ -3312,6 +3312,7 @@ window.requestExamFullscreen=async()=>{ try{await document.documentElement.reque
 let proctorWarningCount = 0;
 let proctorListenersInstalled = false;
 let securityModalOpen = false;
+   
 
 function showProctorWarning(message, isAdmin = false) {
 
@@ -3496,29 +3497,20 @@ function showSecurityLock() {
     }
 }
 window.resumeAfterSecurity = async () => {
+    document.querySelector(".proctor-modal")?.remove();
 
-    let modal = document.querySelector(".proctor-modal");
-
-    if (modal) {
-        modal.remove();
-    }
+    // IMPORTANT:
+    // Do NOT reset state.proctor.violations here.
+    // Warning count must remain cumulative throughout the exam.
 
     securityModalOpen = false;
 
-    try {
-        await requestExamFullscreen();
-    } catch (e) {
-        console.warn("Fullscreen request failed:", e);
-    }
+    await requestExamFullscreen();
 
     if ($("violationCount")) {
-        $("violationCount").innerText =
-            state.proctor?.violations || 0;
+        $("violationCount").innerText = state.proctor?.violations || 0;
     }
-
-    toast("Security check completed. You may continue the examination.");
 };
-
 function installProctoring(){
   state.proctor=state.proctor||{violations:0}; if(state.proctor.listenersInstalled)return; state.proctor.listenersInstalled=true;
   document.addEventListener("visibilitychange",()=>{ if(document.hidden && state.role==="student" && state.session?.status==="live")showProctorWarning("You left the examination window."); });
