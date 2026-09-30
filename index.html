@@ -241,96 +241,481 @@ function cleanupExamEnvironment(){
   clearInterval(state.timer);
 }
 
-// ==========================================
-// 1. LANDING PAGE & REGISTRATION
-// ==========================================
 window.landing = async () => {
     cleanupExamEnvironment();
-    show(`<div class="app">
-    <div class="topbar"><div class="brand"><div class="logo">E</div>ExamFlow</div><div class="top-actions"><span class="pill">CBT Command Center</span></div></div>
-    <div class="page"><div class="hero"><h1>Professional CBT System</h1><p>RRB/TCS style secure assessment engine with centralized command and control.</p></div>
-    <div class="auth-grid">
-      
-      <div class="card">
-        <h2>1. Candidate Registration</h2>
-        <p class="muted">Submit your details. Your Roll Number and Exam Date will be emailed once the admin schedules your test.</p>
-        <div class="field"><label>Full Name</label><input id="regName" placeholder="Name"></div>
-        <div class="field"><label>Phone & Email</label><div style="display:flex;gap:10px"><input id="regPhone" placeholder="Phone"><input id="regEmail" placeholder="Email"></div></div>
-        <div class="field"><label>Department</label><input id="regDept" placeholder="Department"></div>
-        <button class="btn btn-primary" style="width:100%" onclick="submitRegistration()">Submit Details</button>
-      </div>
 
-      <div class="card" style="border-color:var(--primary); box-shadow:var(--shadow-lg)">
-        <h2>2. Exam Login</h2>
-        <p class="muted">Use your emailed Roll No and the Secret ID provided at the center.</p>
-        <div class="field"><label>Roll Number</label><input id="loginRoll" placeholder="e.g. 1234567890"></div>
-        <div class="field"><label>Secret ID</label><input id="loginSecret" type="password" placeholder="e.g. 582914"></div>
-        <button class="btn btn-primary" style="width:100%; background:var(--text)" onclick="studentLogin()">Secure Login</button>
-      </div>
+    show(`
+    <div class="app">
+        <div class="topbar">
+            <div class="brand">
+                <div class="logo">E</div>
+                <div>
+                    ExamFlow
+                    <div class="small muted">Professional Computer Based Examination System</div>
+                </div>
+            </div>
+            <div class="top-actions">
+                <span class="pill">SECURE EXAMINATION PORTAL</span>
+            </div>
+        </div>
 
-      <div class="card">
-        <h2>3. Administrator</h2>
-        <p class="muted">Schedule exams, verify IDs, and control the live examination.</p>
-        <div class="field"><label>Admin PIN</label><input id="apin" type="password" placeholder="Enter admin PIN"></div>
-        <button class="btn btn-light" style="width:100%" onclick="adminLogin()">Open Admin Panel</button>
-      </div>
+        <div class="page">
+            <div class="hero">
+                <div class="badge blue">WELCOME</div>
+                <h1>Examination Portal</h1>
+                <p>
+                    Please select the appropriate portal below.
+                    Candidates and Examination Administration use separate secure interfaces.
+                </p>
+            </div>
 
-    </div></div></div>`);
+            <div style="
+                max-width:950px;
+                margin:0 auto;
+                display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+                gap:24px;
+            ">
+
+                <!-- STUDENT PORTAL -->
+                <div class="card" style="
+                    border:1px solid #c7d2fe;
+                    box-shadow:0 15px 35px rgba(79,70,229,.10);
+                ">
+                    <div style="
+                        width:58px;
+                        height:58px;
+                        border-radius:16px;
+                        background:#eef2ff;
+                        color:#4f46e5;
+                        display:grid;
+                        place-items:center;
+                        font-size:26px;
+                        margin-bottom:18px;
+                    ">🎓</div>
+
+                    <h2>Candidate Portal</h2>
+
+                    <p class="muted" style="line-height:1.7">
+                        For candidates who have registered for the examination.
+                        Registration, examination credentials, instructions and secure
+                        examination login are handled here.
+                    </p>
+
+                    <button
+                        class="btn btn-primary"
+                        style="width:100%;margin-top:18px"
+                        onclick="studentWelcome()">
+                        Enter Candidate Portal →
+                    </button>
+                </div>
+
+                <!-- ADMIN PORTAL -->
+                <div class="card" style="
+                    border:1px solid #cbd5e1;
+                    box-shadow:0 15px 35px rgba(15,23,42,.08);
+                ">
+                    <div style="
+                        width:58px;
+                        height:58px;
+                        border-radius:16px;
+                        background:#f1f5f9;
+                        color:#0f172a;
+                        display:grid;
+                        place-items:center;
+                        font-size:26px;
+                        margin-bottom:18px;
+                    ">🔐</div>
+
+                    <h2>Examination Administration</h2>
+
+                    <p class="muted" style="line-height:1.7">
+                        Restricted interface for authorised examination administrators.
+                        Schedule candidates, finalize venues, verify candidates,
+                        conduct examinations and manage results.
+                    </p>
+
+                    <button
+                        class="btn btn-light"
+                        style="width:100%;margin-top:18px"
+                        onclick="adminPortalWelcome()">
+                        Administrator Login →
+                    </button>
+                </div>
+
+            </div>
+
+            <div style="
+                max-width:950px;
+                margin:28px auto 0;
+                padding:18px 20px;
+                background:#fff;
+                border:1px solid #e2e8f0;
+                border-radius:14px;
+                color:#64748b;
+                font-size:13px;
+                line-height:1.7;
+            ">
+                <b style="color:#334155">Security Notice:</b>
+                Never share your Candidate PIN, Secret Login ID or examination
+                credentials with another person.
+            </div>
+        </div>
+    </div>
+    `);
+};
+   window.studentWelcome = () => {
+
+    show(`
+    <div class="app">
+
+        <div class="topbar">
+            <div class="brand">
+                <div class="logo">E</div>
+                <div>
+                    ExamFlow
+                    <div class="small muted">Candidate Portal</div>
+                </div>
+            </div>
+
+            <div class="top-actions">
+                <button class="btn btn-light btn-sm" onclick="landing()">
+                    ← Main Portal
+                </button>
+            </div>
+        </div>
+
+        <div class="page">
+
+            <div class="hero">
+                <div class="badge blue">CANDIDATE SERVICES</div>
+                <h1>Welcome, Candidate</h1>
+                <p>
+                    Register for the examination or access your secure examination
+                    login after completing centre verification.
+                </p>
+            </div>
+
+            <div style="
+                max-width:1050px;
+                margin:0 auto;
+                display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+                gap:24px;
+            ">
+
+                <!-- REGISTRATION -->
+                <div class="card">
+                    <div style="
+                        width:50px;height:50px;border-radius:14px;
+                        background:#eef2ff;color:#4f46e5;
+                        display:grid;place-items:center;font-size:22px;
+                        margin-bottom:16px;
+                    ">📝</div>
+
+                    <h2>New Candidate Registration</h2>
+
+                    <p class="muted">
+                        Submit your candidate details. Your Roll Number will be
+                        generated and your examination details will be communicated
+                        after the examination is scheduled.
+                    </p>
+
+                    <div class="field">
+                        <label>Full Name</label>
+                        <input id="regName" placeholder="Enter full name">
+                    </div>
+
+                    <div class="field">
+                        <label>Phone Number</label>
+                        <input id="regPhone" placeholder="Enter mobile number">
+                    </div>
+
+                    <div class="field">
+                        <label>Email Address</label>
+                        <input id="regEmail" type="email" placeholder="Enter email address">
+                    </div>
+
+                    <div class="field">
+                        <label>Department / Course</label>
+                        <input id="regDept" placeholder="Enter department or course">
+                    </div>
+
+                    <button
+                        class="btn btn-primary"
+                        style="width:100%"
+                        onclick="submitRegistration()">
+                        Submit Registration
+                    </button>
+                </div>
+
+
+                <!-- SECURE LOGIN -->
+                <div class="card" style="
+                    border-color:#c7d2fe;
+                    box-shadow:0 15px 35px rgba(79,70,229,.10);
+                ">
+                    <div style="
+                        width:50px;height:50px;border-radius:14px;
+                        background:#eef2ff;color:#4f46e5;
+                        display:grid;place-items:center;font-size:22px;
+                        margin-bottom:16px;
+                    ">🔑</div>
+
+                    <h2>Secure Examination Login</h2>
+
+                    <p class="muted">
+                        Use the Secret Login ID provided by the authorised
+                        examination staff after successful centre verification.
+                    </p>
+
+                    <div class="field">
+                        <label>Roll Number</label>
+                        <input
+                            id="loginRoll"
+                            placeholder="Enter your Roll Number"
+                            autocomplete="off">
+                    </div>
+
+                    <div class="field">
+                        <label>Secret Login ID</label>
+                        <input
+                            id="loginSecret"
+                            type="password"
+                            placeholder="Enter Secret Login ID"
+                            autocomplete="off">
+                    </div>
+
+                    <button
+                        class="btn btn-primary"
+                        style="width:100%"
+                        onclick="studentLogin()">
+                        Secure Login
+                    </button>
+
+                    <div style="
+                        margin-top:18px;
+                        padding:14px;
+                        border-radius:10px;
+                        background:#f8fafc;
+                        border:1px solid #e2e8f0;
+                        font-size:12px;
+                        line-height:1.6;
+                        color:#64748b;
+                    ">
+                        <b style="color:#334155">Important:</b>
+                        Your 4-digit Candidate PIN is used by the examination
+                        authority during centre verification. It is not your
+                        final examination login password.
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    `);
 };
 window.submitRegistration = async () => {
+
     let name = $("regName").value.trim();
+    let phone = $("regPhone").value.trim();
     let email = $("regEmail").value.trim();
-    
-    if(!name || !email) return toast("Name and Email are required.");
-    
-    let btn = document.querySelector(".auth-grid .card:nth-child(1) button");
-    let originalText = btn.innerText;
-    btn.innerText = "Submitting...";
-    btn.disabled = true;
+    let dept = $("regDept").value.trim();
+
+    if(!name || !email) {
+        return toast("Full Name and Email Address are required.");
+    }
+
+    let emailPattern =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if(!emailPattern.test(email)) {
+        return toast("Please enter a valid email address.");
+    }
+
+    let btn = document.querySelector(".card button.btn-primary");
+
+    let originalText = btn ? btn.innerText : "Submit Registration";
+
+    if(btn){
+        btn.innerText = "Submitting Registration...";
+        btn.disabled = true;
+    }
 
     try {
-        // Generate 10-digit Roll Number silently
-        let generatedRoll = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-        
-        // Save to Firebase as 'unassigned' (no exam scheduled yet)
+
+        let generatedRoll =
+            Math.floor(1000000000 + Math.random() * 9000000000).toString();
+
         await set(ref(db, "verifications/" + generatedRoll), {
-            roll: generatedRoll, safeRoll: generatedRoll, name, phone: $("regPhone").value.trim(), email, dept: $("regDept").value.trim(),
-            status: 'unassigned', timestamp: Date.now()
+
+            roll: generatedRoll,
+            safeRoll: generatedRoll,
+
+            name: name,
+            phone: phone,
+            email: email,
+            dept: dept,
+
+            status: "unassigned",
+
+            // Candidate PIN does NOT exist at registration.
+            candidatePin: null,
+            pinGenerated: false,
+
+            // Venue is not finalized yet.
+            venue: null,
+            venueFinalized: false,
+
+            examId: null,
+            examDate: null,
+
+            timestamp: Date.now()
+
         });
-        
-        alert("Registration Submitted Successfully!\n\nYour details have been received. You will receive an automated email containing your Roll Number and Exam Date once the Administrator schedules your test.");
-        
-        // Clear form
-        $("regName").value = ""; $("regPhone").value = ""; $("regEmail").value = ""; $("regDept").value = "";
-    } catch (e) {
+
+        show(`
+        <div class="app">
+
+            <div class="topbar">
+                <div class="brand">
+                    <div class="logo">E</div>
+                    ExamFlow
+                </div>
+            </div>
+
+            <div class="page">
+
+                <div style="max-width:650px;margin:70px auto">
+                    <div class="card" style="text-align:center">
+
+                        <div style="
+                            width:70px;height:70px;border-radius:50%;
+                            background:#dcfce7;color:#15803d;
+                            display:grid;place-items:center;
+                            margin:0 auto 20px;
+                            font-size:34px;
+                        ">✓</div>
+
+                        <h1>Registration Submitted</h1>
+
+                        <p class="muted" style="line-height:1.8">
+                            Your registration has been received successfully.
+                        </p>
+
+                        <div style="
+                            margin:25px 0;
+                            padding:20px;
+                            background:#f8fafc;
+                            border:1px solid #e2e8f0;
+                            border-radius:14px;
+                            text-align:left;
+                        ">
+
+                            <b>What happens next?</b>
+
+                            <ol style="
+                                color:#475569;
+                                line-height:1.8;
+                                margin-bottom:0;
+                            ">
+                                <li>Your examination will be assigned by the Examination Administration.</li>
+                                <li>The final examination date, reporting time and venue will be declared.</li>
+                                <li>Only after the final venue and schedule are confirmed, a unique 4-digit Candidate PIN will be generated.</li>
+                                <li>The Candidate PIN and complete examination instructions will be sent to your registered email address.</li>
+                                <li>Bring the email and required identification documents to the examination centre.</li>
+                            </ol>
+
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            onclick="studentWelcome()">
+                            Return to Candidate Portal
+                        </button>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        `);
+
+    } catch(e) {
+
         console.error(e);
-        toast("Failed to submit registration.");
+        toast("Registration could not be completed.");
+
     } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
+
+        if(btn){
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
     }
 };
-
 window.studentLogin = async () => {
-    let originalRoll = $("loginRoll").value.trim().toUpperCase();
-    let safeRoll = originalRoll.replace(/[\/\.#$\[\]]/g, "-");
-    let secret = $("loginSecret").value.trim();
-    if(!safeRoll || !secret) return toast("Enter Roll Number and Secret ID.");
-    
-    let s = await get(ref(db, "students/" + safeRoll));
-    if(!s.exists()) return toast("Invalid Roll Number. Have you been verified?");
-    let studentData = s.val();
-    
-    if(studentData.secretId !== secret) return toast("Invalid Secret ID.");
-    
-    // Check if the 10-minute validity window has passed
-    if(studentData.secretExpiry && Date.now() > studentData.secretExpiry) {
-        return toast("Secret ID has expired (Valid for 10 mins only). Please see the Invigilator.");
+
+    let originalRoll =
+        $("loginRoll").value
+            .trim()
+            .toUpperCase();
+
+    let safeRoll =
+        originalRoll.replace(
+            /[\/\.#$\[\]]/g,
+            "-"
+        );
+
+    let secret =
+        $("loginSecret").value.trim();
+
+    if(!safeRoll || !secret){
+        return toast(
+            "Enter your Roll Number and Secret Login ID."
+        );
     }
-    
-    if(studentData.active === false) return toast("This account is disabled or the exam is already completed.");
-    
-    state.role = "student"; state.studentId = safeRoll; state.student = studentData;
+
+    let s =
+        await get(
+            ref(db, "students/" + safeRoll)
+        );
+
+    if(!s.exists()){
+        return toast(
+            "Candidate has not completed centre verification."
+        );
+    }
+
+    let studentData =
+        s.val();
+
+    if(studentData.secretId !== secret){
+        return toast(
+            "Invalid Secret Login ID."
+        );
+    }
+
+    if(
+        studentData.secretExpiry &&
+        Date.now() > studentData.secretExpiry
+    ){
+        return toast(
+            "Secret Login ID has expired. Please contact the Invigilator."
+        );
+    }
+
+    if(studentData.active === false){
+        return toast(
+            "This candidate account is disabled or the examination is already completed."
+        );
+    }
+
+    state.role = "student";
+    state.studentId = safeRoll;
+    state.student = studentData;
+
     studentHome();
 };
 window.adminLogin=()=>{if($("apin").value===ADMIN_PIN){state.role="admin";adminDashboard()}else toast("Invalid admin PIN")};
@@ -365,141 +750,433 @@ async function adminDashboard(){
     <div id="adminContent"></div></div></div>`);
     adminExams();
 }
-   window.adminScheduling = () => {
-    setTab('tab-schedule'); window.currentAdminTab = 'schedule';
+  window.adminScheduling = () => {
+
+    setTab("tab-schedule");
+    window.currentAdminTab = "schedule";
+
     let verifications = window._cache.verifications || {};
-    let exams = window._cache.exams || {}; 
-    
-    let examOptions = Object.entries(exams).map(([id, e]) => `<option value="${id}">${esc(e.name)}</option>`).join("");
-    
-    // Only show candidates who are not scheduled yet ('unassigned')
-    let rows = Object.values(verifications).filter(v => v.status === 'unassigned').sort((a,b)=>b.timestamp-a.timestamp).map(v => `
+    let exams = window._cache.exams || {};
+
+    let examOptions = Object.entries(exams)
+        .map(([id,e]) =>
+            `<option value="${id}">${esc(e.name)}</option>`
+        ).join("");
+
+    let rows = Object.values(verifications)
+        .filter(v => v.status === "unassigned")
+        .sort((a,b)=>(b.timestamp||0)-(a.timestamp||0))
+        .map(v => `
+
         <tr>
-            <td><b>${esc(v.name)}</b><br><small class="muted">${esc(v.email)}</small></td>
-            <td>${esc(v.dept)}</td>
+
             <td>
-                <select id="exam-${v.safeRoll}" style="padding:6px;font-size:12px;width:160px;margin-bottom:4px">
-                    <option value="" disabled selected>-- Select Exam --</option>
+                <b>${esc(v.name)}</b>
+                <br>
+                <small class="muted">${esc(v.email)}</small>
+            </td>
+
+            <td>
+                ${esc(v.dept || "-")}
+            </td>
+
+            <td>
+
+                <select
+                    id="exam-${v.safeRoll}"
+                    style="padding:7px;font-size:12px;width:180px;margin-bottom:6px">
+
+                    <option value="" disabled selected>
+                        Select Examination
+                    </option>
+
                     ${examOptions}
-                </select><br>
-                <input type="datetime-local" id="date-${v.safeRoll}" style="padding:6px;font-size:12px;width:160px">
+
+                </select>
+
+                <br>
+
+                <input
+                    type="datetime-local"
+                    id="date-${v.safeRoll}"
+                    style="padding:7px;font-size:12px;width:180px;margin-bottom:6px">
+
             </td>
+
             <td>
-                <button class="btn btn-sm btn-success" onclick="scheduleAndEmail('${v.safeRoll}')">Schedule & Send Mail</button>
+
+                <input
+                    id="venue-${v.safeRoll}"
+                    placeholder="Final examination venue"
+                    style="
+                        padding:8px;
+                        font-size:12px;
+                        width:230px;
+                        margin-bottom:6px;
+                    ">
+
+                <br>
+
+                <small class="muted">
+                    PIN will be generated only after this venue is finalized.
+                </small>
+
             </td>
+
+            <td>
+
+                <button
+                    class="btn btn-sm btn-success"
+                    onclick="scheduleAndEmail('${v.safeRoll}')">
+
+                    Finalize & Send Candidate Mail
+
+                </button>
+
+            </td>
+
         </tr>
+
     `).join("");
-    
-    $("adminContent").innerHTML=`<div class="card"><h2>Schedule Candidates</h2><p class="muted">Assign an exam and date to registered students. This will officially assign their Roll No and dispatch the automated email.</p><div class="table-wrap">${rows?`<table class="table"><thead><tr><th>Candidate</th><th>Dept</th><th>Assign Exam & Date</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">No unassigned candidates.</div>`}</div></div>`;
+
+    $("adminContent").innerHTML = `
+
+    <div class="card">
+
+        <h2>Finalize Candidate Schedule</h2>
+
+        <p class="muted" style="line-height:1.7">
+            Select the examination, final reporting date/time and final examination
+            venue. The candidate's unique 4-digit PIN will be generated only when
+            this schedule is finalized and will be sent to the registered email.
+        </p>
+
+        <div style="
+            padding:15px 18px;
+            background:#fffbeb;
+            border:1px solid #fde68a;
+            border-radius:12px;
+            margin-bottom:20px;
+            color:#92400e;
+            font-size:13px;
+            line-height:1.6;
+        ">
+            <b>Important:</b>
+            Do not generate or communicate the Candidate PIN before the final
+            date, reporting time and venue have been confirmed.
+        </div>
+
+        <div class="table-wrap">
+
+            ${
+                rows
+                ?
+                `
+                <table class="table">
+
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Department</th>
+                            <th>Exam & Reporting Time</th>
+                            <th>Final Venue</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        ${rows}
+                    </tbody>
+
+                </table>
+                `
+                :
+                `<div class="empty">
+                    No candidates are awaiting final scheduling.
+                </div>`
+            }
+
+        </div>
+
+    </div>
+
+    `;
 };
 window.scheduleAndEmail = async (safeRoll) => {
+
     let examId = $(`exam-${safeRoll}`).value;
     let dateVal = $(`date-${safeRoll}`).value;
-    
-    if(!examId || !dateVal) return toast("Please select an exam and date/time.");
-    
+    let venue = $(`venue-${safeRoll}`).value.trim();
+
+    if(!examId){
+        return toast("Please select an examination.");
+    }
+
+    if(!dateVal){
+        return toast("Please select the final reporting date and time.");
+    }
+
+    if(!venue){
+        return toast("Please enter the final examination venue.");
+    }
+
     let v = window._cache.verifications[safeRoll];
+
+    if(!v){
+        return toast("Candidate record not found.");
+    }
+
     let exam = window._cache.exams[examId];
-    let examName = exam.name;
-    let formattedDate = new Date(dateVal).toLocaleString();
-    
+
+    if(!exam){
+        return toast("Selected examination could not be found.");
+    }
+
+    /*
+     * Candidate PIN is generated ONLY at final schedule confirmation.
+     */
+    let candidatePin =
+        Math.floor(1000 + Math.random() * 9000).toString();
+
+    let formattedDate =
+        new Date(dateVal).toLocaleString("en-IN", {
+            dateStyle: "full",
+            timeStyle: "short"
+        });
+
+    let examName = exam.name || examId;
+
     let btn = event.target;
     let originalText = btn.innerText;
-    btn.innerText = "Sending Mail Automatically...";
+
+    btn.innerText = "Finalizing & Sending...";
     btn.disabled = true;
 
     try {
-        // 1. Update Firebase status
-        await update(ref(db, "verifications/" + safeRoll), { 
-            status: 'pending', 
-            examId: examId, 
-            examDate: dateVal 
-        });
-        
-        // 2. Read the Pattern JSON that you manually uploaded
-        let pad = (str, len) => str.toString().padEnd(len, ' ');
-        let tableText = `---------------------------------------------------------\n`;
-        tableText += `${pad("SECTION", 20)} | ${pad("QNS", 5)} | ${pad("MARKS", 7)} | ${pad("TIME(m)", 7)}\n`;
-        tableText += `---------------------------------------------------------\n`;
-        
-        let totalQ = 0, totalM = 0, totalT = 0;
 
-        if (exam.pattern && Array.isArray(exam.pattern)) {
+        /*
+         * Build the exact exam instruction text entered
+         * by the administrator during question upload.
+         */
+        let exactInstructions =
+            String(exam.instructions || "").trim();
+
+        if(!exactInstructions){
+            throw new Error(
+                "This examination has no instructions. Please edit/recreate the exam and enter the official instructions before scheduling candidates."
+            );
+        }
+
+        /*
+         * Exam pattern summary.
+         */
+        let pad = (str,len) =>
+            String(str).padEnd(len," ");
+
+        let tableText =
+`---------------------------------------------------------
+SECTION              | QNS   | MARKS   | TIME(m)
+---------------------------------------------------------`;
+
+        let totalQ = 0;
+        let totalM = 0;
+        let totalT = 0;
+
+        if(Array.isArray(exam.pattern)){
+
             exam.pattern.forEach(p => {
-                let sName = p.section.length > 18 ? p.section.substring(0, 15) + '...' : p.section;
-                let qns = p.qns || 0;
-                let marks = p.marks || 0;
-                let time = p.time_mins || 0;
-                
-                tableText += `${pad(sName, 20)} | ${pad(qns, 5)} | ${pad(marks, 7)} | ${pad(time, 7)}\n`;
-                totalQ += Number(qns);
-                totalM += Number(marks);
-                totalT += Number(time);
+
+                let sName =
+                    String(p.section || "General");
+
+                if(sName.length > 18){
+                    sName =
+                        sName.substring(0,15) + "...";
+                }
+
+                let qns = Number(p.qns || 0);
+                let marks = Number(p.marks || 0);
+                let time = Number(p.time_mins || 0);
+
+                tableText +=
+`\n${pad(sName,20)} | ${pad(qns,5)} | ${pad(marks,7)} | ${pad(time,7)}`;
+
+                totalQ += qns;
+                totalM += marks;
+                totalT += time;
+
             });
         }
-        
-        tableText += `---------------------------------------------------------\n`;
-        tableText += `${pad("TOTAL", 20)} | ${pad(totalQ, 5)} | ${pad(totalM, 7)} | ${pad(totalT, 7)}\n`;
-        tableText += `---------------------------------------------------------`;
 
-        // 3. Prepare the detailed "Big Mail"
-        let subject = `OFFICIAL NOTIFICATION: Exam Schedule & Roll Number Assignment`;
-        let bodyText = `Dear ${v.name},
+        tableText +=
+`\n---------------------------------------------------------
+${pad("TOTAL",20)} | ${pad(totalQ,5)} | ${pad(totalM,7)} | ${pad(totalT,7)}
+---------------------------------------------------------`;
 
-This is an official communication from the Examination Authority regarding your recent registration.
+        /*
+         * Save final schedule and generate PIN atomically
+         * from the application's perspective.
+         */
+        await update(
+            ref(db, "verifications/" + safeRoll),
+            {
+                status: "pending",
 
-We are pleased to inform you that your application has been successfully processed and your examination has been scheduled. Please find your official Examination Credentials and Schedule below:
+                examId: examId,
+                examDate: dateVal,
 
----------------------------------------------------------
+                venue: venue,
+                venueFinalized: true,
+                scheduleFinalized: true,
+                finalizedAt: Date.now(),
+
+                candidatePin: candidatePin,
+                pinGenerated: true,
+                pinGeneratedAt: Date.now(),
+
+                /*
+                 * A future reschedule will invalidate this PIN.
+                 */
+                pinStatus: "active"
+            }
+        );
+
+        /*
+         * Professional candidate notification.
+         */
+        let subject =
+            `OFFICIAL EXAMINATION NOTICE | ${examName} | Roll No. ${v.roll}`;
+
+        let bodyText =
+`Dear ${v.name},
+
+This is an official communication from the Examination Administration regarding your candidature and examination schedule.
+
+Your examination schedule has now been FINALIZED. Please carefully read and retain this email for examination-day reference.
+
+=========================================================
 CANDIDATE EXAMINATION DETAILS
----------------------------------------------------------
-Candidate Name      : ${v.name}
-Department          : ${v.dept}
-Examination Name    : ${examName}
-Reporting Date/Time : ${formattedDate}
+=========================================================
 
-SYSTEM GENERATED ROLL NUMBER: 
->>  ${v.roll}  <<
----------------------------------------------------------
+Candidate Name       : ${v.name}
+Registration/Roll No.: ${v.roll}
+Department/Course    : ${v.dept || "-"}
+Examination          : ${examName}
 
-EXAMINATION PATTERN SUMMARY:
+FINAL REPORTING DATE & TIME
+${formattedDate}
+
+FINAL EXAMINATION VENUE
+${venue}
+
+=========================================================
+CANDIDATE PIN
+=========================================================
+
+Your unique 4-digit Candidate PIN is:
+
+${candidatePin}
+
+This PIN has been generated only after finalization of your examination date, reporting time and venue.
+
+IMPORTANT:
+• Keep this PIN confidential.
+• Do not share this PIN with another candidate.
+• The Candidate PIN is used by the Examination Administration during centre verification.
+• The Candidate PIN is NOT the final examination login password.
+• After successful identity verification at the examination centre, the authorised examination staff will generate your temporary Secret Login ID.
+• You will subsequently use your Roll Number and the Secret Login ID to access the secure examination portal.
+
+=========================================================
+EXAMINATION PATTERN
+=========================================================
+
 ${tableText}
 
-IMPORTANT INSTRUCTIONS FOR EXAM DAY:
-1. Please carry this mail print out during entry.
-2. Present the above Roll Number to the Invigilator at the verification desk.
-3. Upon successful physical verification, the Invigilator will generate and hand over your 'Secret Login ID'.
-4. You will require BOTH your Roll Number and the Secret Login ID to access the examination portal.
-5. The examination is strictly proctored. You will be required to share your entire screen during the test.
+=========================================================
+OFFICIAL EXAMINATION INSTRUCTIONS
+=========================================================
+
+The following instructions are reproduced exactly as entered by the Examination Administration during examination/question upload:
+
+${exactInstructions}
+
+=========================================================
+IF YOU ARE UNABLE TO ATTEND
+=========================================================
+
+If you are unable to attend the examination at the above-mentioned date, time or venue, you must contact the Examination Administration as early as possible and before the reporting time.
+
+You may request a rescheduling or alternate arrangement where such provision is available. Any such request will be subject to the examination authority's approval, available capacity and applicable examination rules.
+
+Please note:
+• Do not assume that a rescheduling request is automatically approved.
+• Do not report to an alternate venue without written confirmation from the Examination Administration.
+• If your examination is officially rescheduled, the previous schedule and Candidate PIN may be invalidated and a new schedule/PIN may be issued.
+• Always follow the latest official communication received from the Examination Administration.
+
+=========================================================
+EXAMINATION-DAY CHECKLIST
+=========================================================
+
+1. Carry this email or a printed copy for reference.
+2. Carry the required original identity document.
+3. Carry your Roll Number.
+4. Keep your 4-digit Candidate PIN available for centre verification.
+5. Report at the final venue before the stated reporting time.
+6. Follow all instructions given by the authorised examination staff.
+7. Do not share your examination credentials with any other person.
+
+=========================================================
+IMPORTANT SECURITY NOTICE
+=========================================================
+
+Your examination credentials are personal and confidential.
+
+The Examination Administration will verify your identity at the centre using your Roll Number and Candidate PIN. Only after successful verification will the authorised staff issue the Secret Login ID required for the examination portal.
+
+Please retain this email until your examination has been completed.
 
 Best Regards,
-Examination Administration Team`;
 
-        // =========================================================
-        // 4. YOUR GOOGLE SCRIPT URL
-        // =========================================================
-        let scriptUrl = "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec"; 
+Examination Administration Team
+ExamFlow
+Professional Computer Based Examination System`;
 
-        // 5. Send the email automatically in the background
+        /*
+         * Google Apps Script email service.
+         */
+        let scriptUrl =
+            "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec";
+
         await fetch(scriptUrl, {
             method: "POST",
             mode: "no-cors",
             headers: {
-                "Content-Type": "text/plain",
+                "Content-Type": "text/plain"
             },
-            body: JSON.stringify({ 
-                to: v.email, 
-                subject: subject, 
-                body: bodyText 
+            body: JSON.stringify({
+                to: v.email,
+                subject: subject,
+                body: bodyText
             })
         });
 
-        toast("Candidate scheduled & Email sent successfully!");
-        adminScheduling(); // Refresh UI
-        
-    } catch (e) {
+        toast(
+            "Final schedule confirmed. 4-digit PIN generated and email sent."
+        );
+
+        adminScheduling();
+
+    } catch(e) {
+
         console.error(e);
-        toast("Failed to schedule candidate.");
+
+        toast(
+            e.message ||
+            "Failed to finalize candidate schedule."
+        );
+
         btn.innerText = originalText;
         btn.disabled = false;
     }
@@ -521,61 +1198,354 @@ window.adminExams = () => {
 };
 
 window.adminIDManagement = () => {
-    setTab('tab-idm'); window.currentAdminTab = 'idm';
-    $("adminContent").innerHTML = `
-    <div class="card">
-        <h2>ID Verification & Check-in</h2>
-        <p class="muted">Enter the candidate's Roll Number to pull up their scheduled details.</p>
-        <div class="field">
-            <label>Candidate Roll Number</label>
-            <div style="display:flex; gap:10px; max-width: 450px;">
-                <input id="verifyRollInput" placeholder="Enter 10-digit Roll No" onkeydown="if(event.key==='Enter') searchVerifyCandidate()">
-                <button class="btn btn-primary" onclick="searchVerifyCandidate()">Search Candidate</button>
-            </div>
-        </div>
-        <div id="verifyDetailsBox" style="margin-top: 24px;"></div>
-    </div>`;
-};
 
-window.searchVerifyCandidate = () => {
-    let roll = $("verifyRollInput").value.trim().replace(/[\/\.#$\[\]]/g, "-");
-    if(!roll) return toast("Enter a Roll Number");
-    
-    let v = window._cache.verifications[roll];
-    if(!v || v.status !== 'pending') {
-        $("verifyDetailsBox").innerHTML = `<div class="empty">Candidate not found, or they have not been scheduled yet.</div>`;
+    setTab("tab-idm");
+    window.currentAdminTab = "idm";
+
+    $("adminContent").innerHTML = `
+
+    <div class="card">
+
+        <h2>Candidate Identity Verification</h2>
+
+        <p class="muted" style="line-height:1.7">
+            Enter the candidate's Roll Number and the 4-digit Candidate PIN
+            received by the candidate through the official examination email.
+            The PIN must match the finalized schedule before identity verification
+            can proceed.
+        </p>
+
+        <div style="
+            max-width:600px;
+            padding:18px;
+            background:#f8fafc;
+            border:1px solid #e2e8f0;
+            border-radius:12px;
+            margin:20px 0;
+        ">
+
+            <div class="field">
+                <label>Candidate Roll Number</label>
+
+                <input
+                    id="verifyRollInput"
+                    placeholder="Enter Roll Number"
+                    autocomplete="off"
+                    onkeydown="if(event.key==='Enter') searchVerifyCandidate()">
+            </div>
+
+            <div class="field">
+                <label>4-Digit Candidate PIN</label>
+
+                <input
+                    id="verifyPinInput"
+                    type="password"
+                    maxlength="4"
+                    inputmode="numeric"
+                    placeholder="Enter 4-digit Candidate PIN"
+                    autocomplete="off"
+                    onkeydown="if(event.key==='Enter') searchVerifyCandidate()">
+            </div>
+
+            <button
+                class="btn btn-primary"
+                onclick="searchVerifyCandidate()"
+                style="width:100%">
+
+                Verify Candidate Credentials
+
+            </button>
+
+        </div>
+
+        <div id="verifyDetailsBox"></div>
+
+    </div>
+
+    `;
+};
+window.searchVerifyCandidate = async () => {
+
+    let roll =
+        $("verifyRollInput").value
+            .trim()
+            .replace(/[\/\.#$\[\]]/g, "-");
+
+    let enteredPin =
+        $("verifyPinInput").value.trim();
+
+    if(!roll){
+        return toast("Enter the candidate Roll Number.");
+    }
+
+    if(!/^\d{4}$/.test(enteredPin)){
+        return toast("Enter a valid 4-digit Candidate PIN.");
+    }
+
+    let v =
+        window._cache.verifications[roll];
+
+    if(!v){
+        $("verifyDetailsBox").innerHTML = `
+            <div class="empty">
+                Candidate record not found.
+            </div>
+        `;
         return;
     }
 
-    let examName = window._cache.exams[v.examId] ? window._cache.exams[v.examId].name : v.examId;
-    let examDate = new Date(v.examDate).toLocaleString();
+    if(v.status !== "pending"){
+        $("verifyDetailsBox").innerHTML = `
+            <div class="empty">
+                This candidate is not currently eligible for centre verification.
+                Current status: ${esc(v.status || "unknown")}
+            </div>
+        `;
+        return;
+    }
+
+    if(!v.venueFinalized || !v.scheduleFinalized){
+        return toast(
+            "The candidate's final venue and schedule have not been finalized."
+        );
+    }
+
+    if(!v.candidatePin){
+        return toast(
+            "Candidate PIN has not been generated for this candidate."
+        );
+    }
+
+    if(v.pinStatus === "invalidated"){
+        return toast(
+            "This Candidate PIN has been invalidated. Check the latest schedule."
+        );
+    }
+
+    if(v.candidatePin !== enteredPin){
+
+        $("verifyDetailsBox").innerHTML = `
+        <div style="
+            padding:20px;
+            border-radius:12px;
+            background:#fef2f2;
+            border:1px solid #fecaca;
+            color:#991b1b;
+        ">
+            <b>PIN Verification Failed</b>
+            <p style="margin-bottom:0">
+                The entered 4-digit Candidate PIN does not match the
+                finalized examination record.
+            </p>
+        </div>
+        `;
+
+        return;
+    }
+
+    let exam =
+        window._cache.exams[v.examId];
+
+    let examName =
+        exam ? exam.name : v.examId;
+
+    let examDate =
+        v.examDate
+        ? new Date(v.examDate).toLocaleString("en-IN", {
+            dateStyle:"full",
+            timeStyle:"short"
+        })
+        : "Not available";
 
     $("verifyDetailsBox").innerHTML = `
-    <div style="border:1px solid #cbd5e1; border-radius:12px; padding:24px; background:#f8fafc;">
-        <h3 style="margin-top:0; color:#0f172a">Candidate Details Found</h3>
-        <p class="muted small" style="margin-bottom:15px">Please physically verify each of the following details. Mark the checkbox once verified.</p>
-        
-        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom: 24px;">
-            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-size:14px; padding:12px 16px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
-                <input type="checkbox" class="tally-chk" onchange="checkTally()" style="width:18px;height:18px;"> 
-                <span><b>Name matches ID:</b> ${esc(v.name)}</span>
-            </label>
-            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-size:14px; padding:12px 16px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
-                <input type="checkbox" class="tally-chk" onchange="checkTally()" style="width:18px;height:18px;"> 
-                <span><b>Department:</b> ${esc(v.dept)}</span>
-            </label>
-            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-size:14px; padding:12px 16px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
-                <input type="checkbox" class="tally-chk" onchange="checkTally()" style="width:18px;height:18px;"> 
-                <span><b>Contact Info:</b> ${esc(v.phone)} / ${esc(v.email)}</span>
-            </label>
-            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-size:14px; padding:12px 16px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
-                <input type="checkbox" class="tally-chk" onchange="checkTally()" style="width:18px;height:18px;"> 
-                <span><b>Scheduled Exam:</b> ${esc(examName)} <span class="muted">(${examDate})</span></span>
-            </label>
+
+    <div style="
+        border:1px solid #bbf7d0;
+        border-radius:14px;
+        padding:24px;
+        background:#f0fdf4;
+    ">
+
+        <div style="
+            color:#15803d;
+            font-weight:800;
+            font-size:17px;
+            margin-bottom:18px;
+        ">
+            ✓ Candidate PIN Verified
         </div>
-        
-        <button id="btnGenerateKey" class="btn btn-success" disabled onclick="verifyCandidate('${roll}')" style="width:100%; padding:14px; font-size:15px">All Details Verified - Generate Secret Key</button>
-    </div>`;
+
+        <p class="muted">
+            Candidate credentials match the finalized examination schedule.
+            Complete the physical identity verification below.
+        </p>
+
+        <div style="
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+            margin:20px 0;
+        ">
+
+            <label style="
+                display:flex;
+                align-items:center;
+                gap:12px;
+                padding:13px;
+                background:#fff;
+                border:1px solid #dbeafe;
+                border-radius:9px;
+                cursor:pointer;
+            ">
+                <input
+                    type="checkbox"
+                    class="tally-chk"
+                    onchange="checkTally()"
+                    style="width:18px;height:18px">
+
+                <span>
+                    <b>Name matches identity document:</b>
+                    ${esc(v.name)}
+                </span>
+            </label>
+
+
+            <label style="
+                display:flex;
+                align-items:center;
+                gap:12px;
+                padding:13px;
+                background:#fff;
+                border:1px solid #dbeafe;
+                border-radius:9px;
+                cursor:pointer;
+            ">
+                <input
+                    type="checkbox"
+                    class="tally-chk"
+                    onchange="checkTally()"
+                    style="width:18px;height:18px">
+
+                <span>
+                    <b>Department / Course:</b>
+                    ${esc(v.dept || "-")}
+                </span>
+            </label>
+
+
+            <label style="
+                display:flex;
+                align-items:center;
+                gap:12px;
+                padding:13px;
+                background:#fff;
+                border:1px solid #dbeafe;
+                border-radius:9px;
+                cursor:pointer;
+            ">
+                <input
+                    type="checkbox"
+                    class="tally-chk"
+                    onchange="checkTally()"
+                    style="width:18px;height:18px">
+
+                <span>
+                    <b>Registered Contact:</b>
+                    ${esc(v.phone || "-")} /
+                    ${esc(v.email)}
+                </span>
+            </label>
+
+
+            <label style="
+                display:flex;
+                align-items:center;
+                gap:12px;
+                padding:13px;
+                background:#fff;
+                border:1px solid #dbeafe;
+                border-radius:9px;
+                cursor:pointer;
+            ">
+                <input
+                    type="checkbox"
+                    class="tally-chk"
+                    onchange="checkTally()"
+                    style="width:18px;height:18px">
+
+                <span>
+                    <b>Examination:</b>
+                    ${esc(examName)}
+                </span>
+            </label>
+
+
+            <label style="
+                display:flex;
+                align-items:center;
+                gap:12px;
+                padding:13px;
+                background:#fff;
+                border:1px solid #dbeafe;
+                border-radius:9px;
+                cursor:pointer;
+            ">
+                <input
+                    type="checkbox"
+                    class="tally-chk"
+                    onchange="checkTally()"
+                    style="width:18px;height:18px">
+
+                <span>
+                    <b>Final Reporting:</b>
+                    ${esc(examDate)}
+                </span>
+            </label>
+
+
+            <label style="
+                display:flex;
+                align-items:center;
+                gap:12px;
+                padding:13px;
+                background:#fff;
+                border:1px solid #dbeafe;
+                border-radius:9px;
+                cursor:pointer;
+            ">
+                <input
+                    type="checkbox"
+                    class="tally-chk"
+                    onchange="checkTally()"
+                    style="width:18px;height:18px">
+
+                <span>
+                    <b>Final Venue:</b>
+                    ${esc(v.venue)}
+                </span>
+            </label>
+
+        </div>
+
+
+        <button
+            id="btnGenerateKey"
+            class="btn btn-success"
+            disabled
+            onclick="verifyCandidate('${roll}')"
+            style="
+                width:100%;
+                padding:14px;
+                font-size:15px;
+            ">
+
+            Complete Physical Verification & Generate Secret ID
+
+        </button>
+
+    </div>
+
+    `;
 };
 window.adminRescheduling = () => {
     setTab('tab-reschedule'); window.currentAdminTab = 'reschedule';
@@ -599,6 +1569,12 @@ window.adminRescheduling = () => {
                     ${examOptions}
                 </select><br>
                 <input type="datetime-local" id="re-date-${v.safeRoll}" style="padding:6px;font-size:12px;width:160px">
+                <br>
+
+<input
+    id="re-venue-${v.safeRoll}"
+    placeholder="New final venue"
+    style="padding:6px;font-size:12px;width:180px;margin-top:5px">
             </td>
             <td>
                 <button class="btn btn-sm btn-warning" onclick="rescheduleAndEmail('${v.safeRoll}')">Reschedule & Mail</button>
@@ -611,102 +1587,245 @@ window.adminRescheduling = () => {
 };
 
 window.rescheduleAndEmail = async (safeRoll) => {
-    let examId = $(`re-exam-${safeRoll}`).value;
-    let dateVal = $(`re-date-${safeRoll}`).value;
-    
-    if(!examId || !dateVal) return toast("Please select a new exam and date/time.");
-    
-    let v = window._cache.verifications[safeRoll];
-    let exam = window._cache.exams[examId];
-    let examName = exam.name;
-    let formattedDate = new Date(dateVal).toLocaleString();
-    
-    let btn = event.target;
-    let originalText = btn.innerText;
-    btn.innerText = "Rescheduling...";
+
+    let examId =
+        $(`re-exam-${safeRoll}`).value;
+
+    let dateVal =
+        $(`re-date-${safeRoll}`).value;
+
+    /*
+     * Add this venue field to the rescheduling UI if it is not already there.
+     */
+    let venueEl =
+        $(`re-venue-${safeRoll}`);
+
+    let venue =
+        venueEl ? venueEl.value.trim() : "";
+
+    if(!examId){
+        return toast("Please select the new examination.");
+    }
+
+    if(!dateVal){
+        return toast("Please select the new reporting date and time.");
+    }
+
+    if(!venue){
+        return toast("Please enter the new final examination venue.");
+    }
+
+    let v =
+        window._cache.verifications[safeRoll];
+
+    if(!v){
+        return toast("Candidate not found.");
+    }
+
+    let exam =
+        window._cache.exams[examId];
+
+    if(!exam){
+        return toast("Selected examination not found.");
+    }
+
+    let newCandidatePin =
+        Math.floor(1000 + Math.random() * 9000).toString();
+
+    let formattedDate =
+        new Date(dateVal).toLocaleString("en-IN", {
+            dateStyle:"full",
+            timeStyle:"short"
+        });
+
+    let exactInstructions =
+        String(exam.instructions || "").trim();
+
+    if(!exactInstructions){
+        return toast(
+            "The selected examination has no official instructions."
+        );
+    }
+
+    let btn =
+        event.target;
+
+    let originalText =
+        btn.innerText;
+
+    btn.innerText =
+        "Rescheduling & Sending...";
+
     btn.disabled = true;
 
     try {
-        // 1. Reset verification status to 'pending' and clear old Secret ID
-        await update(ref(db, "verifications/" + safeRoll), { 
-            status: 'pending', 
-            examId: examId, 
-            examDate: dateVal,
-            secretId: null
-        });
 
-        // 2. If they were already checked in (in 'students' node), deactivate them
-        let studentSnap = await get(ref(db, "students/" + safeRoll));
-        if (studentSnap.exists()) {
-            await update(ref(db, "students/" + safeRoll), { 
-                active: false, 
-                secretId: null, 
-                secretExpiry: null 
-            });
+        /*
+         * Invalidate old schedule and PIN.
+         */
+        await update(
+            ref(db,"verifications/" + safeRoll),
+            {
+                status:"pending",
+
+                examId:examId,
+                examDate:dateVal,
+
+                venue:venue,
+                venueFinalized:true,
+                scheduleFinalized:true,
+
+                /*
+                 * Old PIN is replaced.
+                 */
+                candidatePin:newCandidatePin,
+                pinGenerated:true,
+                pinGeneratedAt:Date.now(),
+                pinStatus:"active",
+
+                previousPinInvalidated:true,
+
+                secretId:null
+            }
+        );
+
+
+        /*
+         * Disable an already-created student login.
+         */
+        let studentSnap =
+            await get(
+                ref(db,"students/" + safeRoll)
+            );
+
+        if(studentSnap.exists()){
+
+            await update(
+                ref(db,"students/" + safeRoll),
+                {
+                    active:false,
+                    secretId:null,
+                    secretExpiry:null
+                }
+            );
+
         }
-        
-        // 3. Format exam pattern table for email
-        let pad = (str, len) => str.toString().padEnd(len, ' ');
-        let tableText = `---------------------------------------------------------\n`;
-        tableText += `${pad("SECTION", 20)} | ${pad("QNS", 5)} | ${pad("MARKS", 7)} | ${pad("TIME(m)", 7)}\n`;
-        tableText += `---------------------------------------------------------\n`;
-        
-        let totalQ = 0, totalM = 0, totalT = 0;
-        if (exam.pattern && Array.isArray(exam.pattern)) {
-            exam.pattern.forEach(p => {
-                let sName = p.section.length > 18 ? p.section.substring(0, 15) + '...' : p.section;
-                tableText += `${pad(sName, 20)} | ${pad(p.qns||0, 5)} | ${pad(p.marks||0, 7)} | ${pad(p.time_mins||0, 7)}\n`;
-                totalQ += Number(p.qns||0); totalM += Number(p.marks||0); totalT += Number(p.time_mins||0);
-            });
-        }
-        tableText += `---------------------------------------------------------\n`;
-        tableText += `${pad("TOTAL", 20)} | ${pad(totalQ, 5)} | ${pad(totalM, 7)} | ${pad(totalT, 7)}\n`;
-        tableText += `---------------------------------------------------------`;
 
-        // 4. Generate the URGENT Reschedule Email content
-        let subject = `URGENT: Examination Rescheduled - Updated Details Inside`;
-        let bodyText = `Dear ${v.name},
 
-This is an official communication regarding an update to your examination schedule. 
-Please note that your examination details have been **RESCHEDULED**. 
+        let subject =
+            `OFFICIAL UPDATE | Examination Rescheduled | Roll No. ${v.roll}`;
 
-Your previous exam slot is no longer valid. Please find your UPDATED schedule below:
+        let bodyText =
+`Dear ${v.name},
 
----------------------------------------------------------
+This is an official communication from the Examination Administration regarding your examination schedule.
+
+Your examination has been RESCHEDULED. The previous examination schedule is no longer valid.
+
+Please treat the following information as your latest official examination schedule.
+
+=========================================================
 UPDATED EXAMINATION DETAILS
----------------------------------------------------------
-Candidate Name    : ${v.name}
-Roll Number       : ${v.roll}
-New Examination   : ${examName}
-New Reporting Time: ${formattedDate}
----------------------------------------------------------
+=========================================================
 
-EXAMINATION PATTERN SUMMARY:
-${tableText}
+Candidate Name       : ${v.name}
+Registration/Roll No.: ${v.roll}
+Examination          : ${exam.name}
 
-IMPORTANT NOTE:
-Any previous 'Secret Login ID' provided to you is now invalid. You must undergo physical verification again at the center on your new date to receive a new Secret ID.
+NEW FINAL REPORTING DATE & TIME
+${formattedDate}
+
+NEW FINAL EXAMINATION VENUE
+${venue}
+
+=========================================================
+NEW CANDIDATE PIN
+=========================================================
+
+${newCandidatePin}
+
+Your previous Candidate PIN has been invalidated.
+
+This new 4-digit PIN has been generated only after the revised date, time and venue were finalized.
+
+Keep this PIN confidential.
+
+=========================================================
+OFFICIAL EXAMINATION INSTRUCTIONS
+=========================================================
+
+${exactInstructions}
+
+=========================================================
+IF YOU ARE UNABLE TO ATTEND THE REVISED SCHEDULE
+=========================================================
+
+If you are unable to attend the revised examination schedule, contact the Examination Administration as early as possible and before the reporting time.
+
+Any further rescheduling or alternate arrangement will be subject to approval, applicable examination rules and availability.
+
+Do not report to another venue unless you receive written confirmation from the Examination Administration.
+
+=========================================================
+EXAMINATION-DAY REQUIREMENTS
+=========================================================
+
+1. Carry this email or a printed copy.
+2. Carry the required original identity document.
+3. Carry your Roll Number.
+4. Keep your new 4-digit Candidate PIN available.
+5. Report at the revised venue before the reporting time.
+6. Complete identity verification with the authorised examination staff.
+7. After successful verification, obtain the temporary Secret Login ID.
+8. Use the Roll Number and Secret Login ID to access the secure examination portal.
 
 Best Regards,
-Examination Administration Team`;
 
-        let scriptUrl = "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec"; 
+Examination Administration Team
+ExamFlow
+Professional Computer Based Examination System`;
 
-        // 5. Trigger the Email Script
-        await fetch(scriptUrl, {
-            method: "POST", mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({ to: v.email, subject: subject, body: bodyText })
-        });
 
-        toast("Candidate rescheduled & Email sent successfully!");
-        adminRescheduling(); // Refresh UI
-        
-    } catch (e) {
+        let scriptUrl =
+            "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec";
+
+
+        await fetch(
+            scriptUrl,
+            {
+                method:"POST",
+                mode:"no-cors",
+                headers:{
+                    "Content-Type":"text/plain"
+                },
+                body:JSON.stringify({
+                    to:v.email,
+                    subject:subject,
+                    body:bodyText
+                })
+            }
+        );
+
+
+        toast(
+            "Candidate rescheduled. Previous PIN invalidated and new PIN emailed."
+        );
+
+        adminRescheduling();
+
+    } catch(e){
+
         console.error(e);
-        toast("Failed to reschedule candidate.");
-        btn.innerText = originalText;
-        btn.disabled = false;
+
+        toast(
+            "Failed to reschedule candidate."
+        );
+
+        btn.innerText =
+            originalText;
+
+        btn.disabled =
+            false;
     }
 };
 window.checkTally = () => {
@@ -714,28 +1833,145 @@ window.checkTally = () => {
     $("btnGenerateKey").disabled = !allChecked;
 };
 window.verifyCandidate = async (safeRoll) => {
-    let v = window._cache.verifications[safeRoll];
-    let secretId = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Set expiry to exactly 10 minutes from now
-    let secretExpiry = Date.now() + (10 * 60 * 1000); 
-    
-    await set(ref(db, "students/" + safeRoll), {
-        roll: v.roll, safeRoll: safeRoll, name: v.name, phone: v.phone, email: v.email, department: v.dept, examId: v.examId, secretId: secretId, secretExpiry: secretExpiry, active: true, createdAt: Date.now()
-    });
-    
-    await update(ref(db, "verifications/" + safeRoll), { status: 'approved', secretId });
-    
-    // Display the Key and warning directly on the screen
+
+    let v =
+        window._cache.verifications[safeRoll];
+
+    if(!v){
+        return toast("Candidate record not found.");
+    }
+
+    /*
+     * Final safeguard:
+     * Candidate PIN must exist and schedule must be finalized.
+     */
+    if(
+        !v.candidatePin ||
+        !v.venueFinalized ||
+        !v.scheduleFinalized
+    ){
+        return toast(
+            "Candidate schedule/PIN is not finalized."
+        );
+    }
+
+    /*
+     * Generate temporary Secret Login ID only after
+     * physical verification has been completed.
+     */
+    let secretId =
+        Math.floor(100000 + Math.random() * 900000).toString();
+
+    let secretExpiry =
+        Date.now() + (10 * 60 * 1000);
+
+    await set(
+        ref(db, "students/" + safeRoll),
+        {
+            roll: v.roll,
+            safeRoll: safeRoll,
+
+            name: v.name,
+            phone: v.phone,
+            email: v.email,
+            department: v.dept,
+
+            examId: v.examId,
+
+            venue: v.venue,
+            examDate: v.examDate,
+
+            /*
+             * Candidate PIN remains only as a verification
+             * credential and is not the examination password.
+             */
+            candidatePin: v.candidatePin,
+
+            secretId: secretId,
+            secretExpiry: secretExpiry,
+
+            active: true,
+
+            createdAt: Date.now()
+        }
+    );
+
+    await update(
+        ref(db, "verifications/" + safeRoll),
+        {
+            status: "approved",
+
+            verifiedAt: Date.now(),
+
+            secretId: secretId,
+            secretExpiry: secretExpiry
+        }
+    );
+
     $("verifyDetailsBox").innerHTML = `
-    <div style="background:#f0fdf4; border:1px solid #16a34a; border-radius:12px; padding:30px; text-align:center; box-shadow:0 4px 15px rgba(22,163,74,0.1)">
-        <div style="color:#16a34a; font-weight:800; font-size:18px; margin-bottom:10px; text-transform:uppercase">✔ Verification Complete</div>
-        <p style="color:#334155">Please verbally provide this Secret ID to the candidate.</p>
-        <div style="font-size:48px; font-weight:900; letter-spacing:6px; color:#0f172a; margin:20px 0; background:#fff; padding:15px; border-radius:8px; border:2px dashed #cbd5e1; display:inline-block">${secretId}</div>
-        <div style="color:#dc2626; font-weight:700; font-size:14px; background:#fef2f2; padding:10px; border-radius:6px; max-width:400px; margin:0 auto;">
-            ⚠ SECURITY ALERT: This code will permanently expire in exactly 10 minutes. The candidate must log in immediately.
+
+    <div style="
+        background:#f0fdf4;
+        border:1px solid #16a34a;
+        border-radius:14px;
+        padding:30px;
+        text-align:center;
+        box-shadow:0 8px 25px rgba(22,163,74,.10);
+    ">
+
+        <div style="
+            color:#15803d;
+            font-weight:800;
+            font-size:19px;
+            margin-bottom:10px;
+        ">
+            ✓ IDENTITY VERIFICATION COMPLETE
         </div>
-    </div>`;
+
+        <p style="
+            color:#475569;
+            line-height:1.7;
+        ">
+            Candidate PIN verified and physical identity checks completed.
+            The following temporary Secret Login ID may now be provided
+            securely to the candidate.
+        </p>
+
+        <div style="
+            font-size:46px;
+            font-weight:900;
+            letter-spacing:7px;
+            color:#0f172a;
+            margin:22px auto;
+            background:#fff;
+            padding:16px 24px;
+            border-radius:10px;
+            border:2px dashed #94a3b8;
+            display:inline-block;
+        ">
+            ${secretId}
+        </div>
+
+        <div style="
+            color:#991b1b;
+            font-weight:700;
+            font-size:13px;
+            background:#fef2f2;
+            padding:12px;
+            border-radius:8px;
+            max-width:480px;
+            margin:0 auto;
+            line-height:1.6;
+        ">
+            SECURITY NOTICE<br>
+            This Secret Login ID expires in 10 minutes.
+            The candidate must use the Roll Number and Secret Login ID
+            to enter the secure examination portal.
+        </div>
+
+    </div>
+
+    `;
 };
 // ==========================================
 // 3. SYNCHRONIZED LIVE COMMAND CENTER
@@ -910,48 +2146,224 @@ window.joinExamLobby = async (eid) => {
 };
 
 function showExamInstructions(isExamStarted = false){
+
+    let exactAdminInstructions =
+        String(state.exam.instructions || "").trim();
+
     show(`
+
     <div class="tcs-wrapper">
-        <div class="tcs-header"><h2>System Assessment Management (SAM)</h2><div>${esc(state.exam.name)}</div></div>
-        <div class="tcs-main">
-            <div class="tcs-panel">
-                <div class="tcs-panel-head">Candidate Profile</div>
-                <div class="tcs-candidate-info">
-                    <div class="tcs-photo">PHOTO<br>UNAVAILABLE</div>
-                    <table class="tcs-details-table">
-                        <tr><td>Name</td><td>${esc(state.student.name)}</td></tr>
-                        <tr><td>Roll No</td><td>${esc(state.student.roll)}</td></tr>
-                        <tr><td>Dept</td><td>${esc(state.student.department||"-")}</td></tr>
-                        <tr><td>System Status</td><td><span class="badge green">Secured</span></td></tr>
-                    </table>
-                </div>
+
+        <div class="tcs-header">
+
+            <h2>
+                System Assessment Management (SAM)
+            </h2>
+
+            <div>
+                ${esc(state.exam.name)}
             </div>
-            <div class="tcs-panel">
-                <div class="tcs-panel-head">General Instructions</div>
-                <div class="tcs-instructions">
-                    <h3>Please read the following instructions carefully:</h3>
-                    <ul>
-                        <li>The clock will be set at the server. The countdown timer will display the remaining time available.</li>
-                        <li><b>Strict Proctoring:</b> This examination strictly monitors your screen and mouse activity. <b>You must share your Entire Screen</b> to proceed.</li>
-                        <li>Changing tabs or minimizing the window is logged as a violation.</li>
-                        <li>The exam will begin automatically once the Invigilator gives the command.</li>
-                    </ul>
-                    <div style="padding:15px;background:#fffbeb;border:1px solid #fde68a;border-radius:4px;color:#b45309;margin-top:10px;">
-                        <b>Phase 1:</b> Please enable screen sharing now. The Invigilator is reviewing screens.<br>
-                        <b>Phase 2:</b> The exam will start automatically when authorized.
-                    </div>
-                </div>
-                <div class="tcs-footer">
-                    <label class="tcs-checkbox-wrap"><input type="checkbox" id="tcsCheck" onchange="toggleTcsStart()"> I have read and understood the instructions.</label>
-                    <div class="tcs-actions">
-                        <button class="btn btn-light" id="tcsShareBtn" disabled onclick="enableScreenShare()">1. Enable Screen Monitoring</button>
-                        <button class="btn ${isExamStarted ? 'btn-danger' : 'btn-primary'}" id="tcsStartBtn" disabled style="display:none">Waiting for Invigilator...</button>
-                    </div>
-                </div>
-            </div>
+
         </div>
-    </div>`);
-    if(isExamStarted) state.examWasAlreadyStarted = true;
+
+
+        <div class="tcs-main">
+
+            <div class="tcs-panel">
+
+                <div class="tcs-panel-head">
+                    Candidate Profile
+                </div>
+
+                <div class="tcs-candidate-info">
+
+                    <div class="tcs-photo">
+                        PHOTO<br>
+                        UNAVAILABLE
+                    </div>
+
+                    <table class="tcs-details-table">
+
+                        <tr>
+                            <td>Name</td>
+                            <td>${esc(state.student.name)}</td>
+                        </tr>
+
+                        <tr>
+                            <td>Roll No</td>
+                            <td>${esc(state.student.roll)}</td>
+                        </tr>
+
+                        <tr>
+                            <td>Dept</td>
+                            <td>${esc(state.student.department || "-")}</td>
+                        </tr>
+
+                        <tr>
+                            <td>System Status</td>
+                            <td>
+                                <span class="badge green">
+                                    Secured
+                                </span>
+                            </td>
+                        </tr>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+            <div class="tcs-panel">
+
+                <div class="tcs-panel-head">
+                    Examination Instructions
+                </div>
+
+                <div class="tcs-instructions">
+
+                    <h3>
+                        Official Instructions
+                    </h3>
+
+                    <!-- EXACT ADMIN-ENTERED TEXT -->
+                    <div style="
+                        white-space:pre-wrap;
+                        padding:16px;
+                        background:#f8fafc;
+                        border:1px solid #e2e8f0;
+                        border-radius:8px;
+                        color:#374151;
+                        margin-bottom:18px;
+                    ">
+${esc(exactAdminInstructions)}
+                    </div>
+
+
+                    <div style="
+                        padding:15px;
+                        background:#fffbeb;
+                        border:1px solid #fde68a;
+                        border-radius:8px;
+                        color:#92400e;
+                        line-height:1.7;
+                    ">
+
+                        <b>System Security Requirements</b>
+
+                        <ul style="margin-bottom:0">
+
+                            <li>
+                                The clock will be controlled by the examination server.
+                            </li>
+
+                            <li>
+                                You must share your entire screen before the examination begins.
+                            </li>
+
+                            <li>
+                                Changing tabs or minimizing the examination window may be logged as a security violation.
+                            </li>
+
+                            <li>
+                                The examination will begin only after authorization by the Invigilator.
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+
+                    <div style="
+                        margin-top:18px;
+                        padding:15px;
+                        background:#eff6ff;
+                        border:1px solid #bfdbfe;
+                        border-radius:8px;
+                        color:#1e40af;
+                        line-height:1.7;
+                    ">
+
+                        <b>Examination Process</b>
+
+                        <br>
+
+                        1. Read all instructions carefully.
+
+                        <br>
+
+                        2. Confirm that you understand the instructions.
+
+                        <br>
+
+                        3. Enable entire-screen monitoring.
+
+                        <br>
+
+                        4. Wait for the Invigilator's authorization.
+
+                        <br>
+
+                        5. The examination will start only after authorization.
+
+                    </div>
+
+                </div>
+
+
+                <div class="tcs-footer">
+
+                    <label class="tcs-checkbox-wrap">
+
+                        <input
+                            type="checkbox"
+                            id="tcsCheck"
+                            onchange="toggleTcsStart()">
+
+                        I have read and understood the examination instructions.
+
+                    </label>
+
+
+                    <div class="tcs-actions">
+
+                        <button
+                            class="btn btn-light"
+                            id="tcsShareBtn"
+                            disabled
+                            onclick="enableScreenShare()">
+
+                            1. Enable Screen Monitoring
+
+                        </button>
+
+
+                        <button
+                            class="btn ${isExamStarted ? 'btn-danger' : 'btn-primary'}"
+                            id="tcsStartBtn"
+                            disabled
+                            style="display:none">
+
+                            Waiting for Invigilator...
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    `);
+
+    if(isExamStarted){
+        state.examWasAlreadyStarted = true;
+    }
 }
 
 window.toggleTcsStart = () => { let checked = $("tcsCheck").checked; $("tcsShareBtn").disabled = !checked; };
@@ -1133,88 +2545,329 @@ async function finishExam(){
 // Admin Utilities
 window.adminResults=()=>{ setTab('tab-results'); window.currentAdminTab = 'results'; let results=window._cache.results||{}; let exams=window._cache.exams||{},rows=[]; Object.entries(results).forEach(([eid,rs])=>Object.entries(rs||{}).forEach(([sid,r])=>rows.push(`<tr><td>${esc(sid.replace(/-/g,"/"))}</td><td>${esc(r.examName||exams[eid]?.name||eid)}</td><td>${r.obtained}/${r.totalMarks}</td><td>${Number(r.percentage||0).toFixed(1)}%</td><td><span class="badge ${r.overallPass?"green":"red"}">${r.overallPass?"PASS":"FAIL"}</span></td></tr>`))); $("adminContent").innerHTML=`<div class="card"><h2>Results</h2><div class="table-wrap">${rows.length?`<table class="table"><thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Percentage</th><th>Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`:`<div class="empty">No completed results.</div>`}</div></div>`; };
 window.openExamModal = () => {
+
     $("app").insertAdjacentHTML("beforeend", `
+
     <div class="modal" id="modal">
+
         <div class="modal-box">
+
             <div class="modal-head">
-                <h2>Create Examination</h2>
-                <button class="close" onclick="$('modal').remove()">✕</button>
-            </div>
-            <div class="form-grid">
-                <div class="field full"><label>Exam Name</label><input id="en" placeholder="Example: Mock Test"></div>
-                <div class="field"><label>Exam ID</label><input id="ei" value="${genId()}"></div>
-                <div class="field"><label>Instructions</label><input id="ein" value="Read carefully. No going back."></div>
-                
-                <div class="field full">
-                    <label>1. Exam Pattern JSON <span style="color:#ef4444">*</span></label>
-                    <textarea id="patternjson" placeholder='[\n {"section":"Aptitude", "qns":10, "marks":20, "time_mins":15},\n {"section":"Technical", "qns":20, "marks":40, "time_mins":30}\n]' style="min-height:90px; font-family:monospace; font-size:12px;"></textarea>
+
+                <div>
+                    <h2>Create Examination</h2>
+                    <p class="muted small">
+                        Enter the official examination instructions exactly as
+                        they should appear to candidates.
+                    </p>
                 </div>
 
+                <button
+                    class="close"
+                    onclick="$('modal').remove()">
+                    ✕
+                </button>
+
+            </div>
+
+
+            <div class="form-grid">
+
                 <div class="field full">
-                    <label>2. Questions JSON <span style="color:#ef4444">*</span></label>
-                    <textarea id="qjson" placeholder='[\n {"q":"Ohm law is?","a":["V=IR","P=VI","I=V/R","All"],"correct":0,"marks":2,"time":30,"section":"Technical"}\n]' style="min-height:120px; font-family:monospace; font-size:12px;"></textarea>
+                    <label>Exam Name</label>
+
+                    <input
+                        id="en"
+                        placeholder="Example: Technical Recruitment Examination">
                 </div>
-            </div><br>
-            <button class="btn btn-primary" onclick="createExam()" style="width:100%">Save & Create Exam</button>
+
+
+                <div class="field">
+                    <label>Exam ID</label>
+
+                    <input
+                        id="ei"
+                        value="${genId()}">
+                </div>
+
+
+                <div class="field">
+                    <label>Official Instructions</label>
+
+                    <input
+                        id="ein"
+                        placeholder="Enter the exact candidate instructions">
+                </div>
+
+
+                <div class="field full">
+
+                    <label>
+                        Official Examination Instructions
+                        <span style="color:#ef4444">*</span>
+                    </label>
+
+                    <textarea
+                        id="examInstructions"
+                        placeholder="Enter the complete instructions exactly as they must appear to candidates..."
+                        style="
+                            min-height:180px;
+                            line-height:1.6;
+                        "
+                    ></textarea>
+
+                    <small class="muted">
+                        These instructions will be stored exactly as entered
+                        and reproduced in the candidate's official schedule email.
+                    </small>
+
+                </div>
+
+
+                <div class="field full">
+
+                    <label>
+                        Exam Pattern JSON
+                        <span style="color:#ef4444">*</span>
+                    </label>
+
+                    <textarea
+                        id="patternjson"
+                        placeholder='[
+  {"section":"Aptitude","qns":10,"marks":20,"time_mins":15},
+  {"section":"Technical","qns":20,"marks":40,"time_mins":30}
+]'
+                        style="
+                            min-height:110px;
+                            font-family:monospace;
+                            font-size:12px;
+                        "
+                    ></textarea>
+
+                </div>
+
+
+                <div class="field full">
+
+                    <label>
+                        Questions JSON
+                        <span style="color:#ef4444">*</span>
+                    </label>
+
+                    <textarea
+                        id="qjson"
+                        placeholder='[
+  {
+    "q":"Ohm law is?",
+    "a":["V=IR","P=VI","I=V/R","All"],
+    "correct":0,
+    "marks":2,
+    "time":30,
+    "section":"Technical"
+  }
+]'
+                        style="
+                            min-height:180px;
+                            font-family:monospace;
+                            font-size:12px;
+                        "
+                    ></textarea>
+
+                </div>
+
+            </div>
+
+            <br>
+
+            <button
+                class="btn btn-primary"
+                onclick="createExam()"
+                style="width:100%">
+
+                Save Examination
+
+            </button>
+
         </div>
-    </div>`);
+
+    </div>
+
+    `);
 };
-   window.createExam = async () => {
+  window.createExam = async () => {
+
     let btn = event.target;
-    let originalText = btn.innerText;
-    btn.innerText = "Validating & Saving...";
+
+    let originalText =
+        btn.innerText;
+
+    btn.innerText =
+        "Validating & Saving...";
+
     btn.disabled = true;
 
     try {
-        let id = $("ei").value.trim().toUpperCase();
-        let name = $("en").value.trim();
-        
-        if(!id || !name) throw new Error("Exam ID and Name are required.");
 
-        // 1. Parse Pattern JSON
-        let patternRaw = $("patternjson").value.trim();
-        if(!patternRaw) throw new Error("Exam Pattern JSON is required.");
-        let examPattern = JSON.parse(patternRaw);
+        let id =
+            $("ei").value.trim().toUpperCase();
 
-        // 2. Parse Questions JSON
-        let questionsRaw = $("qjson").value.trim();
-        if(!questionsRaw) throw new Error("Questions JSON is required.");
-        let questions = JSON.parse(questionsRaw);
-        
-        let clean = questions.map((q, i) => {
-            return { 
-                id: i + 1, 
-                text: q.q, 
-                options: q.a, 
-                correctIndex: Number(q.correct), 
-                marks: Number(q.marks || 1), 
-                allocatedTime: Number(q.time || 30), 
-                section: q.section || "General" 
-            };
-        });
-        
-        let total = clean.reduce((a, q) => a + q.marks, 0);
-        
-        // 3. Save to Firebase
-        await set(ref(db, "exams/" + id), {
-            id, 
-            name, 
-            instructions: $("ein").value, 
-            pattern: examPattern, // <--- Saves your manually typed pattern
-            questions: clean, 
-            totalMarks: total, 
-            status: "draft", 
-            createdAt: Date.now()
-        });
-        
+        let name =
+            $("en").value.trim();
+
+        let officialInstructions =
+            $("examInstructions").value;
+
+        let shortInstructions =
+            $("ein").value.trim();
+
+        if(!id || !name){
+            throw new Error(
+                "Exam ID and Exam Name are required."
+            );
+        }
+
+        /*
+         * The official instruction field must not be empty.
+         */
+        if(!officialInstructions.trim()){
+            throw new Error(
+                "Official Examination Instructions are required."
+            );
+        }
+
+        let patternRaw =
+            $("patternjson").value.trim();
+
+        if(!patternRaw){
+            throw new Error(
+                "Exam Pattern JSON is required."
+            );
+        }
+
+        let examPattern =
+            JSON.parse(patternRaw);
+
+        if(!Array.isArray(examPattern)){
+            throw new Error(
+                "Exam Pattern must be a JSON array."
+            );
+        }
+
+
+        let questionsRaw =
+            $("qjson").value.trim();
+
+        if(!questionsRaw){
+            throw new Error(
+                "Questions JSON is required."
+            );
+        }
+
+        let questions =
+            JSON.parse(questionsRaw);
+
+        if(!Array.isArray(questions)){
+            throw new Error(
+                "Questions JSON must be an array."
+            );
+        }
+
+
+        let clean =
+            questions.map((q,i) => {
+
+                return {
+
+                    id: i + 1,
+
+                    text: q.q,
+
+                    options: q.a,
+
+                    correctIndex:
+                        Number(q.correct),
+
+                    marks:
+                        Number(q.marks || 1),
+
+                    allocatedTime:
+                        Number(q.time || 30),
+
+                    section:
+                        q.section || "General"
+                };
+
+            });
+
+
+        let total =
+            clean.reduce(
+                (a,q) =>
+                    a + q.marks,
+                0
+            );
+
+
+        await set(
+            ref(db,"exams/" + id),
+            {
+
+                id: id,
+
+                name: name,
+
+                /*
+                 * Exact instructions entered by admin.
+                 * This field is later reproduced exactly in
+                 * candidate communications.
+                 */
+                instructions:
+                    officialInstructions,
+
+                shortInstructions:
+                    shortInstructions,
+
+                pattern:
+                    examPattern,
+
+                questions:
+                    clean,
+
+                totalMarks:
+                    total,
+
+                status:
+                    "draft",
+
+                createdAt:
+                    Date.now()
+
+            }
+        );
+
+
         $("modal").remove();
-        toast("Exam created successfully!");
+
+        toast(
+            "Examination created successfully."
+        );
+
         adminExams();
-        
-    } catch (e) {
-        toast(e.message || "Invalid JSON syntax. Please check your brackets and quotes.");
-        btn.innerText = originalText;
-        btn.disabled = false;
+
+    } catch(e) {
+
+        console.error(e);
+
+        toast(
+            e.message ||
+            "Invalid examination data."
+        );
+
+        btn.innerText =
+            originalText;
+
+        btn.disabled =
+            false;
     }
 };window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
 window.deleteExam=async id=>{if(!confirm("Delete this examination?"))return;await set(ref(db,"exams/"+id),null); toast("Exam deleted"); adminExams(); };
