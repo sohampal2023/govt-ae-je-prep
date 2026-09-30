@@ -3239,7 +3239,7 @@ async function cancelExamForSecurityViolation(reason) {
 }
 
 // ==========================================
-// 3. NEXT-LEVEL HARDENED PROCTORING ENGINE (WITH GRACE PERIOD)
+// 3. NEXT-LEVEL HARDENED PROCTORING ENGINE (FREE MOUSE)
 // ==========================================
 function bindActiveProctoring() {
     if (window._proctorCleanup) window._proctorCleanup();
@@ -3267,14 +3267,6 @@ function bindActiveProctoring() {
         navigator.keyboard.lock(["Escape", "AltLeft", "AltRight", "Tab", "MetaLeft", "MetaRight"]).catch(() => {});
     }
 
-    // Traps mouse cursor strictly inside document
-    const enforcePointerLock = () => {
-        if (state.session?.status === "live" && document.fullscreenElement && !document.pointerLockElement) {
-            document.body.requestPointerLock?.().catch(()=>{});
-        }
-    };
-    document.addEventListener("click", enforcePointerLock);
-
     // --- DETECTION LISTENERS ---
     const onVisibilityChange = () => {
         if (document.hidden || document.visibilityState === "hidden") {
@@ -3296,13 +3288,6 @@ function bindActiveProctoring() {
         }
     };
 
-    const onMouseLeave = (e) => {
-        // Strict boundary check to ensure the cursor actually left the viewport (e.g., to the taskbar/URL bar)
-        if (e.clientY <= 0 || e.clientX <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
-            triggerInstantKill("Cursor escaped examination viewport boundary.");
-        }
-    };
-
     const onKeyDown = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -3319,7 +3304,6 @@ function bindActiveProctoring() {
     window.addEventListener("blur", onBlur, true);
     document.addEventListener("fullscreenchange", onFullscreenChange, true);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange, true);
-    document.addEventListener("mouseleave", onMouseLeave, true);
     window.addEventListener("keydown", onKeyDown, true);
 
     document.addEventListener("contextmenu", blockEvent, true);
@@ -3333,12 +3317,10 @@ function bindActiveProctoring() {
         if (navigator.keyboard && navigator.keyboard.unlock) {
             navigator.keyboard.unlock();
         }
-        document.removeEventListener("click", enforcePointerLock);
         document.removeEventListener("visibilitychange", onVisibilityChange, true);
         window.removeEventListener("blur", onBlur, true);
         document.removeEventListener("fullscreenchange", onFullscreenChange, true);
         document.removeEventListener("webkitfullscreenchange", onFullscreenChange, true);
-        document.removeEventListener("mouseleave", onMouseLeave, true);
         window.removeEventListener("keydown", onKeyDown, true);
 
         document.removeEventListener("contextmenu", blockEvent, true);
@@ -3349,7 +3331,6 @@ function bindActiveProctoring() {
         document.removeEventListener("drop", blockEvent, true);
     };
 }
-
 // ==========================================
 // 3. RELIABLE PENALTY & CANCELLATION HANDLER
 // ==========================================
