@@ -3239,27 +3239,38 @@ async function cancelExamForSecurityViolation(reason) {
 }
 
 // ==========================================
-// 3. NEXT-LEVEL HARDENED PROCTORING ENGINE
+// 3. NEXT-LEVEL HARDENED PROCTORING ENGINE (WITH GRACE PERIOD)
 // ==========================================
 function bindActiveProctoring() {
     if (window._proctorCleanup) window._proctorCleanup();
 
+    // 1. ARMING DELAY: Prevent instant cancellation during UI/Fullscreen transitions
+    let systemArmed = false;
+    setTimeout(() => { 
+        systemArmed = true; 
+        window.focus(); // Force focus back to the exam once the UI settles
+    }, 3000); // 3-second safety window
+
     const triggerInstantKill = (reason) => {
+        if (!systemArmed) {
+            console.warn("[Proctoring] Ignored during 3s grace period:", reason);
+            return; 
+        }
         if (state.session && state.session.status === "live") {
             cancelExamForSecurityViolation(reason);
         }
     };
 
     // --- HARDWARE LOCKS ---
-    // 1. Keyboard Lock API: Traps system-level keys including Escape and Alt
+    // Traps system-level keys including Escape and Alt
     if (navigator.keyboard && navigator.keyboard.lock) {
         navigator.keyboard.lock(["Escape", "AltLeft", "AltRight", "Tab", "MetaLeft", "MetaRight"]).catch(() => {});
     }
 
-    // 2. Pointer Lock API: Traps mouse cursor strictly inside document
+    // Traps mouse cursor strictly inside document
     const enforcePointerLock = () => {
         if (state.session?.status === "live" && document.fullscreenElement && !document.pointerLockElement) {
-            document.body.requestPointerLock?.();
+            document.body.requestPointerLock?.().catch(()=>{});
         }
     };
     document.addEventListener("click", enforcePointerLock);
@@ -3272,7 +3283,10 @@ function bindActiveProctoring() {
     };
 
     const onBlur = () => {
-        triggerInstantKill("Window focus lost (Alt+Tab, window switched, or background clicked).");
+        // Double-check that the document physically lost focus
+        if (!document.hasFocus()) {
+            triggerInstantKill("Window focus lost (Alt+Tab, window switched, or background clicked).");
+        }
     };
 
     const onFullscreenChange = () => {
@@ -3282,12 +3296,13 @@ function bindActiveProctoring() {
         }
     };
 
-    // Instant kill on cursor boundary escape
-    const onMouseLeave = () => {
-        triggerInstantKill("Cursor escaped examination viewport boundary.");
+    const onMouseLeave = (e) => {
+        // Strict boundary check to ensure the cursor actually left the viewport (e.g., to the taskbar/URL bar)
+        if (e.clientY <= 0 || e.clientX <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+            triggerInstantKill("Cursor escaped examination viewport boundary.");
+        }
     };
 
-    // Instant kill on ANY physical keyboard interaction
     const onKeyDown = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -3334,7 +3349,6 @@ function bindActiveProctoring() {
         document.removeEventListener("drop", blockEvent, true);
     };
 }
-
 
 // ==========================================
 // 3. RELIABLE PENALTY & CANCELLATION HANDLER
