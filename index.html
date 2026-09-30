@@ -3062,36 +3062,79 @@ ${sc.title || "START EXAM CONFIRMATION"}
 let tabSwitchDetectionActive = false;
 let tabSwitchCooldown = false;
 
+let tabSwitchDetectionActive = false;
+
 function startTabSwitchDetection() {
-    if (tabSwitchDetectionActive) return;
+
+    if (tabSwitchDetectionActive) {
+        return;
+    }
 
     tabSwitchDetectionActive = true;
 
-    document.addEventListener("visibilitychange", handleTabVisibilityChange);
+    document.addEventListener(
+        "visibilitychange",
+        handleTabVisibilityChange
+    );
 
-    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener(
+        "blur",
+        handleWindowBlur
+    );
 }
 
 function stopTabSwitchDetection() {
+
+    if (!tabSwitchDetectionActive) {
+        return;
+    }
+
     tabSwitchDetectionActive = false;
 
-    document.removeEventListener("visibilitychange", handleTabVisibilityChange);
-    window.removeEventListener("blur", handleWindowBlur);
+    document.removeEventListener(
+        "visibilitychange",
+        handleTabVisibilityChange
+    );
+
+    window.removeEventListener(
+        "blur",
+        handleWindowBlur
+    );
 }
 
 function handleTabVisibilityChange() {
-    if (!tabSwitchDetectionActive) return;
 
-    if (document.visibilityState === "hidden") {
-        registerTabSwitch("Candidate switched away from the examination tab.");
+    if (!tabSwitchDetectionActive) {
+        return;
+    }
+
+    if (
+        document.visibilityState === "hidden" &&
+        state.role === "student" &&
+        state.session?.status === "live"
+    ) {
+
+        showProctorWarning(
+            "You left the examination window."
+        );
     }
 }
 
 function handleWindowBlur() {
-    if (!tabSwitchDetectionActive) return;
 
-    if (document.visibilityState === "visible") {
-        registerTabSwitch("Candidate moved focus away from the examination window.");
+    if (!tabSwitchDetectionActive) {
+        return;
+    }
+
+    if (
+        document.visibilityState === "visible" &&
+        state.role === "student" &&
+        state.session?.status === "live"
+    ) {
+
+        showProctorWarning(
+            "Examination window lost focus."
+        );
     }
 }
    async function registerTabSwitch(reason) {
@@ -3200,22 +3243,37 @@ window.confirmStartExam = async () => {
     await beginSecureExam();
 };
 
-window.beginSecureExam=async()=>{
-  try{await document.documentElement.requestFullscreen();}catch(e){}
-  
-  let questions=state.pendingQuestions;
-  state.session={studentId:state.studentId,studentName:state.student.name,status:"live",currentIndex:0,totalQuestions:questions.length,
-  startedAt:Date.now(),timeLeft:questions[0].allocatedTime,responses:{},questions};
-   startTabSwitchDetection();
-  await update(ref(db,"examSessions/"+state.examId+"/"+state.studentId),state.session);
-  
-  onValue(ref(db, `examSessions/${state.examId}/${state.studentId}/warning`), snap => {
-      if(!snap.exists()) return; let w = snap.val();
-      if(w.t > state.session.startedAt && w.t !== state.lastWarningT) { state.lastWarningT = w.t; showProctorWarning("ADMINISTRATOR MESSAGE: " + w.msg, true); }
-  });
+window.beginSecureExam = async () => {
 
-  renderExam();
-   
+    try {
+        await document.documentElement.requestFullscreen();
+    } catch(e) {}
+
+    let questions = state.pendingQuestions;
+
+    state.session = {
+        studentId: state.studentId,
+        studentName: state.student.name,
+        status: "live",
+        currentIndex: 0,
+        totalQuestions: questions.length,
+        startedAt: Date.now(),
+        timeLeft: questions[0].allocatedTime,
+        responses: {},
+        questions
+    };
+
+    startTabSwitchDetection();
+
+    await update(
+        ref(
+            db,
+            `examSessions/${state.examId}/${state.studentId}`
+        ),
+        state.session
+    );
+
+    renderExam();
 };
 
 
@@ -3251,22 +3309,215 @@ startTimer();
 window.clearCurrentAnswer=()=>{ delete state.session.responses[state.session.currentIndex]; document.querySelectorAll(".cbt-option").forEach(x=>x.classList.remove("selected")); toast("Response cleared"); };
 window.requestExamFullscreen=async()=>{ try{await document.documentElement.requestFullscreen();}catch(e){} };
 
-function showProctorWarning(message, isAdmin = false){
-  state.proctor=state.proctor||{violations:0}; if(!isAdmin) state.proctor.violations++;
-  let old=document.querySelector(".proctor-warning");if(old)old.remove();
-  let d=document.createElement("div"); d.className="proctor-warning"; if(isAdmin) d.classList.add("admin-msg");
-  d.innerHTML=`⚠ ${esc(message)} ${!isAdmin ? `<span class="count">Warning ${state.proctor.violations}/3</span>` : ''}`;
-  document.body.appendChild(d); if($('violationCount'))$('violationCount').innerText = state.proctor.violations;
-  setTimeout(()=>d.remove(), 4500); if(!isAdmin && state.proctor.violations>=3) showSecurityLock();
+let proctorWarningCount = 0;
+let proctorListenersInstalled = false;
+let securityModalOpen = false;
+
+function showProctorWarning(message, isAdmin = false) {
+
+    state.proctor = state.proctor || {
+        violations: 0
+    };
+
+    if (!isAdmin) {
+        state.proctor.violations++;
+        proctorWarningCount = state.proctor.violations;
+    }
+
+    let old = document.querySelector(".proctor-warning");
+
+    if (old) {
+        old.remove();
+    }
+
+    let d = document.createElement("div");
+
+    d.className = "proctor-warning";
+
+    if (isAdmin) {
+        d.classList.add("admin-msg");
+    }
+
+    d.innerHTML = `
+        ${esc(message)}
+        ${
+            !isAdmin
+                ? `<span class="count">
+                     Warning ${state.proctor.violations} of 4
+                   </span>`
+                : ""
+        }
+    `;
+
+    document.body.appendChild(d);
+
+    if ($("violationCount")) {
+        $("violationCount").innerText =
+            state.proctor.violations;
+    }
+
+    setTimeout(() => {
+        d.remove();
+    }, 4500);
+
+    if (!isAdmin) {
+
+        if (state.proctor.violations > 4) {
+
+            cancelExamForSecurityViolation(
+                message
+            );
+
+            return;
+        }
+
+        if (
+            state.proctor.violations === 2 ||
+            state.proctor.violations === 4
+        ) {
+            showSecurityLock();
+        }
+    }
 }
 
-function showSecurityLock(){
-  let old=document.querySelector(".proctor-modal");if(old)return;
-  let d=document.createElement("div");d.className="proctor-modal";
-  d.innerHTML=`<div class="proctor-modal-box"><h2>Security Warning</h2><p>The examination window lost focus multiple times. Return to the examination screen and confirm you are ready to continue.</p><button class="btn btn-primary" onclick="resumeAfterSecurity()">I am ready to continue</button></div>`;
-  document.body.appendChild(d);
+function showSecurityLock() {
+
+    if (securityModalOpen) return;
+
+    securityModalOpen = true;
+
+    let old = document.querySelector(".proctor-modal");
+
+    if (old) {
+        old.remove();
+    }
+
+    let d = document.createElement("div");
+
+    d.className = "proctor-modal";
+
+    d.innerHTML = `
+        <div class="proctor-modal-box">
+
+            <div style="
+                width:64px;
+                height:64px;
+                border-radius:50%;
+                background:#fef3c7;
+                color:#d97706;
+                display:grid;
+                place-items:center;
+                margin:0 auto 18px;
+                font-size:28px;
+                font-weight:800;
+            ">
+                !
+            </div>
+
+            <h2>Security Warning</h2>
+
+            <p style="
+                color:#64748b;
+                line-height:1.7;
+                margin:16px 0 24px;
+            ">
+                The examination window lost focus multiple times.
+                Please return to the examination screen and confirm
+                that you are ready to continue.
+            </p>
+
+            <div style="
+                background:#f8fafc;
+                border:1px solid #e2e8f0;
+                border-radius:10px;
+                padding:12px;
+                margin-bottom:22px;
+                font-size:13px;
+                color:#475569;
+            ">
+                Security warnings:
+                <strong>
+                    ${state.proctor?.violations || 0} of 4
+                </strong>
+            </div>
+
+            <button
+                class="btn btn-primary"
+                onclick="resumeAfterSecurity()"
+                style="width:100%"
+            >
+                I am ready to continue
+            </button>
+
+        </div>
+    `;
+
+    document.body.appendChild(d);
 }
-window.resumeAfterSecurity=()=>{document.querySelector(".proctor-modal")?.remove();state.proctor.violations=0;requestExamFullscreen()};
+   async function cancelExamForSecurityViolation(reason) {
+
+    if (!state.examId || !state.studentId) {
+        return;
+    }
+
+    try {
+
+        stopTabSwitchDetection();
+
+        await update(
+            ref(
+                db,
+                `examSessions/${state.examId}/${state.studentId}`
+            ),
+            {
+                status: "cancelled",
+                examCancelled: true,
+                cancellationReason: reason,
+                warningCount: state.proctor?.violations || 5,
+                cancelledAt: Date.now()
+            }
+        );
+
+        showExamCancellationScreen(
+            state.proctor?.violations || 5,
+            reason
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Exam cancellation error:",
+            error
+        );
+
+        toast(
+            "Security action could not be recorded. Please contact the administrator."
+        );
+    }
+}
+window.resumeAfterSecurity = async () => {
+
+    let modal = document.querySelector(".proctor-modal");
+
+    if (modal) {
+        modal.remove();
+    }
+
+    securityModalOpen = false;
+
+    try {
+        await requestExamFullscreen();
+    } catch (e) {
+        console.warn("Fullscreen request failed:", e);
+    }
+
+    if ($("violationCount")) {
+        $("violationCount").innerText =
+            state.proctor?.violations || 0;
+    }
+
+    toast("Security check completed. You may continue the examination.");
+};
 
 function installProctoring(){
   state.proctor=state.proctor||{violations:0}; if(state.proctor.listenersInstalled)return; state.proctor.listenersInstalled=true;
