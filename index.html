@@ -1719,8 +1719,36 @@ window.rescheduleAndEmail = async (safeRoll) => {
             timeStyle:"short"
         });
 
-    let exactInstructions =
-        String(exam.instructions || "").trim();
+    let instructionData =
+    exam.instructionJson;
+
+if(
+    !instructionData &&
+    exam.instructions
+){
+    try {
+        instructionData =
+            JSON.parse(exam.instructions);
+    } catch(e) {
+        throw new Error(
+            "Exam instruction JSON is invalid."
+        );
+    }
+}
+
+if(
+    !instructionData ||
+    !Array.isArray(instructionData.sections)
+){
+    throw new Error(
+        "This examination does not contain valid Instruction JSON."
+    );
+}
+
+let exactInstructions =
+    instructionJSONToEmail(
+        instructionData
+    );
 
     if(!exactInstructions){
         return toast(
@@ -2225,11 +2253,54 @@ window.joinExamLobby = async (eid) => {
         }
     });
 };
-
 function showExamInstructions(isExamStarted = false){
 
-    let exactAdminInstructions =
-        String(state.exam.instructions || "").trim();
+    let instructionData =
+        state.exam.instructionJson;
+
+
+    /*
+     * Backward compatibility:
+     * If an older examination does not contain instructionJson,
+     * attempt to parse the stored instructions field.
+     */
+    if(
+        !instructionData &&
+        state.exam.instructions
+    ){
+
+        try {
+
+            instructionData =
+                JSON.parse(
+                    state.exam.instructions
+                );
+
+        } catch(e){
+
+            instructionData = {
+                title:"Examination Instructions",
+
+                sections:[
+                    {
+                        number:1,
+                        title:"Instructions",
+                        english:
+                            state.exam.instructions
+                    }
+                ]
+            };
+
+        }
+
+    }
+
+
+    let renderedInstructions =
+        renderInstructionJSON(
+            instructionData
+        );
+
 
     show(`
 
@@ -2249,6 +2320,8 @@ function showExamInstructions(isExamStarted = false){
 
 
         <div class="tcs-main">
+
+            <!-- CANDIDATE PROFILE -->
 
             <div class="tcs-panel">
 
@@ -2277,7 +2350,12 @@ function showExamInstructions(isExamStarted = false){
 
                         <tr>
                             <td>Dept</td>
-                            <td>${esc(state.student.department || "-")}</td>
+                            <td>
+                                ${esc(
+                                    state.student.department ||
+                                    "-"
+                                )}
+                            </td>
                         </tr>
 
                         <tr>
@@ -2296,102 +2374,56 @@ function showExamInstructions(isExamStarted = false){
             </div>
 
 
+            <!-- INSTRUCTIONS -->
+
             <div class="tcs-panel">
 
                 <div class="tcs-panel-head">
-                    Examination Instructions
+                    Official Examination Instructions
                 </div>
 
-                <div class="tcs-instructions">
+                <div
+                    class="tcs-instructions"
+                    style="
+                        max-height:65vh;
+                        overflow-y:auto;
+                        padding-right:8px;
+                    "
+                >
 
-                    <h3>
-                        Official Instructions
-                    </h3>
-
-                    <!-- EXACT ADMIN-ENTERED TEXT -->
-                    <div style="
-                        white-space:pre-wrap;
-                        padding:16px;
-                        background:#f8fafc;
-                        border:1px solid #e2e8f0;
-                        border-radius:8px;
-                        color:#374151;
-                        margin-bottom:18px;
-                    ">
-${esc(exactAdminInstructions)}
-                    </div>
-
-
-                    <div style="
-                        padding:15px;
-                        background:#fffbeb;
-                        border:1px solid #fde68a;
-                        border-radius:8px;
-                        color:#92400e;
-                        line-height:1.7;
-                    ">
-
-                        <b>System Security Requirements</b>
-
-                        <ul style="margin-bottom:0">
-
-                            <li>
-                                The clock will be controlled by the examination server.
-                            </li>
-
-                            <li>
-                                You must share your entire screen before the examination begins.
-                            </li>
-
-                            <li>
-                                Changing tabs or minimizing the examination window may be logged as a security violation.
-                            </li>
-
-                            <li>
-                                The examination will begin only after authorization by the Invigilator.
-                            </li>
-
-                        </ul>
-
-                    </div>
-
-
-                    <div style="
-                        margin-top:18px;
-                        padding:15px;
-                        background:#eff6ff;
-                        border:1px solid #bfdbfe;
-                        border-radius:8px;
-                        color:#1e40af;
-                        line-height:1.7;
-                    ">
-
-                        <b>Examination Process</b>
-
-                        <br>
-
-                        1. Read all instructions carefully.
-
-                        <br>
-
-                        2. Confirm that you understand the instructions.
-
-                        <br>
-
-                        3. Enable entire-screen monitoring.
-
-                        <br>
-
-                        4. Wait for the Invigilator's authorization.
-
-                        <br>
-
-                        5. The examination will start only after authorization.
-
-                    </div>
+                    ${renderedInstructions}
 
                 </div>
 
+
+                <!-- SYSTEM SECURITY -->
+
+                <div style="
+                    margin:18px 20px;
+                    padding:15px;
+                    background:#eff6ff;
+                    border:1px solid #bfdbfe;
+                    border-radius:9px;
+                    color:#1e3a8a;
+                    line-height:1.7;
+                ">
+
+                    <b>Secure Examination System</b>
+
+                    <br>
+
+                    Screen monitoring must be enabled before
+                    examination authorization.
+
+                    <br>
+
+                    The examination will begin only after
+                    authorization from the Invigilator.
+
+                </div>
+
+
+                <!-- FOOTER -->
 
                 <div class="tcs-footer">
 
@@ -2402,7 +2434,8 @@ ${esc(exactAdminInstructions)}
                             id="tcsCheck"
                             onchange="toggleTcsStart()">
 
-                        I have read and understood the examination instructions.
+                        I have read and understood
+                        the official examination instructions.
 
                     </label>
 
@@ -2421,7 +2454,11 @@ ${esc(exactAdminInstructions)}
 
 
                         <button
-                            class="btn ${isExamStarted ? 'btn-danger' : 'btn-primary'}"
+                            class="btn ${
+                                isExamStarted
+                                ? "btn-danger"
+                                : "btn-primary"
+                            }"
                             id="tcsStartBtn"
                             disabled
                             style="display:none">
@@ -2442,10 +2479,236 @@ ${esc(exactAdminInstructions)}
 
     `);
 
+
     if(isExamStarted){
-        state.examWasAlreadyStarted = true;
+
+        state.examWasAlreadyStarted =
+            true;
+
     }
+
 }
+   window.instructionJSONToEmail = (instructionData) => {
+
+    if(
+        !instructionData ||
+        !Array.isArray(instructionData.sections)
+    ){
+
+        return "Official examination instructions are unavailable.";
+    }
+
+
+    let output = "";
+
+
+    if(instructionData.title){
+
+        output +=
+            instructionData.title +
+            "\n";
+
+        output +=
+            "=========================================================\n\n";
+    }
+
+
+    instructionData.sections.forEach(
+        (section,index) => {
+
+            let number =
+                section.number ||
+                index + 1;
+
+            let title =
+                section.title ||
+                "";
+
+            let titleBn =
+                section.title_bn ||
+                "";
+
+
+            output +=
+`\n${number}. ${title}`;
+
+            if(titleBn){
+
+                output +=
+                    ` | ${titleBn}`;
+
+            }
+
+            output +=
+                "\n---------------------------------------------------------\n";
+
+
+            if(section.english){
+
+                output +=
+                    `ENGLISH:\n${section.english}\n\n`;
+
+            }
+
+
+            if(section.bengali){
+
+                output +=
+                    `বাংলা:\n${section.bengali}\n\n`;
+
+            }
+
+
+            if(Array.isArray(section.bullets)){
+
+                section.bullets.forEach(
+                    item => {
+
+                        let text =
+                            typeof item === "string"
+                            ? item
+                            : item.english || "";
+
+                        output +=
+                            `• ${text}\n`;
+
+                    }
+                );
+
+                output += "\n";
+            }
+
+
+            if(
+                Array.isArray(
+                    section.bilingual_bullets
+                )
+            ){
+
+                section.bilingual_bullets.forEach(
+                    item => {
+
+                        if(item.english){
+
+                            output +=
+                                `• ${item.english}\n`;
+
+                        }
+
+                        if(item.bengali){
+
+                            output +=
+                                `  ${item.bengali}\n`;
+
+                        }
+
+                    }
+                );
+
+                output += "\n";
+            }
+
+
+            if(
+                section.type === "table" &&
+                Array.isArray(section.columns) &&
+                Array.isArray(section.rows)
+            ){
+
+                output +=
+                    section.columns.join(" | ") +
+                    "\n";
+
+                output +=
+                    "---------------------------------------------------------\n";
+
+                section.rows.forEach(
+                    row => {
+
+                        output +=
+                            row.join(" | ") +
+                            "\n";
+
+                    }
+                );
+
+                output += "\n";
+            }
+
+
+            if(
+                section.type === "time_allocation" &&
+                Array.isArray(section.items)
+            ){
+
+                section.items.forEach(
+                    item => {
+
+                        output +=
+                            `${item.questions} : ${item.time}\n`;
+
+                    }
+                );
+
+                output += "\n";
+            }
+
+
+            if(Array.isArray(section.steps)){
+
+                section.steps.forEach(
+                    (step,i) => {
+
+                        let text =
+                            typeof step === "string"
+                            ? step
+                            : step.english || "";
+
+                        output +=
+                            `${i + 1}. ${text}\n`;
+
+                    }
+                );
+
+                output += "\n";
+            }
+
+        }
+    );
+
+
+    if(instructionData.start_confirmation){
+
+        let sc =
+            instructionData.start_confirmation;
+
+
+        output +=
+`\n=========================================================
+${sc.title || "START EXAM CONFIRMATION"}
+=========================================================\n`;
+
+
+        if(sc.english){
+
+            output +=
+                `ENGLISH:\n${sc.english}\n\n`;
+
+        }
+
+
+        if(sc.bengali){
+
+            output +=
+                `বাংলা:\n${sc.bengali}\n`;
+
+        }
+
+    }
+
+
+    return output.trim();
+};
 
 window.toggleTcsStart = () => { let checked = $("tcsCheck").checked; $("tcsShareBtn").disabled = !checked; };
 
@@ -2628,82 +2891,120 @@ window.adminResults=()=>{ setTab('tab-results'); window.currentAdminTab = 'resul
 window.openExamModal = () => {
 
     $("app").insertAdjacentHTML("beforeend", `
-
     <div class="modal" id="modal">
 
         <div class="modal-box">
 
             <div class="modal-head">
-
                 <div>
                     <h2>Create Examination</h2>
                     <p class="muted small">
-                        Enter the official examination instructions exactly as
-                        they should appear to candidates.
+                        Configure the examination using structured JSON.
                     </p>
                 </div>
 
-                <button
-                    class="close"
-                    onclick="$('modal').remove()">
-                    ✕
-                </button>
-
+                <button class="close" onclick="$('modal').remove()">✕</button>
             </div>
-
 
             <div class="form-grid">
 
                 <div class="field full">
                     <label>Exam Name</label>
-
                     <input
                         id="en"
-                        placeholder="Example: Technical Recruitment Examination">
+                        placeholder="Example: Electrical Engineering Mock Examination">
                 </div>
-
 
                 <div class="field">
                     <label>Exam ID</label>
-
-                    <input
-                        id="ei"
-                        value="${genId()}">
+                    <input id="ei" value="${genId()}">
                 </div>
-
 
                 <div class="field">
-                    <label>Official Instructions</label>
-
+                    <label>Short Description</label>
                     <input
                         id="ein"
-                        placeholder="Enter the exact candidate instructions">
+                        placeholder="Short examination description">
                 </div>
 
+
+                <!-- INSTRUCTION JSON -->
 
                 <div class="field full">
 
                     <label>
-                        Official Examination Instructions
+                        Official Instruction JSON
                         <span style="color:#ef4444">*</span>
                     </label>
 
                     <textarea
-                        id="examInstructions"
-                        placeholder="Enter the complete instructions exactly as they must appear to candidates..."
+                        id="instructionjson"
+                        spellcheck="false"
                         style="
-                            min-height:180px;
-                            line-height:1.6;
+                            min-height:320px;
+                            font-family:Consolas,monospace;
+                            font-size:12px;
+                            line-height:1.55;
+                            resize:vertical;
                         "
-                    ></textarea>
+                        placeholder='{
+  "title": "EXAMINATION INSTRUCTIONS",
+  "languages": ["English", "বাংলা"],
+
+  "sections": [
+    {
+      "number": 1,
+      "title": "Examination Overview",
+      "title_bn": "পরীক্ষার সারসংক্ষেপ",
+      "english": "This is a bilingual technical mock examination.",
+      "bengali": "এটি একটি দ্বিভাষিক technical mock examination."
+    },
+
+    {
+      "number": 2,
+      "title": "Question Distribution",
+      "title_bn": "প্রশ্নের বিন্যাস",
+      "type": "table",
+      "columns": [
+        "Section",
+        "Questions",
+        "Marks"
+      ],
+      "rows": [
+        ["Aptitude", "Q1-Q5", "5"],
+        ["Reasoning", "Q6-Q10", "5"],
+        ["DC Motor", "Q11-Q20", "10"]
+      ]
+    },
+
+    {
+      "number": 3,
+      "title": "Negative Marking",
+      "title_bn": "নেগেটিভ মার্কিং",
+      "english": "0.25 marks will be deducted for every incorrect answer.",
+      "bengali": "প্রতিটি ভুল উত্তরের জন্য 0.25 নম্বর কাটা হবে।"
+    }
+  ],
+
+  "start_confirmation": {
+    "enabled": true,
+    "title": "START EXAM CONFIRMATION",
+    "english": "By clicking START EXAM, you confirm that you have read and understood all examination instructions.",
+    "bengali": "START EXAM-এ click করার মাধ্যমে আপনি নিশ্চিত করছেন যে আপনি সমস্ত পরীক্ষার নির্দেশাবলী বুঝেছেন।"
+  }
+}'>
+                    </textarea>
 
                     <small class="muted">
-                        These instructions will be stored exactly as entered
-                        and reproduced in the candidate's official schedule email.
+                        Paste the complete official instruction JSON.
+                        This exact JSON will be stored and used for the
+                        candidate instruction screen and candidate email.
                     </small>
 
                 </div>
 
+
+                <!-- QUESTION PATTERN -->
 
                 <div class="field full">
 
@@ -2714,19 +3015,25 @@ window.openExamModal = () => {
 
                     <textarea
                         id="patternjson"
-                        placeholder='[
-  {"section":"Aptitude","qns":10,"marks":20,"time_mins":15},
-  {"section":"Technical","qns":20,"marks":40,"time_mins":30}
-]'
+                        spellcheck="false"
                         style="
-                            min-height:110px;
-                            font-family:monospace;
+                            min-height:130px;
+                            font-family:Consolas,monospace;
                             font-size:12px;
                         "
-                    ></textarea>
+                        placeholder='[
+  {
+    "section":"Aptitude",
+    "qns":5,
+    "marks":5,
+    "time_mins":5
+  }
+]'></textarea>
 
                 </div>
 
+
+                <!-- QUESTIONS -->
 
                 <div class="field full">
 
@@ -2737,22 +3044,22 @@ window.openExamModal = () => {
 
                     <textarea
                         id="qjson"
+                        spellcheck="false"
+                        style="
+                            min-height:220px;
+                            font-family:Consolas,monospace;
+                            font-size:12px;
+                        "
                         placeholder='[
   {
     "q":"Ohm law is?",
     "a":["V=IR","P=VI","I=V/R","All"],
     "correct":0,
-    "marks":2,
-    "time":30,
-    "section":"Technical"
+    "marks":1,
+    "time":60,
+    "section":"Electrical"
   }
-]'
-                        style="
-                            min-height:180px;
-                            font-family:monospace;
-                            font-size:12px;
-                        "
-                    ></textarea>
+]'></textarea>
 
                 </div>
 
@@ -2765,26 +3072,21 @@ window.openExamModal = () => {
                 onclick="createExam()"
                 style="width:100%">
 
-                Save Examination
+                Validate JSON & Create Examination
 
             </button>
 
         </div>
 
     </div>
-
     `);
 };
   window.createExam = async () => {
 
     let btn = event.target;
+    let originalText = btn.innerText;
 
-    let originalText =
-        btn.innerText;
-
-    btn.innerText =
-        "Validating & Saving...";
-
+    btn.innerText = "Validating JSON...";
     btn.disabled = true;
 
     try {
@@ -2795,75 +3097,211 @@ window.openExamModal = () => {
         let name =
             $("en").value.trim();
 
-        let officialInstructions =
-            $("examInstructions").value;
-
-        let shortInstructions =
+        let shortDescription =
             $("ein").value.trim();
 
+
         if(!id || !name){
+
             throw new Error(
                 "Exam ID and Exam Name are required."
             );
+
         }
 
-        /*
-         * The official instruction field must not be empty.
-         */
-        if(!officialInstructions.trim()){
+
+        // =====================================================
+        // 1. INSTRUCTION JSON
+        // =====================================================
+
+        let instructionRaw =
+            $("instructionjson").value.trim();
+
+        if(!instructionRaw){
+
             throw new Error(
-                "Official Examination Instructions are required."
+                "Official Instruction JSON is required."
             );
+
         }
+
+
+        let instructionData;
+
+        try {
+
+            instructionData =
+                JSON.parse(instructionRaw);
+
+        } catch(e){
+
+            throw new Error(
+                "Instruction JSON is invalid. Check brackets, commas and quotation marks."
+            );
+
+        }
+
+
+        if(
+            !instructionData ||
+            typeof instructionData !== "object"
+        ){
+
+            throw new Error(
+                "Instruction JSON must contain an object."
+            );
+
+        }
+
+
+        if(
+            !Array.isArray(
+                instructionData.sections
+            )
+        ){
+
+            throw new Error(
+                "Instruction JSON must contain a 'sections' array."
+            );
+
+        }
+
+
+        // Validate sections
+
+        instructionData.sections.forEach(
+            (section,index) => {
+
+                if(
+                    !section.title &&
+                    !section.title_bn
+                ){
+
+                    throw new Error(
+                        `Instruction section ${index + 1} has no title.`
+                    );
+
+                }
+
+            }
+        );
+
+
+        // =====================================================
+        // 2. EXAM PATTERN JSON
+        // =====================================================
 
         let patternRaw =
             $("patternjson").value.trim();
 
         if(!patternRaw){
+
             throw new Error(
                 "Exam Pattern JSON is required."
             );
+
         }
 
-        let examPattern =
-            JSON.parse(patternRaw);
+
+        let examPattern;
+
+        try {
+
+            examPattern =
+                JSON.parse(patternRaw);
+
+        } catch(e){
+
+            throw new Error(
+                "Exam Pattern JSON is invalid."
+            );
+
+        }
+
 
         if(!Array.isArray(examPattern)){
+
             throw new Error(
                 "Exam Pattern must be a JSON array."
             );
+
         }
 
+
+        // =====================================================
+        // 3. QUESTIONS JSON
+        // =====================================================
 
         let questionsRaw =
             $("qjson").value.trim();
 
         if(!questionsRaw){
+
             throw new Error(
                 "Questions JSON is required."
             );
+
         }
 
-        let questions =
-            JSON.parse(questionsRaw);
+
+        let questions;
+
+        try {
+
+            questions =
+                JSON.parse(questionsRaw);
+
+        } catch(e){
+
+            throw new Error(
+                "Questions JSON is invalid."
+            );
+
+        }
+
 
         if(!Array.isArray(questions)){
+
             throw new Error(
                 "Questions JSON must be an array."
             );
+
         }
 
+
+        // =====================================================
+        // CLEAN QUESTIONS
+        // =====================================================
 
         let clean =
             questions.map((q,i) => {
 
+                if(!q.q){
+
+                    throw new Error(
+                        `Question ${i + 1} has no question text.`
+                    );
+
+                }
+
+                if(
+                    !Array.isArray(q.a) ||
+                    q.a.length < 2
+                ){
+
+                    throw new Error(
+                        `Question ${i + 1} must contain answer options.`
+                    );
+
+                }
+
                 return {
 
-                    id: i + 1,
+                    id:i + 1,
 
-                    text: q.q,
+                    text:q.q,
 
-                    options: q.a,
+                    options:q.a,
 
                     correctIndex:
                         Number(q.correct),
@@ -2876,37 +3314,54 @@ window.openExamModal = () => {
 
                     section:
                         q.section || "General"
+
                 };
 
             });
 
 
-        let total =
+        let totalMarks =
             clean.reduce(
-                (a,q) =>
-                    a + q.marks,
+                (sum,q) =>
+                    sum + q.marks,
                 0
             );
 
+
+        // =====================================================
+        // SAVE EVERYTHING
+        // =====================================================
 
         await set(
             ref(db,"exams/" + id),
             {
 
-                id: id,
+                id:id,
 
-                name: name,
+                name:name,
+
+                description:
+                    shortDescription,
 
                 /*
-                 * Exact instructions entered by admin.
-                 * This field is later reproduced exactly in
-                 * candidate communications.
+                 * Structured instruction system.
+                 */
+                instructionJson:
+                    instructionData,
+
+                /*
+                 * Keep raw JSON too.
+                 * Useful for exact email reproduction/debugging.
+                 */
+                instructionJsonRaw:
+                    instructionRaw,
+
+                /*
+                 * Existing short field retained
+                 * for compatibility.
                  */
                 instructions:
-                    officialInstructions,
-
-                shortInstructions:
-                    shortInstructions,
+                    instructionRaw,
 
                 pattern:
                     examPattern,
@@ -2915,7 +3370,7 @@ window.openExamModal = () => {
                     clean,
 
                 totalMarks:
-                    total,
+                    totalMarks,
 
                 status:
                     "draft",
@@ -2930,18 +3385,19 @@ window.openExamModal = () => {
         $("modal").remove();
 
         toast(
-            "Examination created successfully."
+            "Examination, instruction JSON and questions saved successfully."
         );
 
         adminExams();
 
-    } catch(e) {
+
+    } catch(e){
 
         console.error(e);
 
         toast(
             e.message ||
-            "Invalid examination data."
+            "Invalid examination configuration."
         );
 
         btn.innerText =
@@ -2950,7 +3406,557 @@ window.openExamModal = () => {
         btn.disabled =
             false;
     }
-};window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
+};
+   window.renderInstructionJSON = (instructionData) => {
+
+    if(
+        !instructionData ||
+        !Array.isArray(instructionData.sections)
+    ){
+
+        return `
+            <div class="empty">
+                Examination instructions are unavailable.
+            </div>
+        `;
+
+    }
+
+
+    let html = "";
+
+
+    // =====================================================
+    // TITLE
+    // =====================================================
+
+    if(instructionData.title){
+
+        html += `
+        <div style="
+            text-align:center;
+            margin-bottom:25px;
+        ">
+
+            <h2 style="
+                margin-bottom:8px;
+                color:#0f172a;
+            ">
+                ${esc(instructionData.title)}
+            </h2>
+
+            ${
+                Array.isArray(instructionData.languages)
+                ?
+                `
+                <div class="muted small">
+                    ${instructionData.languages
+                        .map(x => esc(x))
+                        .join(" · ")}
+                </div>
+                `
+                :
+                ""
+            }
+
+        </div>
+        `;
+
+    }
+
+
+    // =====================================================
+    // SECTIONS
+    // =====================================================
+
+    instructionData.sections.forEach(
+        (section,index) => {
+
+            let number =
+                section.number ||
+                index + 1;
+
+            let title =
+                section.title ||
+                "";
+
+            let titleBn =
+                section.title_bn ||
+                "";
+
+
+            html += `
+
+            <div style="
+                margin-bottom:26px;
+                padding-bottom:22px;
+                border-bottom:1px solid #e2e8f0;
+            ">
+
+                <div style="
+                    display:flex;
+                    gap:10px;
+                    align-items:flex-start;
+                    margin-bottom:14px;
+                ">
+
+                    <div style="
+                        min-width:34px;
+                        height:34px;
+                        border-radius:9px;
+                        background:#eef2ff;
+                        color:#4338ca;
+                        display:grid;
+                        place-items:center;
+                        font-weight:800;
+                    ">
+                        ${number}
+                    </div>
+
+                    <div>
+
+                        <h3 style="
+                            margin:0;
+                            color:#0f172a;
+                        ">
+                            ${esc(title)}
+                        </h3>
+
+                        ${
+                            titleBn
+                            ?
+                            `
+                            <div style="
+                                margin-top:3px;
+                                color:#64748b;
+                                font-size:13px;
+                            ">
+                                ${esc(titleBn)}
+                            </div>
+                            `
+                            :
+                            ""
+                        }
+
+                    </div>
+
+                </div>
+
+            `;
+
+
+            // =================================================
+            // ENGLISH + BENGALI
+            // =================================================
+
+            if(
+                section.english ||
+                section.bengali
+            ){
+
+                if(section.english){
+
+                    html += `
+                    <div style="
+                        padding:13px 15px;
+                        background:#f8fafc;
+                        border-radius:9px;
+                        margin-bottom:9px;
+                        line-height:1.7;
+                    ">
+
+                        <div style="
+                            font-size:11px;
+                            font-weight:800;
+                            color:#64748b;
+                            margin-bottom:5px;
+                        ">
+                            ENGLISH
+                        </div>
+
+                        <div>
+                            ${esc(section.english)}
+                        </div>
+
+                    </div>
+                    `;
+
+                }
+
+
+                if(section.bengali){
+
+                    html += `
+                    <div style="
+                        padding:13px 15px;
+                        background:#f8fafc;
+                        border-radius:9px;
+                        line-height:1.7;
+                    ">
+
+                        <div style="
+                            font-size:11px;
+                            font-weight:800;
+                            color:#64748b;
+                            margin-bottom:5px;
+                        ">
+                            বাংলা
+                        </div>
+
+                        <div>
+                            ${esc(section.bengali)}
+                        </div>
+
+                    </div>
+                    `;
+
+                }
+
+            }
+
+
+            // =================================================
+            // BULLET LIST
+            // =================================================
+
+            if(Array.isArray(section.bullets)){
+
+                html += `
+                <ul style="
+                    line-height:1.8;
+                    padding-left:24px;
+                    color:#334155;
+                ">
+                `;
+
+                section.bullets.forEach(
+                    item => {
+
+                        html += `
+                        <li>
+                            ${esc(
+                                typeof item === "string"
+                                ? item
+                                : item.english || ""
+                            )}
+                        </li>
+                        `;
+
+                    }
+                );
+
+                html += `</ul>`;
+
+            }
+
+
+            // =================================================
+            // BILINGUAL BULLETS
+            // =================================================
+
+            if(Array.isArray(section.bilingual_bullets)){
+
+                section.bilingual_bullets.forEach(
+                    item => {
+
+                        html += `
+
+                        <div style="
+                            padding:13px;
+                            margin-bottom:8px;
+                            background:#f8fafc;
+                            border-radius:9px;
+                            line-height:1.7;
+                        ">
+
+                            ${
+                                item.english
+                                ?
+                                `<div>
+                                    ${esc(item.english)}
+                                </div>`
+                                :
+                                ""
+                            }
+
+                            ${
+                                item.bengali
+                                ?
+                                `<div style="
+                                    margin-top:5px;
+                                    color:#475569;
+                                ">
+                                    ${esc(item.bengali)}
+                                </div>`
+                                :
+                                ""
+                            }
+
+                        </div>
+
+                        `;
+
+                    }
+                );
+
+            }
+
+
+            // =================================================
+            // TABLE
+            // =================================================
+
+            if(
+                section.type === "table" &&
+                Array.isArray(section.columns) &&
+                Array.isArray(section.rows)
+            ){
+
+                html += `
+
+                <div style="
+                    overflow-x:auto;
+                    margin-top:14px;
+                ">
+
+                    <table class="table">
+
+                        <thead>
+
+                            <tr>
+
+                                ${
+                                    section.columns
+                                        .map(
+                                            col =>
+                                            `<th>${esc(col)}</th>`
+                                        )
+                                        .join("")
+                                }
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            ${
+                                section.rows
+                                    .map(
+                                        row => `
+                                        <tr>
+                                            ${
+                                                row
+                                                    .map(
+                                                        cell =>
+                                                        `<td>${esc(cell)}</td>`
+                                                    )
+                                                    .join("")
+                                            }
+                                        </tr>
+                                        `
+                                    )
+                                    .join("")
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                `;
+
+            }
+
+
+            // =================================================
+            // TIME ALLOCATION
+            // =================================================
+
+            if(
+                section.type === "time_allocation" &&
+                Array.isArray(section.items)
+            ){
+
+                html += `
+
+                <div style="
+                    display:grid;
+                    gap:8px;
+                    margin-top:12px;
+                ">
+
+                    ${
+                        section.items
+                            .map(
+                                item => `
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    gap:15px;
+                                    padding:12px 14px;
+                                    background:#f8fafc;
+                                    border-radius:8px;
+                                ">
+
+                                    <span>
+                                        ${esc(item.questions)}
+                                    </span>
+
+                                    <b>
+                                        ${esc(item.time)}
+                                    </b>
+
+                                </div>
+                                `
+                            )
+                            .join("")
+                    }
+
+                </div>
+
+                `;
+
+            }
+
+
+            // =================================================
+            // NUMBERED STEPS
+            // =================================================
+
+            if(Array.isArray(section.steps)){
+
+                html += `
+
+                <div style="
+                    display:grid;
+                    gap:9px;
+                    margin-top:12px;
+                ">
+
+                    ${
+                        section.steps
+                            .map(
+                                (step,i) => `
+
+                                <div style="
+                                    display:flex;
+                                    gap:12px;
+                                    align-items:flex-start;
+                                    line-height:1.7;
+                                ">
+
+                                    <div style="
+                                        min-width:27px;
+                                        height:27px;
+                                        border-radius:50%;
+                                        background:#e2e8f0;
+                                        display:grid;
+                                        place-items:center;
+                                        font-size:12px;
+                                        font-weight:700;
+                                    ">
+                                        ${i + 1}
+                                    </div>
+
+                                    <div>
+                                        ${esc(
+                                            typeof step === "string"
+                                            ? step
+                                            : step.english || ""
+                                        )}
+                                    </div>
+
+                                </div>
+
+                                `
+                            )
+                            .join("")
+                    }
+
+                </div>
+
+                `;
+
+            }
+
+
+            html += `</div>`;
+
+        }
+    );
+
+
+    // =====================================================
+    // START CONFIRMATION
+    // =====================================================
+
+    if(instructionData.start_confirmation){
+
+        let sc =
+            instructionData.start_confirmation;
+
+        html += `
+
+        <div style="
+            margin-top:25px;
+            padding:18px;
+            border:1px solid #fcd34d;
+            background:#fffbeb;
+            border-radius:12px;
+        ">
+
+            <h3 style="
+                margin-top:0;
+                color:#92400e;
+            ">
+                ${esc(
+                    sc.title ||
+                    "START EXAM CONFIRMATION"
+                )}
+            </h3>
+
+            ${
+                sc.english
+                ?
+                `
+                <div style="
+                    line-height:1.7;
+                    margin-bottom:10px;
+                ">
+                    ${esc(sc.english)}
+                </div>
+                `
+                :
+                ""
+            }
+
+            ${
+                sc.bengali
+                ?
+                `
+                <div style="
+                    line-height:1.7;
+                    color:#78350f;
+                ">
+                    ${esc(sc.bengali)}
+                </div>
+                `
+                :
+                ""
+            }
+
+        </div>
+
+        `;
+
+    }
+
+
+    return html;
+};
+     window.toggleExam=async id=>{let e=window._cache.exams[id];await update(ref(db,"exams/"+id),{status:e.status==="published"?"draft":"published"}); toast("Exam status updated"); adminExams(); };
 window.deleteExam=async id=>{if(!confirm("Delete this examination?"))return;await set(ref(db,"exams/"+id),null); toast("Exam deleted"); adminExams(); };
 
 Object.assign(window, { $, submitRegistration, studentLogin, adminLogin, adminDashboard, adminExams, adminScheduling, scheduleAndEmail, adminRescheduling, rescheduleAndEmail, adminIDManagement, searchVerifyCandidate, checkTally, verifyCandidate, adminMonitorSetup, launchCommandCenter, setExamPhase, closeCommandCenter, cmdNext, cmdPrev, toggleCmdLoop, sendWarning, adminResults, openExamModal, createExam, toggleExam, deleteExam, joinExamLobby, enableScreenShare, toggleTcsStart, confirmStartExam, beginSecureExam, clearCurrentAnswer, requestExamFullscreen, resumeAfterSecurity, chooseOption, nextQuestion });window.landing();
