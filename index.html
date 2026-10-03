@@ -1064,6 +1064,28 @@ window.scheduleAndEmail = async (safeRoll) => {
             }
         }
 
+        // Some older records saved the JSON in instructionJsonRaw.
+        if (!instructionData && exam.instructionJsonRaw) {
+            try {
+                let raw = exam.instructionJsonRaw;
+
+                if (typeof raw === "string") {
+                    raw = JSON.parse(raw);
+                }
+
+                // Handle records where the raw field was stringified twice.
+                if (typeof raw === "string") {
+                    raw = JSON.parse(raw);
+                }
+
+                if (raw && typeof raw === "object") {
+                    instructionData = raw;
+                }
+            } catch (e) {
+                instructionData = null;
+            }
+        }
+
         // Final compatibility for old plain-text instruction records.
         if (!instructionData && exam.instructions) {
             instructionData = {
@@ -1899,6 +1921,28 @@ if (!instructionData && exam.instructions) {
     }
 }
 
+// Some older records saved the JSON in instructionJsonRaw.
+if (!instructionData && exam.instructionJsonRaw) {
+    try {
+        let raw = exam.instructionJsonRaw;
+
+        if (typeof raw === "string") {
+            raw = JSON.parse(raw);
+        }
+
+        // Handle records where the raw field was stringified twice.
+        if (typeof raw === "string") {
+            raw = JSON.parse(raw);
+        }
+
+        if (raw && typeof raw === "object") {
+            instructionData = raw;
+        }
+    } catch (e) {
+        instructionData = null;
+    }
+}
+
 // If an old record contains plain text, convert it to the current structure.
 if (!instructionData && exam.instructions) {
     instructionData = {
@@ -2582,20 +2626,55 @@ function showExamInstructions(isExamStarted = false){
 
         } catch(e){
 
-            instructionData = {
-                title:"Examination Instructions",
-
-                sections:[
-                    {
-                        number:1,
-                        title:"Instructions",
-                        english:
-                            state.exam.instructions
-                    }
-                ]
-            };
+            instructionData = null;
 
         }
+
+    }
+
+    // Compatibility with older records that stored the JSON in instructionJsonRaw.
+    if(
+        !instructionData &&
+        state.exam.instructionJsonRaw
+    ){
+
+        try {
+
+            let raw =
+                state.exam.instructionJsonRaw;
+
+            if(typeof raw === "string")
+                raw = JSON.parse(raw);
+
+            if(typeof raw === "string")
+                raw = JSON.parse(raw);
+
+            instructionData = raw;
+
+        } catch(e){
+
+            instructionData = null;
+
+        }
+
+    }
+
+    // Final compatibility for genuinely old plain-text instruction records.
+    if(
+        !instructionData &&
+        state.exam.instructions
+    ){
+
+        instructionData = {
+            title:"Examination Instructions",
+            sections:[
+                {
+                    number:1,
+                    title:"Instructions",
+                    english:[String(state.exam.instructions)]
+                }
+            ]
+        };
 
     }
 
