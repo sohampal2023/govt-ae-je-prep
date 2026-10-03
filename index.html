@@ -1850,9 +1850,6 @@ window.rescheduleAndEmail = async (safeRoll) => {
     let dateVal =
         $(`re-date-${safeRoll}`).value;
 
-    /*
-     * Add this venue field to the rescheduling UI if it is not already there.
-     */
     let venueEl =
         $(`re-venue-${safeRoll}`);
 
@@ -1860,186 +1857,416 @@ window.rescheduleAndEmail = async (safeRoll) => {
         venueEl ? venueEl.value.trim() : "";
 
     if(!examId){
-        return toast("Please select the new examination.");
+        return toast(
+            "Please select the new examination."
+        );
     }
 
     if(!dateVal){
-        return toast("Please select the new reporting date and time.");
+        return toast(
+            "Please select the new reporting date and time."
+        );
     }
 
     if(!venue){
-        return toast("Please enter the new final examination venue.");
+        return toast(
+            "Please enter the new final examination venue."
+        );
     }
 
     let v =
         window._cache.verifications[safeRoll];
 
     if(!v){
-        return toast("Candidate not found.");
+        return toast(
+            "Candidate not found."
+        );
     }
 
     let exam =
         window._cache.exams[examId];
 
     if(!exam){
-        return toast("Selected examination not found.");
+        return toast(
+            "Selected examination not found."
+        );
     }
+
+
+    /* =====================================================
+       RESOLVE INSTRUCTION JSON
+       ===================================================== */
+
+    let instructionData = null;
+
+    /*
+     * Check every possible storage field.
+     *
+     * IMPORTANT:
+     * We do NOT stop just because instructionJson exists.
+     * It must actually contain a valid sections[] array.
+     */
+
+    const instructionCandidates = [
+
+        exam.instructionJson,
+
+        exam.instructionJsonRaw,
+
+        exam.instructions
+
+    ];
+
+
+    for(
+        const candidate
+        of instructionCandidates
+    ){
+
+        if(
+            candidate === null ||
+            candidate === undefined ||
+            candidate === ""
+        ){
+            continue;
+        }
+
+
+        try {
+
+            let parsed =
+                candidate;
+
+
+            /*
+             * Normal JSON string.
+             */
+            if(
+                typeof parsed === "string"
+            ){
+
+                parsed =
+                    JSON.parse(parsed);
+
+            }
+
+
+            /*
+             * Handle double-stringified JSON.
+             */
+            if(
+                typeof parsed === "string"
+            ){
+
+                parsed =
+                    JSON.parse(parsed);
+
+            }
+
+
+            /*
+             * Accept only a real instruction
+             * object containing sections[].
+             */
+            if(
+                parsed &&
+                typeof parsed === "object" &&
+                Array.isArray(
+                    parsed.sections
+                )
+            ){
+
+                instructionData =
+                    parsed;
+
+                break;
+
+            }
+
+        }
+        catch(error){
+
+            /*
+             * Invalid candidate.
+             * Continue with the next field.
+             */
+
+        }
+
+    }
+
+
+    /*
+     * Last compatibility option for very old
+     * records containing plain-text instructions.
+     */
+
+    if(
+        !instructionData &&
+        typeof exam.instructions === "string"
+    ){
+
+        let plainText =
+            exam.instructions.trim();
+
+
+        if(
+            plainText &&
+            !plainText.startsWith("{") &&
+            !plainText.startsWith("[")
+        ){
+
+            instructionData = {
+
+                title:
+                    "Examination Instructions",
+
+                sections: [
+
+                    {
+
+                        title:
+                            "Instructions",
+
+                        english: [
+                            plainText
+                        ]
+
+                    }
+
+                ]
+
+            };
+
+        }
+
+    }
+
+
+    /*
+     * Final validation.
+     */
+
+    if(
+        !instructionData ||
+        typeof instructionData !== "object" ||
+        !Array.isArray(
+            instructionData.sections
+        )
+    ){
+
+        console.error(
+            "RESCHEDULE INSTRUCTION ERROR",
+            {
+                examId:
+                    examId,
+
+                examName:
+                    exam.name,
+
+                instructionJson:
+                    exam.instructionJson,
+
+                instructionJsonRaw:
+                    exam.instructionJsonRaw,
+
+                instructions:
+                    exam.instructions
+            }
+        );
+
+        throw new Error(
+            "This examination does not contain valid Instruction JSON. Please edit and save the examination instructions."
+        );
+
+    }
+
+
+    /*
+     * Convert the structured instruction JSON
+     * into the official email text.
+     */
+
+    let exactInstructions =
+        instructionJSONToEmail(
+            instructionData
+        );
+
+
+    if(
+        !exactInstructions
+    ){
+
+        return toast(
+            "The selected examination has no official instructions."
+        );
+
+    }
+
+
+    /* =====================================================
+       GENERATE NEW CANDIDATE PIN
+       ===================================================== */
 
     let newCandidatePin =
-        Math.floor(1000 + Math.random() * 9000).toString();
+        Math.floor(
+            1000 +
+            Math.random() * 9000
+        ).toString();
+
 
     let formattedDate =
-        new Date(dateVal).toLocaleString("en-IN", {
-            dateStyle:"full",
-            timeStyle:"short"
-        });
-
-    let instructionData =
-    exam.instructionJson;
-
-// Firebase can return instructionJson as an object or JSON string.
-if (typeof instructionData === "string") {
-    try {
-        instructionData = JSON.parse(instructionData);
-    } catch (e) {
-        instructionData = null;
-    }
-}
-
-// Compatibility with older exam records.
-if (!instructionData && exam.instructions) {
-
-    if (typeof exam.instructions === "object") {
-        instructionData = exam.instructions;
-    }
-    else if (typeof exam.instructions === "string") {
-        try {
-            instructionData = JSON.parse(exam.instructions);
-        } catch (e) {
-            instructionData = null;
-        }
-    }
-}
-
-// Some older records saved the JSON in instructionJsonRaw.
-if (!instructionData && exam.instructionJsonRaw) {
-    try {
-        let raw = exam.instructionJsonRaw;
-
-        if (typeof raw === "string") {
-            raw = JSON.parse(raw);
-        }
-
-        // Handle records where the raw field was stringified twice.
-        if (typeof raw === "string") {
-            raw = JSON.parse(raw);
-        }
-
-        if (raw && typeof raw === "object") {
-            instructionData = raw;
-        }
-    } catch (e) {
-        instructionData = null;
-    }
-}
-
-// If an old record contains plain text, convert it to the current structure.
-if (!instructionData && exam.instructions) {
-    instructionData = {
-        title: "Examination Instructions",
-        sections: [{
-            title: "Instructions",
-            english: [String(exam.instructions)]
-        }]
-    };
-}
-
-if (
-    !instructionData ||
-    typeof instructionData !== "object" ||
-    !Array.isArray(instructionData.sections)
-) {
-    throw new Error(
-        "This examination does not contain valid Instruction JSON. Please edit and save the examination instructions."
-    );
-}
-
-let exactInstructions =
-    instructionJSONToEmail(instructionData);
-
-if (!exactInstructions) {
-    return toast(
-        "The selected examination has no official instructions."
-    );
-}
-
-    let btn =
-        event.target;
-
-    let originalText =
-        btn.innerText;
-
-    btn.innerText =
-        "Rescheduling & Sending...";
-
-    btn.disabled = true;
-
-    try {
-
-        /*
-         * Invalidate old schedule and PIN.
-         */
-        await update(
-            ref(db,"verifications/" + safeRoll),
+        new Date(
+            dateVal
+        ).toLocaleString(
+            "en-IN",
             {
-                status:"pending",
-
-                examId:examId,
-                examDate:dateVal,
-
-                venue:venue,
-                venueFinalized:true,
-                scheduleFinalized:true,
-
-                /*
-                 * Old PIN is replaced.
-                 */
-                candidatePin:newCandidatePin,
-                pinGenerated:true,
-                pinGeneratedAt:Date.now(),
-                pinStatus:"active",
-
-                previousPinInvalidated:true,
-
-                secretId:null
+                dateStyle:"full",
+                timeStyle:"short"
             }
         );
 
 
-        /*
-         * Disable an already-created student login.
-         */
+    /*
+     * Get the clicked button safely.
+     */
+    let btn =
+        event?.target ||
+        document.activeElement;
+
+
+    let originalText =
+        btn?.innerText ||
+        "Reschedule & Mail";
+
+
+    if(btn){
+
+        btn.innerText =
+            "Rescheduling & Sending...";
+
+        btn.disabled =
+            true;
+
+    }
+
+
+    try {
+
+
+        /* =================================================
+           UPDATE CANDIDATE SCHEDULE
+           ================================================= */
+
+        await update(
+            ref(
+                db,
+                "verifications/" +
+                safeRoll
+            ),
+            {
+
+                status:
+                    "pending",
+
+                examId:
+                    examId,
+
+                examDate:
+                    dateVal,
+
+                venue:
+                    venue,
+
+                venueFinalized:
+                    true,
+
+                scheduleFinalized:
+                    true,
+
+
+                /*
+                 * Generate new PIN.
+                 */
+                candidatePin:
+                    newCandidatePin,
+
+                pinGenerated:
+                    true,
+
+                pinGeneratedAt:
+                    Date.now(),
+
+                pinStatus:
+                    "active",
+
+
+                /*
+                 * Previous PIN is no longer valid.
+                 */
+                previousPinInvalidated:
+                    true,
+
+
+                /*
+                 * Previous Secret Login ID
+                 * is invalidated.
+                 */
+                secretId:
+                    null
+
+            }
+        );
+
+
+        /* =================================================
+           DISABLE EXISTING STUDENT LOGIN
+           ================================================= */
+
         let studentSnap =
             await get(
-                ref(db,"students/" + safeRoll)
+                ref(
+                    db,
+                    "students/" +
+                    safeRoll
+                )
             );
 
-        if(studentSnap.exists()){
+
+        if(
+            studentSnap.exists()
+        ){
 
             await update(
-                ref(db,"students/" + safeRoll),
+                ref(
+                    db,
+                    "students/" +
+                    safeRoll
+                ),
                 {
-                    active:false,
-                    secretId:null,
-                    secretExpiry:null
+
+                    active:
+                        false,
+
+                    secretId:
+                        null,
+
+                    secretExpiry:
+                        null
+
                 }
             );
 
         }
 
 
+        /* =================================================
+           EMAIL
+           ================================================= */
+
         let subject =
             `OFFICIAL UPDATE | Examination Rescheduled | Roll No. ${v.roll}`;
+
 
         let bodyText =
 `Dear ${v.name},
@@ -2112,6 +2339,10 @@ ExamFlow
 Professional Computer Based Examination System`;
 
 
+        /* =================================================
+           GOOGLE APPS SCRIPT EMAIL
+           ================================================= */
+
         let scriptUrl =
             "https://script.google.com/macros/s/AKfycbxWG0xqsw6lVAg7XGBssuTr6o1l-L5X_ZM_9D4xBX7ksH7_KFchwNdGLrJaObNYi7Q/exec";
 
@@ -2119,40 +2350,73 @@ Professional Computer Based Examination System`;
         await fetch(
             scriptUrl,
             {
-                method:"POST",
-                mode:"no-cors",
+                method:
+                    "POST",
+
+                mode:
+                    "no-cors",
+
                 headers:{
-                    "Content-Type":"text/plain"
+                    "Content-Type":
+                        "text/plain"
                 },
-                body:JSON.stringify({
-                    to:v.email,
-                    subject:subject,
-                    body:bodyText
-                })
+
+                body:
+                    JSON.stringify({
+
+                        to:
+                            v.email,
+
+                        subject:
+                            subject,
+
+                        body:
+                            bodyText
+
+                    })
             }
         );
 
+
+        /* =================================================
+           SUCCESS
+           ================================================= */
 
         toast(
             "Candidate rescheduled. Previous PIN invalidated and new PIN emailed."
         );
 
+
         adminRescheduling();
 
-    } catch(e){
 
-        console.error(e);
+    }
+    catch(error){
+
+        console.error(
+            "Reschedule Error:",
+            error
+        );
+
 
         toast(
+            error.message ||
             "Failed to reschedule candidate."
         );
 
-        btn.innerText =
-            originalText;
 
-        btn.disabled =
-            false;
+        if(btn){
+
+            btn.innerText =
+                originalText;
+
+            btn.disabled =
+                false;
+
+        }
+
     }
+
 };
 window.checkTally = () => {
     let allChecked = Array.from(document.querySelectorAll('.tally-chk')).every(c => c.checked);
