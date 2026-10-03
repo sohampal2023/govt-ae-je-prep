@@ -3006,29 +3006,232 @@ window.confirmStartExam = async () => {
 // 5. RENDER EXAM, SECURITY, RESULTS
 // ==========================================
 function renderExam(){
-clearInterval(state.timer);
-let s=state.session,q=s.questions[s.currentIndex],chosen=s.responses[s.currentIndex]?.selectedOriginal;
-let answeredCount=Object.keys(s.responses||{}).length;
-show(`<div class="cbt-body">
-<header class="cbt-header"><div class="cbt-brand"><div class="cbt-emblem">SAM</div><div>${esc(state.exam.name)}</div></div><div class="cbt-user"><div class="cbt-userbox"><b>${esc(state.student.name)}</b>${esc(state.student.roll)}</div><div class="cbt-avatar">${esc((state.student.name||"S").slice(0,1).toUpperCase())}</div></div></header>
-<div class="cbt-strip"><span><b>Mode:</b> Secure Computer Based Test</span><span><button class="btn btn-sm btn-light" onclick="requestExamFullscreen()">⛶ Full Screen</button></span></div>
+    clearInterval(state.timer);
+
+    let s = state.session;
+    let q = s.questions[s.currentIndex];
+    let chosen = s.responses[s.currentIndex]?.selectedOriginal;
+    let answeredCount = Object.keys(s.responses || {}).length;
+
+    show(`<div class="cbt-body">
+
+<header class="cbt-header">
+    <div class="cbt-brand">
+        <div class="cbt-emblem">SAM</div>
+        <div>${esc(state.exam.name)}</div>
+    </div>
+
+    <div class="cbt-user">
+        <div class="cbt-userbox">
+            <b>${esc(state.student.name)}</b>
+            ${esc(state.student.roll)}
+        </div>
+
+        <div class="cbt-avatar">
+            ${esc((state.student.name || "S").slice(0,1).toUpperCase())}
+        </div>
+    </div>
+</header>
+
+<div class="cbt-strip">
+    <span><b>Mode:</b> Secure Computer Based Test</span>
+
+    <span>
+        <button class="btn btn-sm btn-light"
+            onclick="requestExamFullscreen()">
+            ⛶ Full Screen
+        </button>
+    </span>
+</div>
+
 <div class="cbt-main">
+
 <main class="cbt-question-panel">
-  <div class="cbt-question-head"><div class="cbt-q-number">Question No. ${s.currentIndex+1}</div><div class="cbt-marks">Section: <b>${esc(q.section)}</b> &nbsp; | &nbsp; Marks: <b>${q.marks}</b></div></div>
-  <div class="cbt-question-content"><div class="cbt-question-text">${esc(q.text)}</div><div class="cbt-options">
-      ${q.displayed.map((o,i)=>`<div class="cbt-option ${chosen===o.original?"selected":""}" id="cbtopt${i}" onclick="chooseOption(${o.original})"><div class="cbt-radio"></div><div class="cbt-option-letter">${String.fromCharCode(65+i)}</div><div>${esc(o.text)}</div></div>`).join("")}
-  </div></div>
-  <div class="cbt-footer"><div class="small muted">Answered: ${answeredCount} / ${s.totalQuestions}</div><div style="display:flex;gap:8px"><button class="btn btn-light" onclick="clearCurrentAnswer()">Clear Response</button><button class="btn ${s.currentIndex===s.totalQuestions-1?"btn-success":"btn-primary"}" onclick="nextQuestion()">${s.currentIndex===s.totalQuestions-1?"Submit Test":"Save & Next"}</button></div></div>
+
+    <div class="cbt-question-head">
+        <div class="cbt-q-number">
+            Question No. ${s.currentIndex + 1}
+        </div>
+
+        <div class="cbt-marks">
+            Section: <b>${esc(q.section)}</b>
+            &nbsp; | &nbsp;
+            Marks: <b>${q.marks}</b>
+        </div>
+    </div>
+
+    <div class="cbt-question-content">
+
+        <div class="cbt-question-text">
+            ${esc(q.text)}
+        </div>
+
+        <div class="cbt-options">
+
+            ${q.displayed.map((o,i)=>`
+                <div
+                    class="cbt-option ${chosen === o.original ? "selected" : ""}"
+                    id="cbtopt${i}"
+                    onclick="chooseOption(${o.original})"
+                >
+                    <div class="cbt-radio"></div>
+
+                    <div class="cbt-option-letter">
+                        ${String.fromCharCode(65+i)}
+                    </div>
+
+                    <div>
+                        ${esc(o.text)}
+                    </div>
+                </div>
+            `).join("")}
+
+        </div>
+
+    </div>
+
+    <!-- Bottom footer only shows answered count -->
+    <div class="cbt-footer">
+
+        <div class="small muted">
+            Answered: ${answeredCount} / ${s.totalQuestions}
+        </div>
+
+    </div>
+
 </main>
+
+
+<!-- RIGHT PANEL -->
+
 <aside class="cbt-right-panel">
-  <div class="cbt-profile"><div class="cbt-avatar" style="background:#e2e8f0;color:#0f172a">${esc((state.student.name||"S").slice(0,1).toUpperCase())}</div><div><b>${esc(state.student.name)}</b><small>Roll: ${esc(state.student.roll)}</small></div></div>
-  <div class="cbt-timerbox"><div class="small muted" style="margin-bottom:8px;font-weight:700">TIME REMAINING</div><div class="cbt-timer" id="timer">${fmt(s.timeLeft)}</div></div>
-  <div style="padding:15px; font-weight:700; border-bottom:1px solid #e2e8f0">Question Palette</div>
-  <div class="cbt-grid">${s.questions.map((x,i)=>{let cls=i===s.currentIndex?"current":(s.responses[i]?"answered":"");return `<button class="cbt-qbtn ${cls}" disabled>${i+1}</button>`;}).join("")}</div>
-  <div class="cbt-security"><strong>Security Monitor</strong><span style="color:#10b981;font-weight:800">● Active</span><br>Local Warnings: <span id="violationCount">${state.proctor?.violations||0}</span></div>
+
+    <!-- Candidate Profile -->
+    <div class="cbt-profile">
+
+        <div
+            class="cbt-avatar"
+            style="background:#e2e8f0;color:#0f172a"
+        >
+            ${esc((state.student.name || "S").slice(0,1).toUpperCase())}
+        </div>
+
+        <div>
+            <b>${esc(state.student.name)}</b>
+            <small>Roll: ${esc(state.student.roll)}</small>
+        </div>
+
+    </div>
+
+
+    <!-- TIMER -->
+    <div class="cbt-timerbox">
+
+        <div
+            class="small muted"
+            style="margin-bottom:8px;font-weight:700"
+        >
+            TIME REMAINING
+        </div>
+
+        <div class="cbt-timer" id="timer">
+            ${fmt(s.timeLeft)}
+        </div>
+
+    </div>
+
+
+    <!-- SAVE / NEXT + CLEAR RESPONSE -->
+    <div style="
+        padding:15px;
+        border-bottom:1px solid #e2e8f0;
+        background:#fff;
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+    ">
+
+        <button
+            class="btn ${s.currentIndex === s.totalQuestions - 1 ? "btn-success" : "btn-primary"}"
+            style="width:100%;"
+            onclick="nextQuestion()"
+        >
+            ${s.currentIndex === s.totalQuestions - 1
+                ? "Submit Test"
+                : "Save & Next"}
+        </button>
+
+        <button
+            class="btn btn-light"
+            style="width:100%;"
+            onclick="clearCurrentAnswer()"
+        >
+            Clear Response
+        </button>
+
+    </div>
+
+
+    <!-- QUESTION PALETTE -->
+    <div
+        style="
+            padding:15px;
+            font-weight:700;
+            border-bottom:1px solid #e2e8f0;
+        "
+    >
+        Question Palette
+    </div>
+
+    <div class="cbt-grid">
+
+        ${s.questions.map((x,i)=>{
+
+            let cls =
+                i === s.currentIndex
+                    ? "current"
+                    : (s.responses[i] ? "answered" : "");
+
+            return `
+                <button
+                    class="cbt-qbtn ${cls}"
+                    disabled
+                >
+                    ${i+1}
+                </button>
+            `;
+
+        }).join("")}
+
+    </div>
+
+
+    <!-- SECURITY MONITOR -->
+    <div class="cbt-security">
+
+        <strong>Security Monitor</strong>
+
+        <span
+            style="color:#10b981;font-weight:800"
+        >
+            ● Active
+        </span>
+
+        <br>
+
+        Local Warnings:
+        <span id="violationCount">
+            ${state.proctor?.violations || 0}
+        </span>
+
+    </div>
+
 </aside>
-</div></div>`);
-startTimer();
+
+</div>
+</div>`);
+
+    startTimer();
 }
 
 window.clearCurrentAnswer=()=>{ delete state.session.responses[state.session.currentIndex]; document.querySelectorAll(".cbt-option").forEach(x=>x.classList.remove("selected")); toast("Response cleared"); };
