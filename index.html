@@ -1039,12 +1039,58 @@ window.scheduleAndEmail = async (safeRoll) => {
          * Build the exact exam instruction text entered
          * by the administrator during question upload.
          */
-        let exactInstructions =
-            String(exam.instructions || "").trim();
+            // Load instructions from the structured JSON field first.
+        // Firebase may return it either as an object or as a JSON string.
+        let instructionData = exam.instructionJson;
 
-        if(!exactInstructions){
+        if (typeof instructionData === "string") {
+            try {
+                instructionData = JSON.parse(instructionData);
+            } catch (e) {
+                instructionData = null;
+            }
+        }
+
+        // Compatibility with older records.
+        if (!instructionData && exam.instructions) {
+            if (typeof exam.instructions === "object") {
+                instructionData = exam.instructions;
+            } else if (typeof exam.instructions === "string") {
+                try {
+                    instructionData = JSON.parse(exam.instructions);
+                } catch (e) {
+                    instructionData = null;
+                }
+            }
+        }
+
+        // Final compatibility for old plain-text instruction records.
+        if (!instructionData && exam.instructions) {
+            instructionData = {
+                title: "Examination Instructions",
+                sections: [{
+                    title: "Instructions",
+                    english: [String(exam.instructions)]
+                }]
+            };
+        }
+
+        if (
+            !instructionData ||
+            typeof instructionData !== "object" ||
+            !Array.isArray(instructionData.sections)
+        ) {
             throw new Error(
-                "This examination has no instructions. Please edit/recreate the exam and enter the official instructions before scheduling candidates."
+                "This examination does not contain valid Instruction JSON. Please edit and save the examination instructions."
+            );
+        }
+
+        let exactInstructions =
+            instructionJSONToEmail(instructionData);
+
+        if (!exactInstructions) {
+            throw new Error(
+                "This examination contains empty or invalid instructions."
             );
         }
 
@@ -1829,39 +1875,59 @@ window.rescheduleAndEmail = async (safeRoll) => {
     let instructionData =
     exam.instructionJson;
 
-if(
-    !instructionData &&
-    exam.instructions
-){
+// Firebase can return instructionJson as an object or JSON string.
+if (typeof instructionData === "string") {
     try {
-        instructionData =
-            JSON.parse(exam.instructions);
-    } catch(e) {
-        throw new Error(
-            "Exam instruction JSON is invalid."
-        );
+        instructionData = JSON.parse(instructionData);
+    } catch (e) {
+        instructionData = null;
     }
 }
 
-if(
+// Compatibility with older exam records.
+if (!instructionData && exam.instructions) {
+
+    if (typeof exam.instructions === "object") {
+        instructionData = exam.instructions;
+    }
+    else if (typeof exam.instructions === "string") {
+        try {
+            instructionData = JSON.parse(exam.instructions);
+        } catch (e) {
+            instructionData = null;
+        }
+    }
+}
+
+// If an old record contains plain text, convert it to the current structure.
+if (!instructionData && exam.instructions) {
+    instructionData = {
+        title: "Examination Instructions",
+        sections: [{
+            title: "Instructions",
+            english: [String(exam.instructions)]
+        }]
+    };
+}
+
+if (
     !instructionData ||
+    typeof instructionData !== "object" ||
     !Array.isArray(instructionData.sections)
-){
+) {
     throw new Error(
-        "This examination does not contain valid Instruction JSON."
+        "This examination does not contain valid Instruction JSON. Please edit and save the examination instructions."
     );
 }
 
 let exactInstructions =
-    instructionJSONToEmail(
-        instructionData
-    );
+    instructionJSONToEmail(instructionData);
 
-    if(!exactInstructions){
-        return toast(
-            "The selected examination has no official instructions."
-        );
-    }
+if (!exactInstructions) {
+    return toast(
+        "The selected examination has no official instructions."
+    );
+}
 
     let btn =
         event.target;
@@ -3755,11 +3821,26 @@ window.openExamModal = (examId = null) => {
 
         if (exam.instructionJson) {
 
-            instructionJSON = JSON.stringify(
-                exam.instructionJson,
-                null,
-                2
-            );
+            let existingInstructionData =
+                exam.instructionJson;
+
+            // Stored value may be an object or a JSON string.
+            if (typeof existingInstructionData === "string") {
+                try {
+                    existingInstructionData =
+                        JSON.parse(existingInstructionData);
+                } catch (err) {
+                    existingInstructionData = null;
+                }
+            }
+
+            if (existingInstructionData) {
+                instructionJSON = JSON.stringify(
+                    existingInstructionData,
+                    null,
+                    2
+                );
+            }
 
         } else if (exam.instructions) {
 
@@ -4180,12 +4261,34 @@ window.openExamModal = (examId = null) => {
         }
 
 
+        // Accept the normal array format and also safely normalize
+        // object-wrapped pattern data used by older exam records.
         if (!Array.isArray(examPattern)) {
 
-            throw new Error(
-                "Exam Pattern JSON must be an array."
-            );
+            if (
+                examPattern &&
+                Array.isArray(examPattern.pattern)
+            ) {
+                examPattern = examPattern.pattern;
+            }
+            else if (
+                examPattern &&
+                Array.isArray(examPattern.sections)
+            ) {
+                examPattern = examPattern.sections;
+            }
+            else {
+                throw new Error(
+                    "Exam Pattern JSON must be an array or contain a valid pattern/sections array."
+                );
+            }
 
+        }
+
+        if (!examPattern.length) {
+            throw new Error(
+                "Exam Pattern JSON cannot be empty."
+            );
         }
 
 
